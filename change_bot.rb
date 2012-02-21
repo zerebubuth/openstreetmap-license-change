@@ -48,6 +48,7 @@ class History
   end
 
   def actions
+    first_act = nil
     acts = Array.new
     clean_flag = true
     prev_obj = nil
@@ -55,26 +56,45 @@ class History
     @versions.zip(@cleans).each do |obj,clean| 
       clean_flag = clean_flag && clean
       unless clean_flag
-        if acts.empty?
-          if prev_obj.nil?
-            acts << Delete[obj.class, obj.element_id]
+        if clean and 
+            obj.class == OSM::Node and 
+            (prev_obj.nil? or obj.position != prev_obj.position)
+          if obj.tags.empty?
+            first_act = nil
           else
-            acts << Edit[prev_obj]
+            @tainted_keys.merge(prev_obj.tags.keys)
+            @clean_values.delete_if {|k,v| @tainted_keys.include? k}
+            new_obj = obj.clone
+            new_obj.tags = @clean_values
+            first_act = Edit[new_obj]
+            acts << Redact[obj.class, obj.element_id, obj.version, clean ? :visible : :hidden]
           end
+          clean_flag = true
+        else
+
+          if first_act.nil?
+            if prev_obj.nil?
+              first_act = Delete[obj.class, obj.element_id]
+            else
+              first_act = Edit[prev_obj]
+            end
+          end
+          
+          acts << Redact[obj.class, obj.element_id, obj.version, clean ? :visible : :hidden]
         end
-        acts << Redact[obj.class, obj.element_id, obj.version, clean ? :visible : :hidden]
       end
       prev_obj = obj
       max_version = obj.version
     end
     # need to adjust any edit actions to represent changes from 
     # the last version of the object we've seen.
-    if (not acts.empty?) and (acts[0].class == Edit)
-      acts[0] = acts[0].clone
-      acts[0].obj.changeset_id = -1
-      acts[0].obj.version = max_version
+    if (not first_act.nil?) and (first_act.class == Edit)
+      first_act = first_act.clone
+      first_act.obj.changeset_id = -1
+      first_act.obj.version = max_version
+      first_act.obj.tags = @clean_values
     end
-    acts
+    first_act.nil? ? acts : [first_act] + acts
   end
 end
 
