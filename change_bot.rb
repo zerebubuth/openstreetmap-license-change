@@ -1,13 +1,14 @@
 require './osm'
 require './db'
 require './actions'
+require 'set'
 
 class History
   def initialize(versions)
     # todo: ensure sort
     @versions = versions
-    @tainted_keys = Array.new
-    @tainted_values = Hash.new
+    @tainted_keys = Set.new
+    @clean_values = Hash.new
     @cleans = Array.new
   end
 
@@ -19,18 +20,27 @@ class History
 
   def merge_clean_onto_clean(obj)
     @cleans << true
+    @clean_values = obj.tags
   end
 
   def merge_clean_onto_dirty(obj)
     @cleans << true
+    # merge any value changes for non-tainted keys into the 
+    # tag set.
+    clean_tags = obj.tags.select {|k, v| not @tainted_keys.include? k}
+    @clean_values.merge!(clean_tags)
   end
 
-  def merge_dirty_onto_clean(obj)
+  def merge_dirty(obj)
     @cleans << false
-  end
-
-  def merge_dirty_onto_dirty(obj)
-    @cleans << false
+    # tags which were created in this version of the object are
+    # now tainted :-(
+    @tainted_keys.merge(obj.tags.keys - @clean_values.keys)
+    # tags which were modified from the previous clean version 
+    # are also tainted :'(
+    keys_in_both = obj.tags.keys & @clean_values.keys
+    changed_keys = keys_in_both.select {|k| obj.tags[k] != @clean_values[k]}
+    @tainted_keys.merge(changed_keys)
   end
 
   def is_clean?
@@ -84,11 +94,7 @@ class ChangeBot
           h.merge_clean_onto_dirty(element)
         end
       else
-        if h.is_clean?
-          h.merge_dirty_onto_clean(element)
-        else
-          h.merge_dirty_onto_dirty(element)
-        end
+        h.merge_dirty(element)
       end
     end
     h.actions
