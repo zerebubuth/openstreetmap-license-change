@@ -152,5 +152,15 @@ class TestChangeBox < Test::Unit::TestCase
     assert_equal([Redact[OSM::Node, 1, 1, :hidden]
                  ], actions)
   end
-    
+
+  # way created by decliner, with no other edits, needs to be deleted
+  # and redacted hidden.
+  def test_way_simple
+    history = [OSM::Way[[1,2,3], :id => 1, :changeset => 3, :version => 1]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Delete[OSM::Way, 1],
+                  Redact[OSM::Way, 1, 1, :hidden]
+                 ], actions)
+  end
 end

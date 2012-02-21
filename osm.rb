@@ -64,4 +64,88 @@ module OSM
       init_tags(tags)
     end
   end
+
+  class Way
+    include Taggable, Element, Comparable
+
+    attr_accessor :nodes
+
+    def self.[](nodes, options = {})
+      tags, attrs = Element.parse_options(options)
+      Way.new(attrs, nodes, tags)
+    end
+
+    def <=>(o)
+      compare(o, :nodes, :tags, :element_id, :changeset_id, :timestamp, :visible, :version)
+    end
+
+    def to_s
+      self.class.to_s + "[" + 
+        @nodes.inspect + "," + 
+        [:element_id, :changeset_id, :timestamp, :visible, :version].collect {|attr| "#{attr.inspect}=>#{self.send(attr)}"}.join(",") + "," + 
+        @tags.to_a.collect {|k,v| "#{k.inspect}=>#{v.inspect}"}.join(",") + "]"
+    end
+
+    private
+    def initialize(attrs, nodes, tags)
+      @nodes = nodes
+      init_attrs(attrs)
+      init_tags(tags)
+    end
+  end
+
+
+  class Relation
+    include Taggable, Element, Comparable
+
+    class Member
+      include Comparable
+
+      attr_accessor :type, :ref, :role
+
+      def self.[](type, ref, role = "")
+        Member.new(type, ref, role)
+      end
+
+      def <=>(o)
+        return @type <=> o.type if @type != o.type
+        return @ref <=> o.ref if @ref != o.ref
+        @role <=> o.role
+      end
+
+      def to_s
+        "Member[#{@type.inspect},#{@ref},#{@role.inspect}]"
+      end
+
+      private
+      def initialize(type, ref, role)
+        @type, @ref, @role = type, ref, role
+      end
+    end
+
+    attr_accessor :members
+
+    def self.[](members, options = {})
+      tags, attrs = Element.parse_options(options)
+      Way.new(attrs, members, tags)
+    end
+
+    def <=>(o)
+      compare(o, :members, :tags, :element_id, :changeset_id, :timestamp, :visible, :version)
+    end
+
+    def to_s
+      self.class.to_s + "[" + 
+        @members.inspect + "," + 
+        [:element_id, :changeset_id, :timestamp, :visible, :version].collect {|attr| "#{attr.inspect}=>#{self.send(attr)}"}.join(",") + "," + 
+        @tags.to_a.collect {|k,v| "#{k.inspect}=>#{v.inspect}"}.join(",") + "]"
+    end
+
+    private
+    def initialize(attrs, members, tags)
+      @members = members
+      init_attrs(attrs)
+      init_tags(tags)
+    end
+  end
 end
