@@ -163,4 +163,68 @@ class TestChangeBox < Test::Unit::TestCase
                   Redact[OSM::Way, 1, 1, :hidden]
                  ], actions)
   end
+         
+  # if a node has been created by an agreer and stuff has been added but meanwhile
+  # deleted again, the node is clean (rule: any object that comes out of our bot 
+  # edit process must be judged clean by the bot edit process or we're doing something
+  # wrong!)
+  def test_node_tags_changed_later_restored
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1, "foo" => "bar"],
+               OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2, "foo" => "bar", "bar" => "blah"],
+               OSM::Node[[0,0], :id => 1, :changeset => 2, :version => 3, "foo" => "bar"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Node, 1, 2, :hidden]], actions)
+  end 
+  
+  # a decliner removing tags does not taint an object
+  def test_node_tags_removed_by_decliner
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1, "foo" => "bar", "bar" => "blah"],
+               OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2, "foo" => "bar"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2, "foo" => "bar"]],
+                  Redact[OSM::Node, 1, 2, :hidden]
+                 ], actions)
+  end 
+  
+  # if a node has been created by an agreer and then modified by a decliner, then 
+  # "cleaned" by an agreer but then another agreer added back the decliner's tag, 
+  # possibly reverting the previous agreer's change, we need to redact all versions 
+  # that contain data from the decliner...
+  def test_node_tags_cleaned_but_then_reverted_to_tainted
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1, "foo" => "bar"],
+               OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2, "foo" => "bar", "bar" => "blah"],
+               OSM::Node[[0,0], :id => 1, :changeset => 2, :version => 3, "foo" => "bar"],
+               OSM::Node[[0,0], :id => 1, :changeset => 2, :version => 4, "foo" => "bar", "bar" => "blah"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => -1, :version => 4, "foo" => "bar"]],
+                  Redact[OSM::Node, 1, 2, :hidden],
+                  Redact[OSM::Node, 1, 4, :visible]
+                 ], actions)
+  end 
+  
+  # this is a combination of many of the above.
+  def test_node_rollercoaster
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bar"], # created by decliner
+               OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2 ], # tag removed by decliner
+               OSM::Node[[1,1], :id => 1, :changeset => 2, :version => 3, "bar" => "baz"], # other tag added, node moved by agreer
+               OSM::Node[[1,1], :id => 1, :changeset => 3, :version => 4, "rose" => "red", "bar" => "baz" ], # tag added by decliner
+               OSM::Node[[1,1], :id => 1, :changeset => 2, :version => 5, "rose" => "red", "bar" => "baz", "dapper" => "mapper" ], # tag added by agreer
+               OSM::Node[[2,2], :id => 1, :changeset => 3, :version => 6, "rose" => "red", "bar" => "baz", "dapper" => "mapper" ], # moved by decliner  
+               OSM::Node[[2,2], :id => 1, :changeset => 2, :version => 7, "rose" => "red", "bar" => "baz", "dapper" => "mapper", "e" => "mc**2" ], # tag added by agreer
+               OSM::Node[[2,2], :id => 1, :changeset => 2, :version => 8, "rose" => "red", "bar" => "baz", "dapper" => "mapper", "e" => "mc**2", "foo" => "bar" ]] # tag re-added by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 8, "bar" => "baz", "dapper" => "mapper", "e" => "mc**2" ]],
+                  Redact[OSM::Node, 1, 1, :hidden],
+                  Redact[OSM::Node, 1, 2, :hidden],
+                  Redact[OSM::Node, 1, 4, :hidden],
+                  Redact[OSM::Node, 1, 5, :visible],
+                  Redact[OSM::Node, 1, 6, :hidden],
+                  Redact[OSM::Node, 1, 7, :visible],
+                  Redact[OSM::Node, 1, 8, :visible],
+                 ], actions)
+  end
 end
