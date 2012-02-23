@@ -68,6 +68,7 @@ class History
     prev_obj = nil
     max_version = nil
     clean_history = Array.new
+    unredacts_later = Array.new
 
     @versions.zip(@cleans).zip(@acceptors).map {|i| i.flatten}.each do |obj,clean,acceptor| 
       clean_flag = clean_flag && clean
@@ -88,6 +89,7 @@ class History
             new_obj.tags = @clean_values
             first_act = Edit[new_obj]
             acts << Redact[obj.class, obj.element_id, obj.version, acceptor ? :visible : :hidden]
+            unredacts_later << obj.version
           end
           clean_flag = true
           done = true
@@ -122,6 +124,8 @@ class History
     # need to adjust any edit actions to represent changes from 
     # the last version of the object we've seen.
     if (not first_act.nil?) and (first_act.class == Edit)
+      acts.delete_if {|o| (o.version != max_version) and unredacts_later.include?(o.version) }
+      unredacts_later = Array.new
       first_act = first_act.clone
       first_act.obj.changeset_id = -1
       first_act.obj.version = max_version
