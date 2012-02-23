@@ -10,6 +10,7 @@ class History
     @tainted_keys = Set.new
     @clean_values = Hash.new
     @cleans = Array.new
+    @acceptors = Array.new
   end
 
   def each_version
@@ -20,19 +21,29 @@ class History
 
   def merge_clean_onto_clean(obj)
     @cleans << true
+    @acceptors << true
     @clean_values = obj.tags
   end
 
   def merge_clean_onto_dirty(obj)
-    @cleans << true
     # merge any value changes for non-tainted keys into the 
     # tag set.
-    clean_tags = obj.tags.select {|k, v| not @tainted_keys.include? k}
+    is_fully_clean = true
+    clean_tags = obj.tags.select do |k, v| 
+      any_tainted = @tainted_keys.include?(k)
+      if any_tainted
+        is_fully_clean = false
+      end
+      not any_tainted
+    end
+    @cleans << is_fully_clean
+    @acceptors << true
     @clean_values.merge!(clean_tags)
   end
 
   def merge_dirty(obj)
     @cleans << false
+    @acceptors << false
     # tags which were created in this version of the object are
     # now tainted :-(
     @tainted_keys.merge(obj.tags.keys - @clean_values.keys)
@@ -41,6 +52,9 @@ class History
     keys_in_both = obj.tags.keys & @clean_values.keys
     changed_keys = keys_in_both.select {|k| obj.tags[k] != @clean_values[k]}
     @tainted_keys.merge(changed_keys)
+    # tags removed in the dirty version can be kept as deleted
+    # though.
+    (@clean_values.keys - obj.tags.keys).each {|k| @clean_values.delete(k)}
   end
 
   def is_clean?
@@ -53,10 +67,16 @@ class History
     clean_flag = true
     prev_obj = nil
     max_version = nil
-    @versions.zip(@cleans).each do |obj,clean| 
+    clean_history = Array.new
+
+    @versions.zip(@cleans).zip(@acceptors).map {|i| i.flatten}.each do |obj,clean,acceptor| 
       clean_flag = clean_flag && clean
+      clean_history << clean_flag
+
       unless clean_flag
-        if clean and 
+        done = false
+
+        if (clean or acceptor) and 
             obj.class == OSM::Node and 
             (prev_obj.nil? or obj.position != prev_obj.position)
           if obj.tags.empty?
@@ -67,11 +87,24 @@ class History
             new_obj = obj.clone
             new_obj.tags = @clean_values
             first_act = Edit[new_obj]
-            acts << Redact[obj.class, obj.element_id, obj.version, clean ? :visible : :hidden]
+            acts << Redact[obj.class, obj.element_id, obj.version, acceptor ? :visible : :hidden]
           end
           clean_flag = true
-        else
+          done = true
+        end
 
+        if clean and not clean_flag
+          # if it exactly matches a previous clean version then it's
+          # a revert and is clean.
+          reverts = @versions.zip(clean_history).select {|hobj, ch| (obj.tags == hobj.tags) and (obj.position == hobj.position) and ch}
+          unless reverts.empty?
+            clean_flag = true
+            first_act = nil
+            done = true
+          end
+        end
+
+        if not done
           if first_act.nil?
             if prev_obj.nil?
               first_act = Delete[obj.class, obj.element_id]
@@ -80,7 +113,7 @@ class History
             end
           end
           
-          acts << Redact[obj.class, obj.element_id, obj.version, clean ? :visible : :hidden]
+          acts << Redact[obj.class, obj.element_id, obj.version, acceptor ? :visible : :hidden]
         end
       end
       prev_obj = obj

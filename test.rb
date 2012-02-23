@@ -183,7 +183,7 @@ class TestChangeBox < Test::Unit::TestCase
                OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2, "foo" => "bar"]]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2, "foo" => "bar"]],
+    assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => -1, :version => 2, "foo" => "bar"]],
                   Redact[OSM::Node, 1, 2, :hidden]
                  ], actions)
   end 
