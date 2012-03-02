@@ -227,4 +227,145 @@ class TestChangeBox < Test::Unit::TestCase
                   Redact[OSM::Node, 1, 8, :visible],
                  ], actions)
   end
+
+  # --------------------------------------------------------------------------
+  # Tests concerned with the keeping and removing of tags. 
+  # --------------------------------------------------------------------------
+
+  # This tests the following scenario:
+  # * agreer creates object
+  # * decliner adds a name tag
+  # * agreer makes a trivial change to that tag
+  # * therefore the decliner retains "ownership" and the tag must be 
+  #   removed.
+
+  def test_trivial_name_change_by_agreer
+
+    trivialchanges = {
+        "Oxford St" => "Oxford Street", 
+        "Johnann Wolfgang von Goethe Allee" => "Johann-Wolfgang-von-Goethe-Allee",
+        "Mulberry Hiway" => "Mulberry Highway",
+    }
+
+    trivialchanges.each do | old, new |
+
+        history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1], 
+                   OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2,
+                             "name" => old],
+                   OSM::Node[[0,0], :id => 1, :changeset => 2, :version => 3, 
+                             "name" => new]]
+
+        bot = ChangeBot.new(@db)
+        actions = bot.action_for(history)
+
+        assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => -1, :version => 3]],
+                      Redact[OSM::Node, 1, 2, :hidden],
+                      Redact[OSM::Node, 1, 3, :visible],
+                 ], actions)
+        end
+    end
+  end
+
+  # This is the reverse of trivial_name_change_by_agreer:
+  # * agreer creates object
+  # * agreer adds a name tag
+  # * decliner makes a trivial change to that tag
+  # * therefore the agreer retains "ownership" and the tag can be retained.
+
+  def test_trivial_name_change_by_decliner
+
+    trivialchanges = { 
+        "Oxford St" => "Oxford Street", 
+        "Johnann Wolfgang von Goethe Allee" => "Johann-Wolfgang-von-Goethe-Allee",
+        "Mulberry Hiway" => "Mulberry Highway",
+    }
+
+    trivialchanges.each do | old, new |
+
+        history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1], 
+                   OSM::Node[[0,0], :id => 1, :changeset => 2, :version => 2,
+                             "name" => old],
+                   OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 3, 
+                             "name" => new]]
+
+        bot = ChangeBot.new(@db)
+        actions = bot.action_for(history)
+
+        assert actions.empty?
+        # if one wanted to remove all decliner's names from the history, one
+        # would have to make an exact copy of the last version and suppress 
+        # the real final version:
+        # assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => -1, 
+        #    :version => 3, "name" => new]], 
+        #    Redact[OSM::Node, 1, 3, :hidden],
+        #  ], actions)
+
+    end
+  end
+
+  # This tests the following scenario:
+  # * agreer creates object
+  # * decliner adds a name tag
+  # * agreer makes a significant change to that tag
+  # * therefore the decliner's change must be rolled back.
+
+  def test_significant_name_change_by_decliner
+
+    significantchanges = { 
+        "Oxford St" => "Bedford St",
+        "Johnann Wolfgang von Goethe Allee" => "Johann-Sebastian-Bach-Allee",
+        "Mulberry Hiway" => "Blueberry Valley Drive",
+    }
+
+    significantchanges.each do | old, new |
+
+        history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1], 
+                   OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2,
+                             "name" => old],
+                   OSM::Node[[0,0], :id => 1, :changeset => 2, :version => 3, 
+                             "name" => new]]
+
+        bot = ChangeBot.new(@db)
+        actions = bot.action_for(history)
+
+        # decliner's version hidden but no change to object
+        assert_equal([[Redact[OSM::Node, 1, 3, :hidden],
+                 ], actions)
+        end
+    end
+  end
+
+  # This tests the following scenario:
+  # * agreer creates object
+  # * agreer adds a name tag
+  # * decliner makes a significant change to that tag
+  # * therefore the decliner loses "ownership" and the tag may be retained.
+
+  def test_significant_name_change_by_agreer
+
+    significantchanges = { 
+        "Oxford St" => "Bedford St",
+        "Johnann Wolfgang von Goethe Allee" => "Johann-Sebastian-Bach-Allee",
+        "Mulberry Hiway" => "Blueberry Valley Drive",
+    }
+
+    significantchanges.each do | old, new |
+
+        history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1], 
+                   OSM::Node[[0,0], :id => 1, :changeset => 2, :version => 2,
+                             "name" => old],
+                   OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 3, 
+                             "name" => new]]
+
+        bot = ChangeBot.new(@db)
+        actions = bot.action_for(history)
+
+        # decliner's version hidden but no change to object
+        assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => -1, :version => 3, "name" => "old"]],
+                      Redact[OSM::Node, 1, 3, :hidden],
+                 ], actions)
+        end
+    end
+  end
+
 end
