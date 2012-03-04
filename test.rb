@@ -290,7 +290,7 @@ class TestChangeBox < Test::Unit::TestCase
         bot = ChangeBot.new(@db)
         actions = bot.action_for(history)
 
-        assert actions.empty?
+        assert_equal([], actions)
         # if one wanted to remove all decliner's names from the history, one
         # would have to make an exact copy of the last version and suppress 
         # the real final version:
@@ -359,7 +359,7 @@ class TestChangeBox < Test::Unit::TestCase
       actions = bot.action_for(history)
       
       # decliner's version hidden but no change to object
-      assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => -1, :version => 3, "name" => "old"]],
+      assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => -1, :version => 3, "name" => old]],
                     Redact[OSM::Node, 1, 3, :hidden]
                    ], actions)
     end
