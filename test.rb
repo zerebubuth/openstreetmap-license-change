@@ -245,6 +245,7 @@ class TestChangeBox < Test::Unit::TestCase
         "Oxford St" => "Oxford Street", 
         "Johnann Wolfgang von Goethe Allee" => "Johann-Wolfgang-von-Goethe-Allee",
         "Mulberry Hiway" => "Mulberry Highway",
+        "old fen way" => "Old Fen Way"
     }
 
     trivialchanges.each do | old, new |
@@ -270,35 +271,24 @@ class TestChangeBox < Test::Unit::TestCase
   # * agreer adds a name tag
   # * decliner makes a trivial change to that tag
   # * therefore the agreer retains "ownership" and the tag can be retained.
+  # (the assumption here is that the trvial change is not deserving
+  # of copyright or any other protection - that it could be done by 
+  # an automated process)
 
   def test_trivial_name_change_by_decliner
-
-    trivialchanges = { 
-        "Oxford St" => "Oxford Street", 
-        "Johnann Wolfgang von Goethe Allee" => "Johann-Wolfgang-von-Goethe-Allee",
-        "Mulberry Hiway" => "Mulberry Highway",
+    trivial_changes = { 
+      "Oxford St" => "Oxford Street", 
+      "Johnann Wolfgang von Goethe Allee" => "Johann-Wolfgang-von-Goethe-Allee",
+      "Mulberry Hiway" => "Mulberry Highway",
+      "old fen way" => "Old Fen Way"
     }
 
-    trivialchanges.each do | old, new |
-
-        history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1], 
-                   OSM::Node[[0,0], :id => 1, :changeset => 2, :version => 2,
-                             "name" => old],
-                   OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 3, 
-                             "name" => new]]
-
-        bot = ChangeBot.new(@db)
-        actions = bot.action_for(history)
-
-        assert_equal([], actions)
-        # if one wanted to remove all decliner's names from the history, one
-        # would have to make an exact copy of the last version and suppress 
-        # the real final version:
-        # assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => -1, 
-        #    :version => 3, "name" => new]], 
-        #    Redact[OSM::Node, 1, 3, :hidden],
-        #  ], actions)
-
+    trivial_changes.each do |old, new|
+      expect_redaction([], # expect no redactions here...
+                       [[true,  {}],
+                        [false, {"name" => old}],
+                        [true,  {"name" => new}]
+                       ])
     end
   end
 
@@ -309,35 +299,26 @@ class TestChangeBox < Test::Unit::TestCase
   # * therefore the decliner's change must be rolled back.
 
   def test_significant_name_change_by_decliner
-
-    significantchanges = { 
-        "Oxford St" => "Bedford St",
-        "Johnann Wolfgang von Goethe Allee" => "Johann-Sebastian-Bach-Allee",
-        "Mulberry Hiway" => "Blueberry Valley Drive",
+    significant_changes = { 
+      "Oxford St" => "Bedford St",
+      "Johnann Wolfgang von Goethe Allee" => "Johann-Sebastian-Bach-Allee",
+      "Mulberry Hiway" => "Blueberry Valley Drive"
     }
 
-    significantchanges.each do | old, new |
-
-        history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1], 
-                   OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2,
-                             "name" => old],
-                   OSM::Node[[0,0], :id => 1, :changeset => 2, :version => 3, 
-                             "name" => new]]
-
-        bot = ChangeBot.new(@db)
-        actions = bot.action_for(history)
-
-        # decliner's version hidden but no change to object
-        assert_equal([Redact[OSM::Node, 1, 3, :hidden]
-                     ], actions)
-    end
+    significant_changes.each do |old, new|
+      expect_redaction([[2, :hidden]],
+                       [[true,  {}],
+                        [false, {"name" => old}],
+                        [true,  {"name" => new}]
+                       ])
+    end      
   end
 
   # This tests the following scenario:
   # * agreer creates object
   # * agreer adds a name tag
   # * decliner makes a significant change to that tag
-  # * therefore the decliner loses "ownership" and the tag may be retained.
+  # * therefore the tag must be rolled back to before the significant change
 
   def test_significant_name_change_by_agreer
     
@@ -365,6 +346,23 @@ class TestChangeBox < Test::Unit::TestCase
     end
   end
 
+  private
+  
+  def expect_redaction(redacts, tags)
+    history = Array.new
+
+    tags.each_with_index do |e, version|
+      agreer_edit, t = e
+      hash = { :id => 1, :changeset => (agreer_edit ? 1 : 3), :version => (version + 1) }
+      hash.merge!(t)
+      history << OSM::Node[[0, 0], hash]
+    end
+
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+
+    assert_equal(redacts.map {|v,h| Redact[OSM::Node, 1, v, h]}, actions)
+  end
 end
 
 
