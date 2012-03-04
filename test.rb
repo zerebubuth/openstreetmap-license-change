@@ -286,8 +286,31 @@ class TestChangeBox < Test::Unit::TestCase
     trivial_changes.each do |old, new|
       expect_redaction([], # expect no redactions here...
                        [[true,  {}],
-                        [false, {"name" => old}],
-                        [true,  {"name" => new}]
+                        [true, {"name" => old}],
+                        [false,  {"name" => new}]
+                       ])
+    end
+  end
+
+  # Scenario:
+  # * agreer creates object
+  # * agreer adds a tag
+  # * decliner makes a trivial change to the key, keeping the value the same
+  # as before, the trivial change is not deserving of protection, so the
+  # change will be kept.
+  def test_trivial_key_change_by_decliner
+    trivial_changes = {
+      "nmae" => "name",
+      "addr:hosenumber"  => "addr:housenumber",
+      "addr_housenumber" => "addr:housenumber",
+      "addr:housenummer" => "addr:housenumber"
+    }
+
+    trivial_changes.each do |old, new|
+      expect_redaction([],
+                       [[true,  {}],
+                        [true, {old => "some value here"}],
+                        [false,  {new => "some value here"}]
                        ])
     end
   end
