@@ -1,7 +1,9 @@
+require 'rubygems'
 require './osm'
 require './db'
 require './actions'
 require 'set'
+require 'text'
 
 class History
   def initialize(versions)
@@ -11,6 +13,7 @@ class History
     @clean_values = Hash.new
     @cleans = Array.new
     @acceptors = Array.new
+    @clean_geom = @versions.first.version_zero_geom
   end
 
   def each_version
@@ -23,6 +26,7 @@ class History
     @cleans << true
     @acceptors << true
     @clean_values = obj.tags
+    @clean_geom = obj.geom
   end
 
   def merge_clean_onto_dirty(obj)
@@ -42,19 +46,29 @@ class History
   end
 
   def merge_dirty(obj)
-    @cleans << false
-    @acceptors << false
-    # tags which were created in this version of the object are
-    # now tainted :-(
-    @tainted_keys.merge(obj.tags.keys - @clean_values.keys)
-    # tags which were modified from the previous clean version 
-    # are also tainted :'(
-    keys_in_both = obj.tags.keys & @clean_values.keys
-    changed_keys = keys_in_both.select {|k| obj.tags[k] != @clean_values[k]}
-    @tainted_keys.merge(changed_keys)
-    # tags removed in the dirty version can be kept as deleted
-    # though.
-    (@clean_values.keys - obj.tags.keys).each {|k| @clean_values.delete(k)}
+    if History.significant?(@clean_values, obj.tags) or @clean_geom != obj.geom
+      @cleans << false
+      @acceptors << false
+      # tags which were created in this version of the object are
+      # now tainted :-(
+      @tainted_keys.merge(obj.tags.keys - @clean_values.keys)
+      # tags which were modified from the previous clean version 
+      # are also tainted :'(
+      keys_in_both = obj.tags.keys & @clean_values.keys
+      changed_keys = keys_in_both.select {|k| obj.tags[k] != @clean_values[k]}
+      @tainted_keys.merge(changed_keys)
+      # tags removed in the dirty version can be kept as deleted
+      # though.
+      (@clean_values.keys - obj.tags.keys).each {|k| @clean_values.delete(k)}
+    else
+      # if we get here then the tag changes weren't significant and
+      # the geometry was the same.
+      if is_clean?
+        merge_clean_onto_clean(obj)
+      else
+        merge_clean_onto_dirty(obj)
+      end
+    end
   end
 
   def is_clean?
@@ -132,6 +146,101 @@ class History
       first_act.obj.tags = @clean_values
     end
     first_act.nil? ? acts : [first_act] + acts
+  end
+
+  # tests whether the change of tags from +old+ to +new+ is
+  # significant. that is, deserving of some form of legal 
+  # protection. 
+  #
+  # the grounds for this is whether the change is trivial or
+  # not. considerations for this include; whether the change
+  # could have been made automatically, whether it could be 
+  # a simple correction, etc...
+  def self.significant?(old, new)
+    # simply, if they're the same, then it there is no
+    # change to be significant.
+    return false if old == new
+
+    # remove all the k-v pairs which are the same, so we're
+    # only looking at differences.
+    new_keys = Set.new(new.keys)
+    old_keys = Set.new(old.keys)
+
+    # common and changed keys from the intersection of the
+    # two key sets
+    common_keys, changed_keys = new_keys.intersection(old_keys).partition {|k| old[k] == new[k]}
+
+    # if any of the changed keys are significant then this
+    # edit will be significant.
+    changes_are_significant = changed_keys.map {|k| History.significant_tag?(old[k], new[k])}.any?
+    return true if changes_are_significant
+
+    # the differences of the key sets give us created and
+    # deletes keys.
+    created_keys = new_keys - old_keys
+    deleted_keys = old_keys - new_keys
+
+    # now look at created key values which are the same as
+    # deleted key values - this will be a moved value.
+    new_values = created_keys.inject(Hash.new) {|h,k| h[new[k]] = k; h}
+    old_values = deleted_keys.inject(Hash.new) {|h,k| h[old[k]] = k; h}
+    moved_keys = Hash.new
+    Set.new(new_values.keys).intersection(Set.new(old_values.keys)).each do |v|
+      new_key = new_values[v]
+      old_key = old_values[v]
+      moved_keys[[new_key, old_key]] = v
+      created_keys.delete(new_key)
+      deleted_keys.delete(old_key)
+    end
+    # we don't count deletions as significant(?), but any 
+    # creations at all are considered significant.
+    return true unless created_keys.empty?
+    return true unless deleted_keys.empty?
+
+    # the remaining question is then if any of the key
+    # moves are significant.
+    moves_are_significant = moved_keys.keys.map {|o, n| History.significant_tag?(o, n)}.any?
+    return moves_are_significant
+  end
+
+  # this is basically checking whether two strings are
+  # very close. things which might not be considered a
+  # significant edit:
+  #  - correction of spelling or punctuation
+  #  - change of punctuation (where 'correct' is a 
+  #    matter of opinion)
+  #  - abbreviation, or expansion of
+  #  - changes in case or whitespace
+  def self.significant_tag?(old_v, new_v)
+    # if they only differ by case, then it isn't significant, so
+    # do the remaining tests all in downcase.
+    old = old_v.downcase
+    new = new_v.downcase
+    # if there's no downcase difference, return early.
+    return false if old == new
+
+    # otherwise, we first move to the levenshtein difference to
+    # try and detect transpositions and misspellings.
+    lev_dist = Text::Levenshtein.distance(old, new)
+    if lev_dist < 3 and old.chars.sort == new.chars.sort
+      # all the letters are the same, just in the wrong order,
+      # so this isn't significant - likely a tpyo
+      return false
+    elsif lev_dist < ([old.length, new.length].min / 8)
+      # if the levenshtein difference is only a small proportion
+      # of the size of the string, then it's likely either a tpyo 
+      # or a misspeling two!
+      return false
+    end
+    
+    # now check for homophones (TODO: is this really appropriate?)
+    return false if Text::Metaphone.metaphone(old) == Text::Metaphone.metaphone(new)
+
+    # now, remove all punctuation and see what's left
+    return false if old.gsub(/[[:punct:][:space:]]/,"") == new.gsub(/[[:punct:][:space:]]/,"")
+
+    # otherwise, just look at the strings...
+    old != new
   end
 end
 

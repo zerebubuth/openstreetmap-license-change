@@ -57,6 +57,18 @@ module OSM
         @tags.to_a.collect {|k,v| "#{k.inspect}=>#{v.inspect}"}.join(",") + "]"
     end
 
+    def version_zero_geom
+      # there's no real "version zero" geometry for a node - it's
+      # not possible to have one where the geometry is not a valid
+      # lon/lat pair. so here we choose something which can't 
+      # happen in the real data model.
+      nil
+    end
+
+    def geom
+      position
+    end
+
     private
     def initialize(attrs, pos, tags)
       @position = pos
@@ -84,6 +96,16 @@ module OSM
         @nodes.inspect + "," + 
         [:element_id, :changeset_id, :timestamp, :visible, :version].collect {|attr| "#{attr.inspect}=>#{self.send(attr)}"}.join(",") + "," + 
         @tags.to_a.collect {|k,v| "#{k.inspect}=>#{v.inspect}"}.join(",") + "]"
+    end
+
+    def version_zero_geom
+      # according to the "version zero" proposal, we should start
+      # by assuming a zeroth version which is simply empty.
+      []
+    end
+
+    def geom
+      nodes
     end
 
     private
@@ -139,6 +161,16 @@ module OSM
         @members.inspect + "," + 
         [:element_id, :changeset_id, :timestamp, :visible, :version].collect {|attr| "#{attr.inspect}=>#{self.send(attr)}"}.join(",") + "," + 
         @tags.to_a.collect {|k,v| "#{k.inspect}=>#{v.inspect}"}.join(",") + "]"
+    end
+
+    def version_zero_geom
+      # according to the "version zero" proposal, we should start
+      # by assuming a zeroth version which is simply empty.
+      []
+    end
+
+    def geom
+      members
     end
 
     private

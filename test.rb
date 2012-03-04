@@ -384,7 +384,8 @@ class TestChangeBox < Test::Unit::TestCase
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
 
-    assert_equal(redacts.map {|v,h| Redact[OSM::Node, 1, v, h]}, actions)
+    assert_equal(redacts.map {|v,h| Redact[OSM::Node, 1, v, h]}, actions, 
+                 "Note: with tag pattern #{tags}")
   end
 end
 
