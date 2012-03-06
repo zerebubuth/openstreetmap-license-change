@@ -96,6 +96,42 @@ class TestChangeBox < Test::Unit::TestCase
                  ], actions)
   end
 
+  # ...but we can keep any tags added by the agreeing mapper
+  def test_simple_node_unclean_edited_clean_later_position_with_tags
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bar"],
+               OSM::Node[[1,1], :id => 1, :changeset => 1, :version => 2, "foo" => "bar", "fee" => "fie"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 2, "fee" => "fie"]], 
+                  Redact[OSM::Node, 1, 1, :hidden], 
+                  Redact[OSM::Node, 1, 2, :visible]
+                 ], actions)
+  end
+
+  # We can even keep (some...) changes to a tag created by a non-agreeing mapper
+  def test_simple_node_unclean_edited_clean_later_position_with_tags
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bar"],
+               OSM::Node[[1,1], :id => 1, :changeset => 1, :version => 2, "foo" => "feefie"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 2, "foo" => "feefie"]], 
+                  Redact[OSM::Node, 1, 1, :hidden], 
+                  Redact[OSM::Node, 1, 2, :visible]
+                 ], actions)
+  end
+
+  # But a trivial change to a tag cannot clean it
+  def test_simple_node_unclean_edited_clean_later_position_with_tags
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bars"],
+               OSM::Node[[1,1], :id => 1, :changeset => 1, :version => 2, "foo" => "bar's"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 2]], 
+                  Redact[OSM::Node, 1, 1, :hidden], 
+                  Redact[OSM::Node, 1, 2, :visible]
+                 ], actions)
+  end
+
   # if a node has been created by a person who has agreed, with
   # some tags, and then a person who hasn't agreed edits those
   # tags then it should be edited to revert to the previous
