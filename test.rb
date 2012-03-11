@@ -442,6 +442,7 @@ class TestChangeBox < Test::Unit::TestCase
     assert_equal([2,3], Util::lcs([1,2,3],[2,3,4]))
     assert_equal([2,3,2], Util::lcs([1,2,3,2],[2,3,2,4]))
     assert_equal([2,3,2,2], Util::lcs([1,2,3,2,2],[2,3,2,4,2]))
+    assert_equal([2,3,2,2], Util::lcs([2,3,2,4,2],[1,2,3,2,2]))
     assert_equal([2,3,2,2,2], Util::lcs([1,2,3,2,3,3,4,2,2,5,6],[2,3,2,2,2]))
     assert_equal([2,3,2,2,2], Util::lcs([2,3,2,2,2],[1,2,3,2,3,3,4,2,2,5,6]))
   end

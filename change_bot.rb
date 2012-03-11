@@ -37,7 +37,6 @@ class History
   def merge_clean_onto_dirty(obj)
     # merge any value changes for non-tainted keys into the 
     # tag set.
-    puts; puts "merge_clean_onto_dirty: tainted = #{@tainted_tags.inspect}"
     is_fully_clean = true
     clean_tags = obj.tags.select do |k, v| 
       any_tainted = @tainted_tags.has_key?(k) && !History.significant_tag?(@tainted_tags[k], v)
@@ -97,10 +96,8 @@ class History
       unless clean_flag
         done = false
 
-        puts "#{clean_flag.inspect} => #{clean.inspect} #{acceptor.inspect} #{obj.inspect}"
         if (clean or acceptor) and 
             (prev_obj.nil? or obj.geom != prev_obj.geom)
-          puts "VAR!!!! #{obj.class}"
           case obj
           when OSM::Node
             if obj.tags.empty?
@@ -110,10 +107,9 @@ class History
               new_obj = obj.clone
             end
           when OSM::Way
-            puts "FOO!!!!!"
             act = :clean
             new_obj = obj.clone
-            new_obj.nodes = @clean_nds.select {|n,c| c}
+            new_obj.nodes = @clean_geom.select {|n,c| c}
           end
 
           if act == :untagged
@@ -182,7 +178,6 @@ class History
   def self.significant?(old, new)
     # simply, if they're the same, then it there is no
     # change to be significant.
-    puts; puts "significant?(#{old.inspect}, #{new.inspect})"
     return false if old == new
 
     # remove all the k-v pairs which are the same, so we're
@@ -238,7 +233,6 @@ class History
   def self.significant_tag?(old_v, new_v)
     # if they only differ by case, then it isn't significant, so
     # do the remaining tests all in downcase.
-    puts; puts "significant_tag?(#{old_v.inspect}, #{new_v.inspect})"
     old = old_v.downcase
     new = new_v.downcase
     # if there's no downcase difference, return early.
