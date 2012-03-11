@@ -3,6 +3,7 @@ require './user'
 require './changeset'
 require './db'
 require './actions'
+require './util.rb'
 require 'test/unit'
 
 class TestChangeBox < Test::Unit::TestCase
@@ -153,17 +154,6 @@ class TestChangeBox < Test::Unit::TestCase
                  ], actions)
   end
 
-  # way created by decliner, with no other edits, needs to be deleted
-  # and redacted hidden.
-  def test_way_simple
-    history = [OSM::Way[[1,2,3], :id => 1, :changeset => 3, :version => 1]]
-    bot = ChangeBot.new(@db)
-    actions = bot.action_for(history)
-    assert_equal([Delete[OSM::Way, 1],
-                  Redact[OSM::Way, 1, 1, :hidden]
-                 ], actions)
-  end
-         
   # if a node has been created by an agreer and stuff has been added but meanwhile
   # deleted again, the node is clean (rule: any object that comes out of our bot 
   # edit process must be judged clean by the bot edit process or we're doing something
@@ -249,6 +239,7 @@ class TestChangeBox < Test::Unit::TestCase
     }
 
     trivialchanges.each do | old, new |
+      assert_equal(false, History.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered trivial.")
 
         history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1], 
                    OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2,
@@ -284,6 +275,7 @@ class TestChangeBox < Test::Unit::TestCase
     }
 
     trivial_changes.each do |old, new|
+      assert_equal(false, History.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered trivial.")
       expect_redaction([], # expect no redactions here...
                        [[true,  {}],
                         [true, {"name" => old}],
@@ -307,6 +299,7 @@ class TestChangeBox < Test::Unit::TestCase
     }
 
     trivial_changes.each do |old, new|
+      assert_equal(false, History.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered trivial.")
       expect_redaction([],
                        [[true,  {}],
                         [true, {old => "some value here"}],
@@ -329,6 +322,8 @@ class TestChangeBox < Test::Unit::TestCase
     }
 
     significant_changes.each do |old, new|
+      # check that the method considers them actually significant first...
+      assert_equal(true, History.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered significant.")
       expect_redaction([[2, :hidden]],
                        [[true,  {}],
                         [false, {"name" => old}],
@@ -352,6 +347,7 @@ class TestChangeBox < Test::Unit::TestCase
     }
     
     significantchanges.each do | old, new |
+      assert_equal(true, History.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered significant.")
       
       history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1], 
                  OSM::Node[[0,0], :id => 1, :changeset => 2, :version => 2,
@@ -367,6 +363,87 @@ class TestChangeBox < Test::Unit::TestCase
                     Redact[OSM::Node, 1, 3, :hidden]
                    ], actions)
     end
+  end
+
+
+  # way created by decliner, with no other edits, needs to be deleted
+  # and redacted hidden.
+  def test_way_simple
+    history = [OSM::Way[[1,2,3], :id => 1, :changeset => 3, :version => 1]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Delete[OSM::Way, 1],
+                  Redact[OSM::Way, 1, 1, :hidden]
+                 ], actions)
+  end
+         
+  # if an acceptor creates a way, a decliner adds some nodes but doesn't
+  # change the tags in a subsequent edit, then we just need to roll back
+  # the nodes changes.
+  def test_way_decliner_adds_nodes
+    # test multiple versions of this - it shouldn't matter where in the
+    # way the decliner has added the nodes.
+    init_nodes = [1,2,3]
+    edit_nodes = [[4,5,6,1,2,3],
+                  [4,1,5,2,6,3],
+                  [1,4,2,5,3,6],
+                  [1,2,4,5,6,3],
+                  [1,2,3,4,5,6]]
+    edit_nodes.each do |next_nodes|
+      history = [OSM::Way[init_nodes, :id => 1, :changeset => 1, :version => 1, "highway" => "trunk"],
+                 OSM::Way[next_nodes, :id => 1, :changeset => 3, :version => 2, "highway" => "trunk"]]
+      bot = ChangeBot.new(@db)
+      actions = bot.action_for(history)
+      assert_equal([Edit[OSM::Way[init_nodes, :id => 1, :changeset => -1, :version => 2, "highway" => "trunk"]],
+                    Redact[OSM::Way, 1, 2, :hidden]
+                   ], actions)
+    end
+  end
+
+  # by the "version zero" proposal, a way at version zero has an empty
+  # list of nodes, so even if the way was created by a decliner, the 
+  # addition of nodes to it by an acceptor is salvagable. note, however
+  # that the tags are not.
+  def test_way_decliner_creates_acceptor_adds
+    history = [OSM::Way[[1,2,3],       :id => 1, :changeset => 3, :version => 1, "highway" => "trunk"],
+               OSM::Way[[1,2,4,3,5,6], :id => 1, :changeset => 1, :version => 2, "highway" => "trunk", "ref" => "666"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Way[[4,5,6], :id => 1, :changeset => -1, :version => 2, "ref" => "666"]],
+                  Redact[OSM::Way, 1, 1, :hidden],
+                  Redact[OSM::Way, 1, 2, :visible]
+                 ], actions)
+  end    
+
+  # a variant of the above, in which the way is created by an acceptor,
+  # but all of the nodes are replaced in the second version by a decliner.
+  # however, tags created in the first, acceptor, version are clean.
+  def test_way_decliner_sandwich_replace
+    history = [OSM::Way[[7,8,9],       :id => 1, :changeset => 1, :version => 1, "highway" => "trunk"],
+               OSM::Way[[1,2,3],       :id => 1, :changeset => 3, :version => 2, "highway" => "trunk"],
+               OSM::Way[[1,2,4,3,5,6], :id => 1, :changeset => 1, :version => 3, "highway" => "trunk", "ref" => "666"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Way[[4,5,6], :id => 1, :changeset => -1, :version => 3, "highway" => "trunk", "ref" => "666"]],
+                  Redact[OSM::Way, 1, 2, :hidden],
+                  Redact[OSM::Way, 1, 3, :visible]
+                 ], actions)
+  end    
+
+  # testing the longest common substring utility function. this isn't
+  # license-related directly, but it's used in the way/relation geometry
+  # handling and diffing routines.
+  def test_util_lcs
+    assert_equal([], Util::lcs([1,2,3],[4,5,6]))
+    assert_equal([], Util::lcs([], []))
+    assert_equal([], Util::lcs([1], [2]))
+    assert_equal([1], Util::lcs([1], [1]))
+    assert_equal([1,2,3], Util::lcs([1,2,3],[1,2,3]))
+    assert_equal([2,3], Util::lcs([1,2,3],[2,3,4]))
+    assert_equal([2,3,2], Util::lcs([1,2,3,2],[2,3,2,4]))
+    assert_equal([2,3,2,2], Util::lcs([1,2,3,2,2],[2,3,2,4,2]))
+    assert_equal([2,3,2,2,2], Util::lcs([1,2,3,2,3,3,4,2,2,5,6],[2,3,2,2,2]))
+    assert_equal([2,3,2,2,2], Util::lcs([2,3,2,2,2],[1,2,3,2,3,3,4,2,2,5,6]))
   end
 
   private

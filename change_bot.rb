@@ -9,7 +9,7 @@ class History
   def initialize(versions)
     # todo: ensure sort
     @versions = versions
-    @tainted_keys = Set.new
+    @tainted_tags = Hash.new
     @clean_values = Hash.new
     @cleans = Array.new
     @acceptors = Array.new
@@ -26,15 +26,21 @@ class History
     @cleans << true
     @acceptors << true
     @clean_values = obj.tags
-    @clean_geom = obj.geom
+    case obj
+    when OSM::Node
+      @clean_geom = obj.geom
+    when OSM::Way
+      @clean_geom = obj.nodes.map {|n| [n, true]}
+    end
   end
 
   def merge_clean_onto_dirty(obj)
     # merge any value changes for non-tainted keys into the 
     # tag set.
+    puts; puts "merge_clean_onto_dirty: tainted = #{@tainted_tags.inspect}"
     is_fully_clean = true
     clean_tags = obj.tags.select do |k, v| 
-      any_tainted = @tainted_keys.include?(k)
+      any_tainted = @tainted_tags.has_key?(k) && !History.significant_tag?(@tainted_tags[k], v)
       if any_tainted
         is_fully_clean = false
       end
@@ -51,12 +57,12 @@ class History
       @acceptors << false
       # tags which were created in this version of the object are
       # now tainted :-(
-      @tainted_keys.merge(obj.tags.keys - @clean_values.keys)
+      @tainted_tags.merge!(obj.tags.select {|k,v| not @clean_values.has_key?(k)})
       # tags which were modified from the previous clean version 
-      # are also tainted :'(
+      # are also tainted as long as the change is significant :'(
       keys_in_both = obj.tags.keys & @clean_values.keys
-      changed_keys = keys_in_both.select {|k| obj.tags[k] != @clean_values[k]}
-      @tainted_keys.merge(changed_keys)
+      changed_keys = keys_in_both.select {|k| History.significant_tag?(@clean_values[k], obj.tags[k])}
+      @tainted_tags.merge!(obj.tags.select {|k,v| changed_keys.include? k})
       # tags removed in the dirty version can be kept as deleted
       # though.
       (@clean_values.keys - obj.tags.keys).each {|k| @clean_values.delete(k)}
@@ -91,28 +97,45 @@ class History
       unless clean_flag
         done = false
 
+        puts "#{clean_flag.inspect} => #{clean.inspect} #{acceptor.inspect} #{obj.inspect}"
         if (clean or acceptor) and 
-            obj.class == OSM::Node and 
-            (prev_obj.nil? or obj.position != prev_obj.position)
-          if obj.tags.empty?
-            first_act = nil
-          else
-            @tainted_keys.merge(prev_obj.tags.keys)
-            @clean_values.delete_if {|k,v| @tainted_keys.include? k}
+            (prev_obj.nil? or obj.geom != prev_obj.geom)
+          puts "VAR!!!! #{obj.class}"
+          case obj
+          when OSM::Node
+            if obj.tags.empty?
+              act = :untagged
+            else
+              act = :clean
+              new_obj = obj.clone
+            end
+          when OSM::Way
+            puts "FOO!!!!!"
+            act = :clean
             new_obj = obj.clone
+            new_obj.nodes = @clean_nds.select {|n,c| c}
+          end
+
+          if act == :untagged
+            first_act = nil
+            clean_flag = true
+            done = true
+          elsif act == :clean
+            @tainted_tags.merge!(prev_obj.tags)
+            @clean_values.delete_if {|k,v| @tainted_tags.has_key? k}
             new_obj.tags = @clean_values
             first_act = Edit[new_obj]
             acts << Redact[obj.class, obj.element_id, obj.version, acceptor ? :visible : :hidden]
             unredacts_later << obj.version
+            clean_flag = true
+            done = true
           end
-          clean_flag = true
-          done = true
         end
 
         if clean and not clean_flag
           # if it exactly matches a previous clean version then it's
           # a revert and is clean.
-          reverts = @versions.zip(clean_history).select {|hobj, ch| (obj.tags == hobj.tags) and (obj.position == hobj.position) and ch}
+          reverts = @versions.zip(clean_history).select {|hobj, ch| (obj.tags == hobj.tags) and (obj.geom == hobj.geom) and ch}
           unless reverts.empty?
             clean_flag = true
             first_act = nil
@@ -159,6 +182,7 @@ class History
   def self.significant?(old, new)
     # simply, if they're the same, then it there is no
     # change to be significant.
+    puts; puts "significant?(#{old.inspect}, #{new.inspect})"
     return false if old == new
 
     # remove all the k-v pairs which are the same, so we're
@@ -214,6 +238,7 @@ class History
   def self.significant_tag?(old_v, new_v)
     # if they only differ by case, then it isn't significant, so
     # do the remaining tests all in downcase.
+    puts; puts "significant_tag?(#{old_v.inspect}, #{new_v.inspect})"
     old = old_v.downcase
     new = new_v.downcase
     # if there's no downcase difference, return early.
@@ -238,6 +263,10 @@ class History
 
     # now, remove all punctuation and see what's left
     return false if old.gsub(/[[:punct:][:space:]]/,"") == new.gsub(/[[:punct:][:space:]]/,"")
+
+    # finally, look for changes in abbreviation.
+    #TODO! implement me, remembering many abbreviations can be to or
+    #from more than one expansion, e.g: Street, Saint <=> St, St. 
 
     # otherwise, just look at the strings...
     old != new
