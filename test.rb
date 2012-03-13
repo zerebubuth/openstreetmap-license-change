@@ -253,6 +253,29 @@ class TestChangeBox < Test::Unit::TestCase
                  ], actions)
   end
 
+  # this is a node with some early bad content all of which has been eradicated many versions ago
+  def test_node_reformed_ccoholic
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bar"], # created by decliner
+               OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2 ], # tag removed by decliner
+               OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 3, "sugar" => "sweet" ], # tag added by decliner
+               OSM::Node[[1,1], :id => 1, :changeset => 2, :version => 4, "sugar" => "sweet", "bar" => "baz"], # other tag added, node moved by agreer
+               OSM::Node[[1,1], :id => 1, :changeset => 3, :version => 5, "sugar" => "sweet", "rose" => "red", "bar" => "baz" ], # tag added by decliner
+               OSM::Node[[1,1], :id => 1, :changeset => 2, :version => 6, "sugar" => "sweet", "rose" => "red", "bar" => "baz", "dapper" => "mapper" ], # tag added by agreer, dirty tag removed
+               OSM::Node[[2,2], :id => 1, :changeset => 1, :version => 7, "rose" => "red", "bar" => "baz", "dapper" => "mapper" ], # moved by agreer  
+               OSM::Node[[2,2], :id => 1, :changeset => 2, :version => 8, "rose" => "red", "bar" => "baz", "dapper" => "mapper", "e" => "mc**2" ], # tag added by agreer
+               OSM::Node[[2,2], :id => 1, :changeset => 2, :version => 9, "rose" => "red", "bar" => "baz", "dapper" => "mapper", "e" => "mc**2", "foo" => "bar" ]] # tag re-added by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 9, "bar" => "baz", "dapper" => "mapper", "e" => "mc**2" ]],
+                  Redact[OSM::Node, 1, 1, :hidden],
+                  Redact[OSM::Node, 1, 2, :hidden],
+                  Redact[OSM::Node, 1, 3, :hidden],
+                  Redact[OSM::Node, 1, 4, :visible],
+                  Redact[OSM::Node, 1, 5, :hidden],
+                  Redact[OSM::Node, 1, 6, :visible],
+                 ], actions)
+  end
+
   # --------------------------------------------------------------------------
   # Tests concerning odbl=clean tag
   # --------------------------------------------------------------------------
