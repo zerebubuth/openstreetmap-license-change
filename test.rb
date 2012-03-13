@@ -279,6 +279,28 @@ class TestChangeBox < Test::Unit::TestCase
                  ], actions)
   end
 
+  # Some people like to use "true" instead of "yes"
+  def test_node_odbl_clean_case_insensitive_true
+    history = [OSM::Node[[0,0], :id=>1, :changeset => 1, :version => 1], # created by agreer
+               OSM::Node[[0,0], :id=>1, :changeset => 3, :version => 2, "foo" => "bar"], # edited by decliner
+               OSM::Node[[0,0], :id=>1, :changeset => 2, :version => 3, "foo" => "bar", "oDbL" => "TrUe"]] # odbl=clean added by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Node, 1, 2, :hidden],
+                 ], actions)
+  end
+
+  # Some people like to use "1" instead of "yes"
+  def test_node_odbl_clean_case_insensitive_one
+    history = [OSM::Node[[0,0], :id=>1, :changeset => 1, :version => 1], # created by agreer
+               OSM::Node[[0,0], :id=>1, :changeset => 3, :version => 2, "foo" => "bar"], # edited by decliner
+               OSM::Node[[0,0], :id=>1, :changeset => 2, :version => 3, "foo" => "bar", "oDbL" => "1"]] # odbl=clean added by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Node, 1, 2, :hidden],
+                 ], actions)
+  end
+
   # --------------------------------------------------------------------------
   # Way tests
   # --------------------------------------------------------------------------
