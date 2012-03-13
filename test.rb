@@ -97,7 +97,7 @@ class TestChangeBox < Test::Unit::TestCase
   end
 
   # ...but we can keep any tags added by the agreeing mapper
-  def test_simple_node_unclean_edited_clean_later_position_with_tags
+  def test_simple_node_unclean_edited_clean_later_position_with_good_and_bad_tags
     history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bar"],
                OSM::Node[[1,1], :id => 1, :changeset => 1, :version => 2, "foo" => "bar", "fee" => "fie"]]
     bot = ChangeBot.new(@db)
@@ -109,9 +109,9 @@ class TestChangeBox < Test::Unit::TestCase
   end
 
   # We can even keep (some...) changes to a tag created by a non-agreeing mapper
-  def test_simple_node_unclean_edited_clean_later_position_with_tags
-    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bar"],
-               OSM::Node[[1,1], :id => 1, :changeset => 1, :version => 2, "foo" => "feefie"]]
+  def test_simple_node_unclean_edited_clean_later_position_bad_tag_changed
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "wibble" => "wobble", "foo" => "bar"],
+               OSM::Node[[1,1], :id => 1, :changeset => 1, :version => 2, "wibble" => "wobble", "foo" => "feefie"]]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 2, "foo" => "feefie"]], 
@@ -121,7 +121,7 @@ class TestChangeBox < Test::Unit::TestCase
   end
 
   # But a trivial change to a tag cannot clean it
-  def test_simple_node_unclean_edited_clean_later_position_with_tags
+  def test_simple_node_unclean_edited_clean_later_position_bad_tag_trivial_change
     history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bars"],
                OSM::Node[[1,1], :id => 1, :changeset => 1, :version => 2, "foo" => "bar's"]]
     bot = ChangeBot.new(@db)
