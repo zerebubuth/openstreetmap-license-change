@@ -96,6 +96,42 @@ class TestChangeBox < Test::Unit::TestCase
                  ], actions)
   end
 
+  # ...but we can keep any tags added by the agreeing mapper
+  def test_simple_node_unclean_edited_clean_later_position_with_good_and_bad_tags
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bar"],
+               OSM::Node[[1,1], :id => 1, :changeset => 1, :version => 2, "foo" => "bar", "fee" => "fie"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 2, "fee" => "fie"]], 
+                  Redact[OSM::Node, 1, 1, :hidden], 
+                  Redact[OSM::Node, 1, 2, :visible]
+                 ], actions)
+  end
+
+  # We can even keep (some...) changes to a tag created by a non-agreeing mapper
+  def test_simple_node_unclean_edited_clean_later_position_bad_tag_changed
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "wibble" => "wobble", "foo" => "bar"],
+               OSM::Node[[1,1], :id => 1, :changeset => 1, :version => 2, "wibble" => "wobble", "foo" => "feefie"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 2, "foo" => "feefie"]], 
+                  Redact[OSM::Node, 1, 1, :hidden], 
+                  Redact[OSM::Node, 1, 2, :visible]
+                 ], actions)
+  end
+
+  # But a trivial change to a tag cannot clean it
+  def test_simple_node_unclean_edited_clean_later_position_bad_tag_trivial_change
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bars"],
+               OSM::Node[[1,1], :id => 1, :changeset => 1, :version => 2, "foo" => "bar's"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 2]], 
+                  Redact[OSM::Node, 1, 1, :hidden], 
+                  Redact[OSM::Node, 1, 2, :visible]
+                 ], actions)
+  end
+
   # if a node has been created by a person who has agreed, with
   # some tags, and then a person who hasn't agreed edits those
   # tags then it should be edited to revert to the previous
@@ -216,6 +252,155 @@ class TestChangeBox < Test::Unit::TestCase
                   Redact[OSM::Node, 1, 8, :visible],
                  ], actions)
   end
+
+  # this is a node with some early bad content all of which has been eradicated many versions ago
+  def test_node_reformed_ccoholic
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bar"], # created by decliner
+               OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2 ], # tag removed by decliner
+               OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 3, "sugar" => "sweet" ], # tag added by decliner
+               OSM::Node[[1,1], :id => 1, :changeset => 2, :version => 4, "sugar" => "sweet", "bar" => "baz"], # other tag added, node moved by agreer
+               OSM::Node[[1,1], :id => 1, :changeset => 3, :version => 5, "sugar" => "sweet", "rose" => "red", "bar" => "baz" ], # tag added by decliner
+               OSM::Node[[1,1], :id => 1, :changeset => 2, :version => 6, "sugar" => "sweet", "rose" => "red", "bar" => "baz", "dapper" => "mapper" ], # tag added by agreer, dirty tag removed
+               OSM::Node[[2,2], :id => 1, :changeset => 1, :version => 7, "rose" => "red", "bar" => "baz", "dapper" => "mapper" ], # moved by agreer  
+               OSM::Node[[2,2], :id => 1, :changeset => 2, :version => 8, "rose" => "red", "bar" => "baz", "dapper" => "mapper", "e" => "mc**2" ], # tag added by agreer
+               OSM::Node[[2,2], :id => 1, :changeset => 2, :version => 9, "rose" => "red", "bar" => "baz", "dapper" => "mapper", "e" => "mc**2", "foo" => "bar" ]] # tag re-added by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 9, "bar" => "baz", "dapper" => "mapper", "e" => "mc**2" ]],
+                  Redact[OSM::Node, 1, 1, :hidden],
+                  Redact[OSM::Node, 1, 2, :hidden],
+                  Redact[OSM::Node, 1, 3, :hidden],
+                  Redact[OSM::Node, 1, 4, :visible],
+                  Redact[OSM::Node, 1, 5, :hidden],
+                  Redact[OSM::Node, 1, 6, :visible],
+                 ], actions)
+  end
+
+  # --------------------------------------------------------------------------
+  # Tests concerning odbl=clean tag
+  # --------------------------------------------------------------------------
+
+  # odbl=clean overrides previous object history, but old versions still need to be redacted
+  def test_node_odbl_clean
+    history = [OSM::Node[[0,0], :id=>1, :changeset => 1, :version => 1], # created by agreer
+               OSM::Node[[0,0], :id=>1, :changeset => 3, :version => 2, "foo" => "bar"], # edited by decliner
+               OSM::Node[[0,0], :id=>1, :changeset => 2, :version => 3, "foo" => "bar", "odbl" => "clean"]] # odbl=clean added by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Node, 1, 2, :hidden],
+                 ], actions)
+  end
+  
+  # as above, but with differently-cased odbl=clean tag
+  def test_node_odbl_clean_case_insensitive
+    history = [OSM::Node[[0,0], :id=>1, :changeset => 1, :version => 1], # created by agreer
+               OSM::Node[[0,0], :id=>1, :changeset => 3, :version => 2, "foo" => "bar"], # edited by decliner
+               OSM::Node[[0,0], :id=>1, :changeset => 2, :version => 3, "foo" => "bar", "ODbL" => "Clean"]] # odbl=clean added by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Node, 1, 2, :hidden],
+                 ], actions)
+  end
+
+  # Some people like to use "yes" instead of "clean"
+  def test_node_odbl_clean_case_insensitive_yes
+    history = [OSM::Node[[0,0], :id=>1, :changeset => 1, :version => 1], # created by agreer
+               OSM::Node[[0,0], :id=>1, :changeset => 3, :version => 2, "foo" => "bar"], # edited by decliner
+               OSM::Node[[0,0], :id=>1, :changeset => 2, :version => 3, "foo" => "bar", "oDbL" => "yEs"]] # odbl=clean added by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Node, 1, 2, :hidden],
+                 ], actions)
+  end
+
+  # Some people like to use "true" instead of "clean"
+  def test_node_odbl_clean_case_insensitive_true
+    history = [OSM::Node[[0,0], :id=>1, :changeset => 1, :version => 1], # created by agreer
+               OSM::Node[[0,0], :id=>1, :changeset => 3, :version => 2, "foo" => "bar"], # edited by decliner
+               OSM::Node[[0,0], :id=>1, :changeset => 2, :version => 3, "foo" => "bar", "oDbL" => "TrUe"]] # odbl=clean added by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Node, 1, 2, :hidden],
+                 ], actions)
+  end
+
+  # Some people like to use "1" instead of "clean"
+  def test_node_odbl_clean_case_insensitive_one
+    history = [OSM::Node[[0,0], :id=>1, :changeset => 1, :version => 1], # created by agreer
+               OSM::Node[[0,0], :id=>1, :changeset => 3, :version => 2, "foo" => "bar"], # edited by decliner
+               OSM::Node[[0,0], :id=>1, :changeset => 2, :version => 3, "foo" => "bar", "oDbL" => "1"]] # odbl=clean added by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Node, 1, 2, :hidden],
+                 ], actions)
+  end
+
+  # --------------------------------------------------------------------------
+  # Way tests
+  # --------------------------------------------------------------------------
+
+  # way created by decliner, with no other edits, needs to be deleted
+  # and redacted hidden.
+  def test_way_simple
+    history = [OSM::Way[[1,2,3], :id => 1, :changeset => 3, :version => 1]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Delete[OSM::Way, 1],
+                  Redact[OSM::Way, 1, 1, :hidden]
+                 ], actions)
+  end
+         
+  # way created by decliner, but nodes subsequently replaced by agreer.
+  # Under the v0 principle, we can keep the nodes, but not the tags
+  def test_way_nodes_replaced
+    history = [OSM::Way[[1,2,3], :id=>1, :changeset=>3, :version=>1, "highway"=>"primary"], # created by decliner
+               OSM::Way[[4,6  ], :id=>1, :changeset=>1, :version=>2, "highway"=>"primary"]] # nodes replaced by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Way[[4,6], :id=>1, :changeset=>-1, :version=>2]],
+                  Redact[OSM::Way, 1, 1, :hidden],
+                 ], actions)
+  end
+
+  # way created by agreer, but nodes removed by decliner, then subsequent edit by agreer
+  def test_way_nodes_removed
+    history = [OSM::Way[[1,2,3,4,5], :id=>1, :changeset=>1, :version=>1, "highway"=>"trunk"], # created by agreer
+               OSM::Way[[1,2,  4,5], :id=>1, :changeset=>3, :version=>2, "highway"=>"trunk"], # node removed by decliner
+               OSM::Way[[1,2,  4,5], :id=>1, :changeset=>2, :version=>3, "highway"=>"primary"]] # tag change by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Way[[1,2,3,4,5], :id=>1, :changeset=>-1, :version=>3, "highway"=>"primary"]],
+                  Redact[OSM::Way, 1, 2, :hidden],
+                 ], actions)
+  end
+
+  # as above, but adding nodes
+  def test_way_nodes_added
+    history = [OSM::Way[[    1,2,3], :id=>1, :changeset=>1, :version=>1, "highway"=>"trunk"], # created by agreer
+               OSM::Way[[4,5,1,2,3], :id=>1, :changeset=>3, :version=>2, "highway"=>"trunk"], # nodes added by decliner
+               OSM::Way[[4,5,1,2,3], :id=>1, :changeset=>2, :version=>3, "highway"=>"primary"]] # tag change by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Way[[1,2,3], :id=>1, :changeset=>-1, :version=>3, "highway"=>"primary"]],
+                  Redact[OSM::Way, 1, 2, :hidden],
+                 ], actions)
+  end
+
+  # as above, but replacing nodes and adding too
+  # (where the node-list contains new agreeing IP (i.e. addition of nodes 5/6) and old declined IP (i.e. node 4),
+  #  there's no simple solution but we should probably go by node ID)
+  def test_way_nodes_replaced_and_added
+    history = [OSM::Way[[1,2,3    ], :id=>1, :changeset=>1, :version=>1, "highway"=>"trunk"], # created by agreer
+               OSM::Way[[1,4,3    ], :id=>1, :changeset=>3, :version=>2, "highway"=>"trunk"], # node removed by decliner
+               OSM::Way[[1,4,3,5,6], :id=>1, :changeset=>2, :version=>3, "highway"=>"primary"]] # tag change and node addition by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Way[[1,2,3,5,6], :id=>1, :changeset=>-1, :version=>3, "highway"=>"primary"]],
+                  Redact[OSM::Way, 1, 2, :hidden],
+                 ], actions)
+  end
+
+  # ** FIXME: add some more way tests here, and some relation ones too.
 
   # --------------------------------------------------------------------------
   # Tests concerning odbl=clean tag
