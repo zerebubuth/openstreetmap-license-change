@@ -95,21 +95,27 @@ class History
 
       unless clean_flag
         done = false
+        odbl_clean = History.tagged_odbl_clean?(obj.tags)
 
         if (clean or acceptor) and 
-            (prev_obj.nil? or obj.geom != prev_obj.geom)
+            ((prev_obj.nil? or obj.geom != prev_obj.geom) or
+             (odbl_clean))
           case obj
           when OSM::Node
-            if obj.tags.empty?
+            if obj.tags.empty? or odbl_clean
               act = :untagged
             else
               act = :clean
               new_obj = obj.clone
             end
           when OSM::Way
-            act = :clean
-            new_obj = obj.clone
-            new_obj.nodes = @clean_geom.select {|n,c| c}.map {|n,c| n}
+            if odbl_clean
+              act = :untagged
+            else
+              act = :clean
+              new_obj = obj.clone
+              new_obj.nodes = @clean_geom.select {|n,c| c}.map {|n,c| n}
+            end
           end
 
           if act == :untagged
@@ -166,6 +172,29 @@ class History
     end
     first_act.nil? ? acts : [first_act] + acts
   end
+
+  # tests whether a set of tags is signifying an object as
+  # having been manually checked and accepted as clean for
+  # the purposes of ODbL compliance. 
+  #
+  # since this is a manually-added tag then we take it at
+  # face value and do no further checking. however, also
+  # because it is manually-added, we must check for various
+  # synonyms (and misspellings?)
+  def self.tagged_odbl_clean?(tags)
+    tags.keys.any? do |k| 
+      if k.downcase == "odbl" 
+        val = tags[k].downcase
+        # tag synonyms for "clean" in this context
+        (val == "clean" ||
+         val == "true"  ||
+         val == "yes"   ||
+         val == "1")
+      else
+        false
+      end
+    end
+  end    
 
   # tests whether the change of tags from +old+ to +new+ is
   # significant. that is, deserving of some form of legal 
