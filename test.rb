@@ -517,7 +517,7 @@ class TestChangeBox < Test::Unit::TestCase
     }
 
     trivialchanges.each do | old, new |
-      assert_equal(false, History.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered trivial.")
+      assert_equal(false, Tags.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered trivial.")
 
         history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1], 
                    OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2,
@@ -553,7 +553,7 @@ class TestChangeBox < Test::Unit::TestCase
     }
 
     trivial_changes.each do |old, new|
-      assert_equal(false, History.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered trivial.")
+      assert_equal(false, Tags.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered trivial.")
       expect_redaction([], # expect no redactions here...
                        [[true,  {}],
                         [true, {"name" => old}],
@@ -577,7 +577,7 @@ class TestChangeBox < Test::Unit::TestCase
     }
 
     trivial_changes.each do |old, new|
-      assert_equal(false, History.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered trivial.")
+      assert_equal(false, Tags.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered trivial.")
       expect_redaction([],
                        [[true,  {}],
                         [true, {old => "some value here"}],
@@ -601,7 +601,7 @@ class TestChangeBox < Test::Unit::TestCase
 
     significant_changes.each do |old, new|
       # check that the method considers them actually significant first...
-      assert_equal(true, History.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered significant.")
+      assert_equal(true, Tags.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered significant.")
       expect_redaction([[2, :hidden]],
                        [[true,  {}],
                         [false, {"name" => old}],
@@ -625,7 +625,7 @@ class TestChangeBox < Test::Unit::TestCase
     }
     
     significantchanges.each do | old, new |
-      assert_equal(true, History.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered significant.")
+      assert_equal(true, Tags.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered significant.")
       
       history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1], 
                  OSM::Node[[0,0], :id => 1, :changeset => 2, :version => 2,
