@@ -109,7 +109,7 @@ class History
           when OSM::Way
             act = :clean
             new_obj = obj.clone
-            new_obj.nodes = @clean_geom.select {|n,c| c}
+            new_obj.nodes = @clean_geom.select {|n,c| c}.map {|n,c| n}
           end
 
           if act == :untagged
