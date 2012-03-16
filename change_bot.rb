@@ -48,10 +48,25 @@ class History
     @cleans << is_fully_clean
     @acceptors << true
     @clean_values.merge!(clean_tags)
+    case obj
+    when OSM::Node
+      @clean_geom = obj.geom
+    when OSM::Way
+      old_nds, old_clean = @clean_geom.empty? ? [[],[]] : @clean_geom.transpose
+      cur_nds, cur_clean = obj.nodes, obj.nodes.map { true }
+      new_clean = Util.diff_split(old_nds, old_clean, cur_nds, cur_clean)
+      @clean_geom = [cur_nds, new_clean].transpose
+    end
   end
 
   def merge_dirty(obj)
-    if Tags.significant?(@clean_values, obj.tags) or @clean_geom != obj.geom
+    geom_is_diff = case obj
+                     when OSM::Node
+                     @clean_geom != obj.geom
+                     when OSM::Way
+                     (@clean_geom.map {|n,c| n}) != obj.geom
+                   end
+    if Tags.significant?(@clean_values, obj.tags) or geom_is_diff
       @cleans << false
       @acceptors << false
       # tags which were created in this version of the object are
@@ -65,6 +80,18 @@ class History
       # tags removed in the dirty version can be kept as deleted
       # though.
       (@clean_values.keys - obj.tags.keys).each {|k| @clean_values.delete(k)}
+      case obj
+      when OSM::Node
+        # can't use dirty geometry
+
+      when OSM::Way
+        if (@clean_geom.map {|n,c| n}) != obj.geom
+          old_nds, old_clean = @clean_geom.empty? ? [[],[]] : @clean_geom.transpose
+          cur_nds, cur_clean = obj.nodes, obj.nodes.map { false }
+          new_clean = Util.diff_split(old_nds, old_clean, cur_nds, cur_clean)
+          @clean_geom = [cur_nds, new_clean].transpose
+        end
+      end
     else
       # if we get here then the tag changes weren't significant and
       # the geometry was the same.

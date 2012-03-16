@@ -25,5 +25,24 @@ class TestUtil < Test::Unit::TestCase
     assert_equal([2,3,2,2,2], Util::lcs([2,3,2,2,2],[1,2,3,2,3,3,4,2,2,5,6]))
   end
 
+  def test_util_diff
+    assert_equal([], Util::diff([], []))
+    assert_equal([[:c, 1], [:c, 2], [:c, 3]], Util::diff([1,2,3], [1,2,3]))
+    assert_equal([[:c, 1], [:a, 2], [:c, 3]], Util::diff([1,2,3], [1,3]))
+    assert_equal([[:c, 1], [:b, 2], [:c, 3]], Util::diff([1,3], [1,2,3]))
+    assert_equal([[:a, 1], [:a, 2], [:a, 3]], Util::diff([1,2,3], []))
+    assert_equal([[:b, 1], [:b, 2], [:b, 3]], Util::diff([], [1,2,3]))
+    assert_equal([[:a, 1], [:c, 2], [:c, 3], [:b, 4]], Util::diff([1,2,3], [2,3,4]))
+    assert_equal([[:a, 1], [:a, 2], [:b, 3], [:b, 4]], Util::diff([1,2], [3,4]))
+  end
+
+  def test_util_diff_split
+    assert_equal([true, true, true], Util::diff_split([], [], [1,2,3], [true, true, true]))
+    assert_equal([], Util::diff_split([1,2,3], [false, false, false], [], []))
+    assert_equal([false, false, false], Util::diff_split([1,2,3], [false, false, false], [1,2,3], [true, true, true]))
+    assert_equal([false, true, false], Util::diff_split([1,3], [false, false], [1,2,3], [true, true, true]))
+    assert_equal([true, true, false], Util::diff_split([1,3], [true, false], [1,2,3], [true, true, true]))
+  end
+
 end
 

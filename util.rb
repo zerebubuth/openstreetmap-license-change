@@ -7,6 +7,55 @@ module Util
     st[2]
   end
 
+  def self.diff(a, b)
+    c = Util.lcs(a, b)
+    d = Array.new
+    ai = 0
+    bi = 0
+    c.each do |e|
+      while a[ai] != e
+        d << [:a, a[ai]]
+        ai += 1
+      end
+      while b[bi] != e
+        d << [:b, b[bi]]
+        bi += 1
+      end
+      d << [:c, e]
+      ai += 1
+      bi += 1
+    end
+    d += a[ai..-1].map {|e| [:a, e]}
+    d += b[bi..-1].map {|e| [:b, e]}
+    d
+  end
+
+  def self.diff_split(a_k, a_v, b_k, b_v)
+    c = Util.diff(a_k, b_k)
+    c_v = Array.new
+    ai = 0
+    bi = 0
+    c.each do |o,e|
+      case o
+      when :a
+        # nothing - A is discarded
+        ai += 1
+
+      when :b
+        # new in B, so need B's attribute
+        c_v << b_v[bi]
+        bi += 1
+
+      when :c
+        # unmodified, so take A's attribute
+        c_v << a_v[ai]
+        ai += 1
+        bi += 1
+      end
+    end
+    c_v
+  end
+
   private
   
   class LCS

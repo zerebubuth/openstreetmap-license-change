@@ -166,7 +166,7 @@ module OSM
     def version_zero_geom
       # according to the "version zero" proposal, we should start
       # by assuming a zeroth version which is simply empty.
-      []
+      return []
     end
 
     def geom
