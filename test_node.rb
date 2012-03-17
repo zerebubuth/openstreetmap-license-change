@@ -267,13 +267,17 @@ class TestNode < Test::Unit::TestCase
                OSM::Node[[2,2], :id => 1, :changeset => 2, :version => 9, "bar" => "baz", "dapper" => "mapper", "e" => "mc**2", "foo" => "bar" ]] # tag re-added by agreer
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 9, "bar" => "baz", "dapper" => "mapper", "e" => "mc**2" ]],
+    # this is effectively a revert back to version 8 (because v9 re-adds the tainted "foo=bar" tag)
+    # and then hides version 6 and before because v6-v3 have the "sugar=sweet" tag which was added
+    # by a decliner and is therefore tainted, and v1 & v2 are decliner edits.
+    assert_equal([Edit[OSM::Node[[2,2], :id => 1, :changeset => -1, :version => 9, "bar" => "baz", "dapper" => "mapper", "e" => "mc**2" ]],
                   Redact[OSM::Node, 1, 1, :hidden],
                   Redact[OSM::Node, 1, 2, :hidden],
                   Redact[OSM::Node, 1, 3, :hidden],
                   Redact[OSM::Node, 1, 4, :visible],
                   Redact[OSM::Node, 1, 5, :hidden],
                   Redact[OSM::Node, 1, 6, :visible],
+                  Redact[OSM::Node, 1, 9, :visible],
                  ], actions)
   end
 end
