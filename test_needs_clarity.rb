@@ -78,4 +78,28 @@ class TestNeedsClarity < Test::Unit::TestCase
                  ], actions)
   end
 
+  # We can even keep (some...) changes to a tag created by a non-agreeing mapper
+  #
+  # NOTE: needs some thought.
+  # the issue here is whether the *keys* of tags contain any copyright status.
+  # here, the key is changed from "foo"="bar" to "foo"="feefie", which is a 
+  # Significant Change to the value (see tests for that in test_tags.rb), but
+  # is no change to the key. 
+  #
+  # if we assume that keys are potentially copyrightable then we must reject
+  # the following test case, and potentially leave a lot of "highway"= and 
+  # "name"= tags in an old state (or remove them). on the other hand, some
+  # tags may well have copyright-worthy information in the keys, given that
+  # they're free-form strings just like the values.
+  def test_simple_node_unclean_edited_clean_later_position_bad_tag_changed
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "wibble" => "wobble", "foo" => "bar"],
+               OSM::Node[[1,1], :id => 1, :changeset => 1, :version => 2, "wibble" => "wobble", "foo" => "feefie"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 2, "foo" => "feefie"]], 
+                  Redact[OSM::Node, 1, 1, :hidden], 
+                  Redact[OSM::Node, 1, 2, :visible]
+                 ], actions)
+  end
+
 end

@@ -109,18 +109,6 @@ class TestNode < Test::Unit::TestCase
                  ], actions)
   end
 
-  # We can even keep (some...) changes to a tag created by a non-agreeing mapper
-  def test_simple_node_unclean_edited_clean_later_position_bad_tag_changed
-    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "wibble" => "wobble", "foo" => "bar"],
-               OSM::Node[[1,1], :id => 1, :changeset => 1, :version => 2, "wibble" => "wobble", "foo" => "feefie"]]
-    bot = ChangeBot.new(@db)
-    actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 2, "foo" => "feefie"]], 
-                  Redact[OSM::Node, 1, 1, :hidden], 
-                  Redact[OSM::Node, 1, 2, :visible]
-                 ], actions)
-  end
-
   # But a trivial change to a tag cannot clean it
   def test_simple_node_unclean_edited_clean_later_position_bad_tag_trivial_change
     history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bars"],
