@@ -45,18 +45,23 @@ class History
       end
       not any_tainted
     end
-    @cleans << is_fully_clean
-    @acceptors << true
-    @clean_values.merge!(clean_tags)
+    # figure out what needs to happen with the geometry
     case obj
     when OSM::Node
+      # ??? need to account for node movage?
       @clean_geom = obj.geom
     when OSM::Way
       old_nds, old_clean = @clean_geom.empty? ? [[],[]] : @clean_geom.transpose
       cur_nds, cur_clean = obj.nodes, obj.nodes.map { true }
       new_clean = Util.diff_split(old_nds, old_clean, cur_nds, cur_clean)
       @clean_geom = [cur_nds, new_clean].transpose
+      # check the clean-ness. if the new nodes are all clean, then this version
+      # may also be fully clean.
+      is_fully_clean = is_fully_clean && @clean_geom.all? {|n,c| c}
     end
+    @cleans << is_fully_clean
+    @acceptors << true
+    @clean_values.merge!(clean_tags)
   end
 
   def merge_dirty(obj)
@@ -136,7 +141,7 @@ class History
               new_obj = obj.clone
             end
           when OSM::Way
-            if odbl_clean
+            if odbl_clean or ((obj.tags == @clean_values) && ((@clean_geom.select {|n,c| c}.map {|n,c| n}) == obj.nodes))
               act = :untagged
             else
               act = :clean
