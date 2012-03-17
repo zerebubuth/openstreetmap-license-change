@@ -155,12 +155,11 @@ class History
             clean_flag = true
             done = true
           elsif act == :clean
-            @tainted_tags.merge!(prev_obj.tags)
             @clean_values.delete_if {|k,v| @tainted_tags.has_key? k}
             new_obj.tags = @clean_values
             first_act = Edit[new_obj]
             acts << Redact[obj.class, obj.element_id, obj.version, acceptor ? :visible : :hidden]
-            unredacts_later << obj.version
+            unredacts_later << obj.version if clean
             clean_flag = true
             done = true
           end
