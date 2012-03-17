@@ -7,6 +7,7 @@ require './test_tags'
 require './test_way'
 require './test_util'
 require './test_abbrev'
+require './test_needs_clarity'
 
 Test::Unit::Runner.new.run(ARGV)
 
