@@ -78,21 +78,6 @@ class TestWay < Test::Unit::TestCase
                  ], actions)
   end
 
-  # as above, but replacing nodes and adding too
-  # (where the node-list contains new agreeing IP (i.e. addition of nodes 5/6) and old declined IP (i.e. node 4),
-  #  there's no simple solution but we should probably go by node ID)
-  def test_way_nodes_replaced_and_added
-    history = [OSM::Way[[1,2,3    ], :id=>1, :changeset=>1, :version=>1, "highway"=>"trunk"], # created by agreer
-               OSM::Way[[1,4,3    ], :id=>1, :changeset=>3, :version=>2, "highway"=>"trunk"], # node removed by decliner
-               OSM::Way[[1,4,3,5,6], :id=>1, :changeset=>2, :version=>3, "highway"=>"primary"]] # tag change and node addition by agreer
-    bot = ChangeBot.new(@db)
-    actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Way[[1,2,3,5,6], :id=>1, :changeset=>-1, :version=>3, "highway"=>"primary"]],
-                  Redact[OSM::Way, 1, 2, :hidden],
-                  Redact[OSM::Way, 1, 3, :visible] # needs to be redacted - node 4 still in this version
-                 ], actions)
-  end
-
   # if an acceptor creates a way, a decliner adds some nodes but doesn't
   # change the tags in a subsequent edit, then we just need to roll back
   # the nodes changes.
