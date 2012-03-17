@@ -1,4 +1,5 @@
 require 'text'
+require './abbreviations'
 
 ##
 # module for various functions to do with tags.
@@ -95,6 +96,9 @@ module Tags
     # do the remaining tests all in downcase.
     old = old_v.downcase
     new = new_v.downcase
+    # normalise all punctuation to single spaces
+    old.gsub!(/[[:punct:][:space:]]+/," ")
+    new.gsub!(/[[:punct:][:space:]]+/," ")
     # if there's no downcase difference, return early.
     return false if old == new
 
@@ -115,12 +119,8 @@ module Tags
     # now check for homophones (TODO: is this really appropriate?)
     return false if Text::Metaphone.metaphone(old) == Text::Metaphone.metaphone(new)
 
-    # now, remove all punctuation and see what's left
-    return false if old.gsub(/[[:punct:][:space:]]/,"") == new.gsub(/[[:punct:][:space:]]/,"")
-
     # finally, look for changes in abbreviation.
-    #TODO! implement me, remembering many abbreviations can be to or
-    #from more than one expansion, e.g: Street, Saint <=> St, St. 
+    return false if Abbrev.equal_expansions(old, new)
 
     # otherwise, just look at the strings...
     old != new
