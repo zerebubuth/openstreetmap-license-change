@@ -15,7 +15,10 @@ module Tags
   # synonyms (and misspellings?)
   def self.odbl_clean?(tags)
     tags.keys.any? do |k| 
-      if k.downcase == "odbl" 
+      # special case for this one misspelling, as it's fairly
+      # common to find "obdl" and there's no chance that we're
+      # confusing "obdl" with anything else.
+      if k.downcase == "odbl" or k.downcase == "obdl"
         val = tags[k].downcase
         # tag synonyms for "clean" in this context
         (val == "clean" ||
