@@ -71,4 +71,17 @@ class TestOdblTag < Test::Unit::TestCase
     assert_equal([Redact[OSM::Node, 1, 2, :hidden],
                  ], actions)
   end
+    
+    
+    # Cater for the typo obdl=clean
+    def test_node_obdl_clean
+        history = [OSM::Node[[0,0], :id=>1, :changeset => 1, :version => 1], # created by agreer
+        OSM::Node[[0,0], :id=>1, :changeset => 3, :version => 2, "foo" => "bar"], # edited by decliner
+        OSM::Node[[0,0], :id=>1, :changeset => 2, :version => 3, "foo" => "bar", "obdl" => "clean"]] # obdl=clean (typo) added by agreer
+        bot = ChangeBot.new(@db)
+        actions = bot.action_for(history)
+        assert_equal([Redact[OSM::Node, 1, 2, :hidden],
+                     ], actions)
+    end
+    
 end
