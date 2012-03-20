@@ -8,6 +8,7 @@ require './test_way'
 require './test_util'
 require './test_abbrev'
 require './test_needs_clarity'
+require './test_exceptions.rb'
 
 Test::Unit::Runner.new.run(ARGV)
 

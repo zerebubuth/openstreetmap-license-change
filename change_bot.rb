@@ -212,6 +212,14 @@ class ChangeBot
   end
 
   def action_for(history)
+    # special case for excluded items
+    klass = history.first.class
+    element_id = history.first.element_id
+    if @db.exclude?(klass, element_id)
+      return [Delete[klass, element_id]] + history.map {|e| Redact[klass, element_id, e.version, :hidden]}
+    end
+
+    # otherwise, normal process.
     h = History.new(history)
     h.each_version do |element|
       if changeset_is_accepted?(element.changeset_id)
