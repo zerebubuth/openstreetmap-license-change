@@ -242,3 +242,30 @@ class TestNode < Test::Unit::TestCase
                  ], actions)
   end
 end
+
+
+# An object with many versions may have had tainted content in the past which has long since vanished
+# Here we ensure that no redaction will occur to versions after the final removal of the last taint
+
+def test_node_reformed_ccoholic_simple
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1, "foo" => "bar"], # created by decliner
+    OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2 ], # tag removed by decliner
+    OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 3, "sugar" => "sweet" ], # tag added by decliner
+    OSM::Node[[1,1], :id => 1, :changeset => 2, :version => 4, "sugar" => "sweet", "bar" => "baz"], # other tag added, node moved by agreer
+    OSM::Node[[1,1], :id => 1, :changeset => 3, :version => 5, "sugar" => "sweet", "rose" => "red", "bar" => "baz" ], # tag added by decliner
+    OSM::Node[[1,1], :id => 1, :changeset => 2, :version => 6, "sugar" => "sweet", "bar" => "baz", "dapper" => "mapper" ], # tag added by agreer, dirty tag removed
+    OSM::Node[[2,2], :id => 1, :changeset => 1, :version => 7, "bar" => "baz", "dapper" => "mapper" ], # moved by agreer  
+    OSM::Node[[2,2], :id => 1, :changeset => 2, :version => 8, "bar" => "baz", "dapper" => "mapper", "e" => "mc**2" ], # tag added by agreer
+    OSM::Node[[2,2], :id => 1, :changeset => 2, :version => 9, "bar" => "baz", "dapper" => "mapper", "e" => "mc**2", "really" => "fresh" ]] # Brand new tag
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+
+    assert_equal([Redact[OSM::Node, 1, 1, :hidden],
+                 Redact[OSM::Node, 1, 2, :hidden],
+                 Redact[OSM::Node, 1, 3, :hidden],
+                 Redact[OSM::Node, 1, 4, :visible],
+                 Redact[OSM::Node, 1, 5, :hidden],
+                 Redact[OSM::Node, 1, 6, :visible],
+                 ], actions)
+end
+
