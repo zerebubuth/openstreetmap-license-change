@@ -149,7 +149,7 @@ module OSM
 
     def self.[](members, options = {})
       tags, attrs = Element.parse_options(options)
-      Way.new(attrs, members, tags)
+      Relation.new(attrs, members, tags)
     end
 
     def <=>(o)
