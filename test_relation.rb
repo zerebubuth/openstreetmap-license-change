@@ -25,6 +25,16 @@ class TestRelation < Test::Unit::TestCase
                  ], actions)
   end
   
+  def test_relation_simple_keep
+    history = [OSM::Relation[
+      [ [OSM::Way,1,""] , [OSM::Way,2,""] ],
+      :id => 1,  :changeset => 1,  :version => 1,
+      "type" => "route" ]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([], actions)
+  end
+  
   # relation created by decliner, then members added by agreer.
   # Under the v0 principle, we can keep the new members, but not the v1 members or the tags
   def test_relation_members_added

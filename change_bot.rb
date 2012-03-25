@@ -58,6 +58,12 @@ class History
       # check the clean-ness. if the new nodes are all clean, then this version
       # may also be fully clean.
       is_fully_clean = is_fully_clean && @clean_geom.all? {|n,c| c}
+    when OSM::Relation
+      old_mem, old_clean = @clean_geom.empty? ? [[],[]] : @clean_geom.transpose
+      cur_mem, cur_clean = obj.members, obj.members.map { true }
+      new_clean = Util.diff_split(old_mem, old_clean, cur_mem, cur_clean)
+      @clean_geom = [cur_mem, new_clean].transpose
+      is_fully_clean = is_fully_clean && @clean_geom.all {|m,c| c}
     end
     @cleans << is_fully_clean
     @acceptors << true
@@ -95,6 +101,14 @@ class History
           cur_nds, cur_clean = obj.nodes, obj.nodes.map { false }
           new_clean = Util.diff_split(old_nds, old_clean, cur_nds, cur_clean)
           @clean_geom = [cur_nds, new_clean].transpose
+        end
+
+      when OSM::Relation
+        if (@clean_geom.map {|m,c| m}) != obj.geom
+          old_mem, old_clean = @clean_geom.empty? ? [[],[]] : @clean_geom.transpose
+          cur_mem, cur_clean = obj.members, obj.members.map { false }
+          new_clean = Util.diff_split(old_mem, old_clean, cur_mem, cur_clean)
+          @clean_geom = [cur_mem, new_clean].transpose
         end
       end
     else
@@ -147,6 +161,14 @@ class History
               act = :clean
               new_obj = obj.clone
               new_obj.nodes = @clean_geom.select {|n,c| c}.map {|n,c| n}
+            end
+          when OSM::Relation
+            if odbl_clean or ((obj.tags == @clean_values) && ((@clean_geom.select {|m,c| c}.map {|m,c| m}) == obj.members))
+              act = :untagged
+            else
+              act = :clean
+              new_obj = obj.clone
+              new_obj.members = @clean_geom.select {|m,c| c}.map {|m,c| m}
             end
           end
 
