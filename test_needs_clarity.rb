@@ -6,6 +6,16 @@ require './actions'
 require './util.rb'
 require 'test/unit'
 
+############################################################
+#
+# NOTE: the tests here have been put here because someone
+# needs to have a serious think about what the result of 
+# the license change should be on these cases. please see
+# the comments before and inside the tests for more 
+# details.
+#
+############################################################
+
 class TestNeedsClarity < Test::Unit::TestCase
   def setup
     @db = DB.new(1 => Changeset[User[true]],
