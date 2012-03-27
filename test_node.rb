@@ -7,10 +7,16 @@ require './util.rb'
 require 'test/unit'
 
 class TestNode < Test::Unit::TestCase
+
+  # Setup prior to each of the node tests below
+  # Changesets 1 & 2 are by agreers. Changeset 3 is by a disagreer.
+  # References to these numbers appear in the tests below, while the
+  # the actual data of the changesets is initialised differently for
+  # each test.
   def setup
-    @db = DB.new(1 => Changeset[User[true]],
-                 2 => Changeset[User[true]],
-                 3 => Changeset[User[false]])
+    @db = DB.new(1 => Changeset[User[true]], #agreer
+                 2 => Changeset[User[true]], #agreer
+                 3 => Changeset[User[false]]) #disagreer
   end 
 
   # if a node has been edited only by people who have agreed then
@@ -20,16 +26,20 @@ class TestNode < Test::Unit::TestCase
                OSM::Node[[0,0], :changeset => 2]]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([], actions)
+    assert_equal([], actions) #the bot should take no actions (empty actions array)
   end
 
   # if a node has been created by a person who hasn't agreed then
   # it should be deleted and the one version redacted.
   def test_simple_node_unclean
-    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1]]
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 1]] #node created in changeset 3 (by a disagreer)
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Delete[OSM::Node, 1], Redact[OSM::Node, 1, 1, :hidden]], actions)
+    
+    # bot should return an array of actions. These are structs defined in actions.rb
+    assert_equal([Delete[OSM::Node, 1],  #node should be deleted
+                  Redact[OSM::Node, 1, 1, :hidden]  #version 1 of node id 1 should be redacted
+                 ], actions)
   end
 
   # if a node has been created by a person who hasn't agreed and
@@ -40,7 +50,10 @@ class TestNode < Test::Unit::TestCase
                OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2]]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Delete[OSM::Node, 1], Redact[OSM::Node, 1, 1, :hidden], Redact[OSM::Node, 1, 2, :hidden]], actions)
+    assert_equal([Delete[OSM::Node, 1],
+                  Redact[OSM::Node, 1, 1, :hidden],
+                  Redact[OSM::Node, 1, 2, :hidden]
+                 ], actions)
   end
 
   # by the "version zero" rule, then a node which has been created
