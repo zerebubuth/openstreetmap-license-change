@@ -31,6 +31,8 @@ class History
       @clean_geom = obj.geom
     when OSM::Way
       @clean_geom = obj.nodes.map {|n| [n, true]}
+    when OSM::Relation
+      @clean_geom = obj.members.map {|m| [m, true]}
     end
   end
 
@@ -76,6 +78,8 @@ class History
                      @clean_geom != obj.geom
                      when OSM::Way
                      (@clean_geom.map {|n,c| n}) != obj.geom
+                     when OSM::Relation
+                     (@clean_geom.map {|m,c| m}) != obj.geom
                    end
     if Tags.significant?(@clean_values, obj.tags) or geom_is_diff
       @cleans << false
