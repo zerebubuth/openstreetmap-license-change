@@ -9,7 +9,8 @@ require './test_relation'
 require './test_util'
 require './test_abbrev'
 require './test_needs_clarity'
-require './test_exceptions.rb'
+require './test_exceptions'
+require './test_references'
 
 Test::Unit::Runner.new.run(ARGV)
 
