@@ -18,9 +18,11 @@ require 'test/unit'
 
 class TestNeedsClarity < Test::Unit::TestCase
   def setup
-    @db = DB.new(1 => Changeset[User[true]],
-                 2 => Changeset[User[true]],
-                 3 => Changeset[User[false]])
+    @db = DB.new(:changesets => {
+                   1 => Changeset[User[true]],
+                   2 => Changeset[User[true]],
+                   3 => Changeset[User[false]]
+                 })
   end 
 
     # this is a node with some early bad content all of which has been eradicated many versions ago

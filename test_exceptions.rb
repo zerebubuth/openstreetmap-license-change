@@ -8,9 +8,11 @@ require 'test/unit'
 
 class TestExceptions < Test::Unit::TestCase
   def setup
-    @db = DB.new(1 => Changeset[User[true]],
-                 2 => Changeset[User[true]],
-                 3 => Changeset[User[false]])
+    @db = DB.new(:changesets => {
+                   1 => Changeset[User[true]],
+                   2 => Changeset[User[true]],
+                   3 => Changeset[User[false]]
+                 })
     @db.exclude(OSM::Node, [1, 2, 4])
   end 
 

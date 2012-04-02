@@ -1,8 +1,8 @@
 require './osm'
 
 class DB
-  def initialize(changesets)
-    @changesets = changesets
+  def initialize(options = {})
+    @changesets = options[:changesets] or {}
     @exclusions = Hash.new
   end
 

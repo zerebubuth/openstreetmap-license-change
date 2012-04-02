@@ -14,9 +14,11 @@ class TestNode < Test::Unit::TestCase
   # the actual data of the changesets is initialised differently for
   # each test.
   def setup
-    @db = DB.new(1 => Changeset[User[true]], #agreer
-                 2 => Changeset[User[true]], #agreer
-                 3 => Changeset[User[false]]) #disagreer
+    @db = DB.new(:changesets => {
+                   1 => Changeset[User[true]], #agreer
+                   2 => Changeset[User[true]], #agreer
+                   3 => Changeset[User[false]] #disagreer
+                 })
   end 
 
   # if a node has been edited only by people who have agreed then

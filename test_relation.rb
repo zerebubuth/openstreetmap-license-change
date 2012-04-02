@@ -8,9 +8,11 @@ require 'test/unit'
 
 class TestRelation < Test::Unit::TestCase
   def setup
-    @db = DB.new(1 => Changeset[User[true]],
-                 2 => Changeset[User[true]],
-                 3 => Changeset[User[false]])
+    @db = DB.new(:changesets => {
+                   1 => Changeset[User[true]],
+                   2 => Changeset[User[true]],
+                   3 => Changeset[User[false]]
+                 })
   end 
 
   def test_relation_simple
