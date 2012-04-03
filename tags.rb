@@ -5,6 +5,10 @@ require './abbreviations'
 # module for various functions to do with tags.
 #
 module Tags
+  # keys which have automatic values, and deletions of 
+  # these aren't considered to be significant.
+  AUTO_KEYS = [ 'created_by' ]
+
   # tests whether a set of tags is signifying an object as
   # having been manually checked and accepted as clean for
   # the purposes of ODbL compliance. 
@@ -75,10 +79,12 @@ module Tags
       created_keys.delete(new_key)
       deleted_keys.delete(old_key)
     end
-    # we don't count deletions as significant(?), but any 
-    # creations at all are considered significant.
+    # any creations at all are considered significant.
     return true unless created_keys.empty?
-    return true unless deleted_keys.empty?
+
+    # deletions outside the set of automatic keys are 
+    # considered significant -- are they, really?
+    return true unless (deleted_keys.all? {|k| AUTO_KEYS.include? k})
 
     # the remaining question is then if any of the key
     # moves are significant.
