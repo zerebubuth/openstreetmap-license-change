@@ -15,7 +15,7 @@ module OSM
       @element_id = attrs[:id]
       @changeset_id = attrs[:changeset]
       @timestamp = attrs[:timestamp]
-      @visible = attrs[:visible] || false
+      @visible = attrs.has_key?(:visible) ? attrs[:visible] : true
       @version = attrs[:version]
     end
 

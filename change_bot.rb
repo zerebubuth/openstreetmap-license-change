@@ -141,6 +141,13 @@ class History
 
     @versions.zip(@cleans).zip(@acceptors).map {|i| i.flatten}.each do |obj,clean,acceptor| 
       clean_flag = clean_flag && clean
+
+      # deleted objects are always clean
+      unless obj.visible
+        clean_flag = true
+        first_act = nil
+      end
+
       clean_history << clean_flag
 
       unless clean_flag
