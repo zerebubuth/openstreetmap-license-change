@@ -62,5 +62,15 @@ class TestRelation < Test::Unit::TestCase
                   Redact[OSM::Relation,1,2,:hidden]
                  ], actions)
   end
+
+  # relation members added by agreer, then role changed by decliner, and changed back by agreer. Intermediate edit should be redacted but no edits made.
+  def test_relation_role_edited_reverted
+    history = [OSM::Relation[[ [OSM::Way,1,"outer"] , [OSM::Way,2,"inner"] ], :id=>1, :changeset=>1, :version=>1, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,1,"outer"] , [OSM::Way,2,"aaaaa"] ], :id=>1, :changeset=>3, :version=>2, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,1,"outer"] , [OSM::Way,2,"inner"] ], :id=>1, :changeset=>1, :version=>3, "type" => "multipolygon"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Relation,1,2,:hidden]], actions)
+  end
   
 end
