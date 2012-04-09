@@ -59,7 +59,9 @@ module Tags
 
     # if any of the changed keys are significant then this
     # edit will be significant.
-    changes_are_significant = changed_keys.map {|k| Tags.significant_tag?(old[k], new[k])}.any?
+    changes_are_significant = changed_keys.map do |k| 
+      (not AUTO_KEYS.include?(k)) && Tags.significant_tag?(old[k], new[k])
+    end.any?
     return true if changes_are_significant
 
     # the differences of the key sets give us created and
@@ -82,9 +84,9 @@ module Tags
     # any creations at all are considered significant.
     return true unless created_keys.empty?
 
-    # deletions outside the set of automatic keys are 
-    # considered significant -- are they, really?
-    return true unless (deleted_keys.all? {|k| AUTO_KEYS.include? k})
+    # deletions are never considered significant, by the
+    # rules of 'deletions are OK', so ignore the deleted
+    # keys.
 
     # the remaining question is then if any of the key
     # moves are significant.
