@@ -25,6 +25,29 @@ class TestUtil < Test::Unit::TestCase
     assert_equal([2,3,2,2,2], Util::lcs([2,3,2,2,2],[1,2,3,2,3,3,4,2,2,5,6]))
   end
 
+  def test_util_lcs_efficiency
+    # make a very long pair of sequences, and test the LCS algorithm doesn't
+    # take too long. if this takes way too long, then it's unlikely that the
+    # bot process will run in any decent length of time.
+    a, b, c = [], [], []
+    100.times do
+      n = rand(10)
+      n.times do 
+        x = rand(100)
+        a << x
+        b << x
+        c << x
+      end
+      # add some stuff that isn't in the list
+      a << 101 
+      b << 102
+    end
+
+    c2 = Util::lcs(a, b)
+
+    assert_equal(c, c2)
+  end
+
   def test_util_diff
     assert_equal([], Util::diff([], []))
     assert_equal([[:c, 1], [:c, 2], [:c, 3]], Util::diff([1,2,3], [1,2,3]))

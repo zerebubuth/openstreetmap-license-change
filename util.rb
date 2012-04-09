@@ -2,9 +2,37 @@
 # else...
 module Util
   def self.lcs(a, b)
-    obj = LCS.new(a, b)
-    st = obj.get(0,0)
-    st[2]
+    # NOTE: LCS implementation under GFDL 1.2 from 
+    #   http://rosettacode.org/wiki/Longest_common_subsequence#Ruby
+    # slightly modified to use Array instead of String.
+    lengths = Array.new(a.size+1) { Array.new(b.size+1) { 0 } }
+    # row 0 and column 0 are initialized to 0 already
+    a.each_with_index { |x, i|
+      b.each_with_index { |y, j|
+        if x == y
+          lengths[i+1][j+1] = lengths[i][j] + 1
+        else
+          lengths[i+1][j+1] = \
+          [lengths[i+1][j], lengths[i][j+1]].max
+        end
+      }
+    }
+    # read the substring out from the matrix
+    result = Array.new
+    x, y = a.size, b.size
+    while x != 0 and y != 0
+      if lengths[x][y] == lengths[x-1][y]
+        x -= 1
+      elsif lengths[x][y] == lengths[x][y-1]
+        y -= 1
+      else
+        # assert a[x-1] == b[y-1]
+        result << a[x-1]
+        x -= 1
+        y -= 1
+      end
+    end
+    result.reverse
   end
 
   def self.diff(a, b)
@@ -54,65 +82,5 @@ module Util
       end
     end
     c_v
-  end
-
-  private
-  
-  class LCS
-    def initialize(a, b)
-      @a, @b = a, b
-      @state = Hash.new
-    end
-
-    def get(i, j)
-      if @state[[i,j]].nil?
-        compute!(i, j)
-      end
-      @state[[i,j]]
-    end
-
-    def last_of(ary, x)
-      lst = ary.zip(0..(ary.length-1)).select {|a,i| a == x}.last
-      lst.nil? ? nil : lst[1]
-    end
-
-    def trunc(ary, idx)
-      if idx <= 0
-        []
-      else
-        ary[0..(idx-1)]
-      end
-    end
-
-    def compute!(i, j)
-      states = Array.new
-      if i < @a.length
-        ai = @a[i]
-        a_head, b_head, tail = get(i+1, j)
-        bhi = last_of(b_head, ai)
-        if bhi.nil?
-          states << [[ai] + a_head, b_head, tail]
-        else
-          states << [[], trunc(b_head, bhi), [ai] + tail]
-        end
-      end
-      if j < @b.length
-        bj = @b[j]
-        a_head, b_head, tail = get(i, j+1)
-        ahi = last_of(a_head, bj)
-        if ahi.nil?
-          states << [a_head, [bj] + b_head, tail]
-        else
-          states << [trunc(a_head, ahi), [], [bj] + tail]
-        end
-      end
-      if states.empty?
-        @state[[i,j]] = [[],[],[]]
-      else
-        states.sort_by! {|x| x[2].length}
-        @state[[i,j]] = states.last
-      end
-    end
-
   end
 end
