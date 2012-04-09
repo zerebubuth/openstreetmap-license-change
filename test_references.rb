@@ -334,8 +334,8 @@ class TestReferences < Test::Unit::TestCase
     bot.process_all!
 
     assert_equal([Edit[OSM::Relation[[ [OSM::Node,2,"second"] ], :id => 1, :changeset => -1, :version => 1]],
-                  Delete[OSM::Node, 1],
-                  Delete[OSM::Way, 1]
+                  Delete[OSM::Way, 1],
+                  Delete[OSM::Node, 1]
                  ], 
                  bot.as_changeset)
   end 
