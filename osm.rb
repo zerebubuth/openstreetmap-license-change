@@ -175,7 +175,7 @@ module OSM
 
     private
     def initialize(attrs, members, tags)
-      @members = members
+      @members = members.map {|m| Member[*m]}
       init_attrs(attrs)
       init_tags(tags)
     end
