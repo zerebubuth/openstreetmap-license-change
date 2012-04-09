@@ -383,7 +383,10 @@ class ChangeBot
           
         when OSM::Relation
           edit.obj.members.select! {|m| m.type != id[0] || m.ref != id[1]}
-          kill_object = edit.obj.members.empty?
+          # hmm... whether to kill empty relations or not? the test currently
+          # says not, but i'm not sure an empty relation is actually particularly
+          # useful to anyone
+          #kill_object = edit.obj.members.empty?
         end
         
         if kill_object
