@@ -153,5 +153,14 @@ class TestWay < Test::Unit::TestCase
                  ], actions)
   end
 
+  # Non-agreeing user updates created_by tag and deletes note
+  def test_auto_tag_change_and_tag_deletion
+    history = [OSM::Way[[1,2,3], :id => 1, :version => 1, :changeset => 1, "created_by" => "Potlatch 0.5c", "note" => "B-flat"],    # agreed,
+               OSM::Way[[1,2,3], :id => 1, :version => 2, :changeset => 3, "created_by" => "Potlatch 0.8c"],    # not agreed,
+              ]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([], actions)
+  end
   # ** FIXME: add some more way tests here, and some relation ones too.
 end
