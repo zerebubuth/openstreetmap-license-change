@@ -8,10 +8,11 @@ require './test_way'
 require './test_relation'
 require './test_util'
 require './test_abbrev'
-require './test_needs_clarity'
 require './test_exceptions'
 require './test_references'
 require './test_auto'
+require './test_needs_clarity'
+require './test_auto_fail'
 
 Test::Unit::Runner.new.run(ARGV)
 
