@@ -8,7 +8,7 @@ require './actions'
 require './util.rb'
 require 'test/unit'
 
-class TestNode < Test::Unit::TestCase
+class TestAuto < Test::Unit::TestCase
 
 def setup
   @db = DB.new(:changesets => {

@@ -11,6 +11,7 @@ require './test_abbrev'
 require './test_needs_clarity'
 require './test_exceptions'
 require './test_references'
+require './test_auto'
 
 Test::Unit::Runner.new.run(ARGV)
 
