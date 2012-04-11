@@ -35,6 +35,63 @@ module Tags
     end
   end    
 
+  #
+  #
+  class Diff
+    attr_accessor :unchanged, :created, :deleted, :edited, :moved
+
+    def initialize(a, b)
+      # unchanged tags - where the key and the value both appear
+      # exactly the same in both versions.
+      @unchanged = Hash[a.select {|k, v| b[k] == v}]
+      
+      # initial estimate of created and deleted entries are just
+      # those which aren't in the unchanged set.
+      @created = b.select {|k,v| not @unchanged.has_key? k}
+      @deleted = a.select {|k,v| not @unchanged.has_key? k}
+      
+      # now look for things being created and deleted with the
+      # same key, these things have had their value edited
+      common_keys = @created.keys & @deleted.keys
+      @edited = Hash[common_keys.map do |k|
+                      # move old & new values out of created &
+                      # deleted hashes.
+                      old_val = @deleted[k]; @deleted.delete k
+                      new_val = @created[k]; @created.delete k
+                      # and return a move record for them.
+                      [k, [old_val, new_val]]
+                    end]
+      
+      # there's another kind of move, where the key is altered
+      # so look for that now.
+      @moved = Hash[@created.
+                    select {|k,v| @deleted.has_value? v}.
+                    map {|k,v| dk = @deleted.select {|k2,v2| v == v2}.first.first; [[dk, k], v]
+                    }]
+      @moved.each do |keys,v| 
+        @deleted.delete keys[0]
+        @created.delete keys[1]
+      end
+    end
+
+    def apply(original)
+      tags = original.merge(@created)
+      @deleted.each_key {|k| tags.delete k}
+      @edited.each do |k, vals|
+        old_val, new_val = vals
+        tags[k] = new_val if tags[k] == old_val
+      end
+      @moved.each do |keys, v|
+        old_key, new_key = keys
+        if tags[old_key] == v
+          tags.delete old_key
+          tags[new_key] = v
+        end
+      end
+      return tags
+    end
+  end
+
   # tests whether the change of tags from +old+ to +new+ is
   # significant. that is, deserving of some form of legal 
   # protection. 

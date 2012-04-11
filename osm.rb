@@ -69,6 +69,10 @@ module OSM
       position
     end
 
+    def version_zero
+      Node[version_zero_geom, :id => self.element_id, :version => 0]
+    end
+
     private
     def initialize(attrs, pos, tags)
       @position = pos
@@ -106,6 +110,10 @@ module OSM
 
     def geom
       nodes
+    end
+
+    def version_zero
+      Way[version_zero_geom, :id => self.element_id, :version => 0]
     end
 
     private
@@ -171,6 +179,10 @@ module OSM
 
     def geom
       members
+    end
+
+    def version_zero
+      Relation[version_zero_geom, :id => self.element_id, :version => 0]
     end
 
     private
