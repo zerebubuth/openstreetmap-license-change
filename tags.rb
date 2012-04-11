@@ -40,38 +40,40 @@ module Tags
   class Diff
     attr_accessor :unchanged, :created, :deleted, :edited, :moved
 
-    def initialize(a, b)
+    def self.create(a, b)
       # unchanged tags - where the key and the value both appear
       # exactly the same in both versions.
-      @unchanged = Hash[a.select {|k, v| b[k] == v}]
+      unchanged = Hash[a.select {|k, v| b[k] == v}]
       
       # initial estimate of created and deleted entries are just
       # those which aren't in the unchanged set.
-      @created = b.select {|k,v| not @unchanged.has_key? k}
-      @deleted = a.select {|k,v| not @unchanged.has_key? k}
+      created = b.select {|k,v| not unchanged.has_key? k}
+      deleted = a.select {|k,v| not unchanged.has_key? k}
       
       # now look for things being created and deleted with the
       # same key, these things have had their value edited
-      common_keys = @created.keys & @deleted.keys
-      @edited = Hash[common_keys.map do |k|
+      common_keys = created.keys & deleted.keys
+      edited = Hash[common_keys.map do |k|
                       # move old & new values out of created &
                       # deleted hashes.
-                      old_val = @deleted[k]; @deleted.delete k
-                      new_val = @created[k]; @created.delete k
+                      old_val = deleted[k]; deleted.delete k
+                      new_val = created[k]; created.delete k
                       # and return a move record for them.
                       [k, [old_val, new_val]]
                     end]
       
       # there's another kind of move, where the key is altered
       # so look for that now.
-      @moved = Hash[@created.
-                    select {|k,v| @deleted.has_value? v}.
-                    map {|k,v| dk = @deleted.select {|k2,v2| v == v2}.first.first; [[dk, k], v]
-                    }]
-      @moved.each do |keys,v| 
-        @deleted.delete keys[0]
-        @created.delete keys[1]
+      moved = Hash[created.
+                   select {|k,v| deleted.has_value? v}.
+                   map {|k,v| dk = deleted.select {|k2,v2| v == v2}.first.first; [[dk, k], v]
+                   }]
+      moved.each do |keys,v| 
+        deleted.delete keys[0]
+        created.delete keys[1]
       end
+
+      return Diff.new(unchanged, created, deleted, edited, moved)
     end
 
     def apply(original)
@@ -89,6 +91,18 @@ module Tags
         end
       end
       return tags
+    end
+
+    def reverse
+      Diff.new(@unchanged, @deleted, @created,
+               Hash[@edited.map {|k, vals| [k, vals.reverse]}],
+               Hash[@moved.map {|keys, v| [keys.reverse, v]}])
+    end
+
+    private
+
+    def initialize(unchanged, created, deleted, edited, moved)
+      @unchanged, @created, @deleted, @edited, @moved = unchanged, created, deleted, edited, moved
     end
   end
 
