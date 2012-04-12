@@ -3,29 +3,67 @@ require './osm'
 require './db'
 require './actions'
 require './tags'
+require './geom'
 require 'set'
 
 class History
-  def initialize(versions)
-    @versions = versions
+  def initialize(versions, db)
+    @versions, @db = versions, db
 
     # just get objects in ascending version order
     @versions.sort_by! {|obj| obj.version}
-
-    # prepend the "version zero" object.
-    @versions.insert(0, @versions.first.version_zero)
   end
 
   def actions
-    # generate the diffs for geometry and tags separately
-    geom_patches = @versions.each_cons(2).map {|a, b| geom_diff(a, b)}
-    tags_patches = @versions.each_cons(2).map {|a, b| Tags::Diff.new(a.tags, b.tags)}
-    []
+    prev_obj = @versions.first.version_zero
+    base_obj = prev_obj.clone
+    actions = Array.new
+
+    @versions.each do |obj|
+      # generate the diffs for geometry and tags separately
+      geom_patch = Geom.diff(prev_obj, obj)
+      tags_patch = Tags.diff(prev_obj, obj)
+
+      # is this version clean?
+      is_clean_version = 
+        ((tags_patch.empty? and geom_patch.empty?) or 
+         Tags.odbl_clean?(obj.tags) or
+         changeset_is_accepted?(obj.changeset_id))
+      
+      if is_clean_version
+        tags_patch.apply!(base_obj)
+        geom_patch.apply!(base_obj)
+
+      else
+        tags_patch.apply!(base_obj, :only => :deleted)
+        geom_patch.apply!(base_obj, :only => :deleted)
+
+        actions << Redact[obj.class, obj.element_id, obj.version, :hidden]
+      end
+    end
+
+    if base_obj.geom == base_obj.version_zero.geom
+      actions.insert(0, Delete[base_obj.class, base_obj.element_id])
+
+    elsif ((base_obj.tags != @versions.last.tags) or
+        (base_obj.geom != @versions.last.geom))
+      base_obj.changeset_id = -1
+      base_obj.version = @versions.last.version
+
+      actions.insert(0, Edit[base_obj])
+    end
+    
+    return actions
   end
 
   private
 
-  def geom_diff(a, b)
+  def changeset_is_accepted?(changeset_id)
+    cs = @db.changeset(changeset_id)
+    accepted = cs.user.accepted_cts? 
+    accepted = accepted or (not cs.user.adopter.nil? and cs.user.adopter.accepted_cts?)
+    accepted = accepted or cs.override_accepted?
+    return accepted
   end
 end
 
@@ -48,7 +86,7 @@ class ChangeBot
     end
 
     # otherwise, normal process.
-    h = History.new(history)
+    h = History.new(history, @db)
     # h.each_version do |element|
     #   if changeset_is_accepted?(element.changeset_id)
     #     if h.is_clean?
@@ -189,13 +227,5 @@ class ChangeBot
         end
       end
     end
-  end
-
-  def changeset_is_accepted?(changeset_id)
-    cs = @db.changeset(changeset_id)
-    accepted = cs.user.accepted_cts? 
-    accepted = accepted or (not cs.user.adopter.nil? and cs.user.adopter.accepted_cts?)
-    accepted = accepted or cs.override_accepted?
-    return accepted
   end
 end

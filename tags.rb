@@ -35,6 +35,10 @@ module Tags
     end
   end    
 
+  def self.diff(a, b)
+    Diff.create(a.tags, b.tags)
+  end
+
   #
   #
   class Diff
@@ -76,27 +80,44 @@ module Tags
       return Diff.new(unchanged, created, deleted, edited, moved)
     end
 
-    def apply(original)
-      tags = original.merge(@created)
-      @deleted.each_key {|k| tags.delete k}
-      @edited.each do |k, vals|
-        old_val, new_val = vals
-        tags[k] = new_val if tags[k] == old_val
-      end
-      @moved.each do |keys, v|
-        old_key, new_key = keys
-        if tags[old_key] == v
-          tags.delete old_key
-          tags[new_key] = v
+    def apply(original, options = {})
+      tags = original
+
+      if options[:only] == :deleted
+        tags = tags.clone
+        @deleted.each_key {|k| tags.delete k}        
+
+      else
+        tags = tags.merge(@created)
+        @deleted.each_key {|k| tags.delete k}
+        @edited.each do |k, vals|
+          old_val, new_val = vals
+          tags[k] = new_val if tags[k] == old_val
+        end
+        @moved.each do |keys, v|
+          old_key, new_key = keys
+          if tags[old_key] == v
+            tags.delete old_key
+            tags[new_key] = v
+          end
         end
       end
+
       return tags
+    end
+
+    def apply!(obj, options = {})
+      obj.tags = apply(obj.tags, options)
     end
 
     def reverse
       Diff.new(@unchanged, @deleted, @created,
                Hash[@edited.map {|k, vals| [k, vals.reverse]}],
                Hash[@moved.map {|keys, v| [keys.reverse, v]}])
+    end
+
+    def empty?
+      [@created, @deleted, @edited, @moved].all? {|x| x.empty?}
     end
 
     private
