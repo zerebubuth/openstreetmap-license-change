@@ -4,9 +4,9 @@ require './changeset'
 require './db'
 require './actions'
 require './util.rb'
-require 'test/unit'
+require 'minitest/unit'
 
-class TestUtil < Test::Unit::TestCase
+class TestUtil < MiniTest::Unit::TestCase
 
   # testing the longest common substring utility function. this isn't
   # license-related directly, but it's used in the way/relation geometry

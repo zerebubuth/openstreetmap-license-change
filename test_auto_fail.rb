@@ -6,9 +6,9 @@ require './changeset'
 require './db'
 require './actions'
 require './util.rb'
-require 'test/unit'
+require 'minitest/unit'
 
-class TestAutoFail < Test::Unit::TestCase
+class TestAutoFail < MiniTest::Unit::TestCase
 
 def setup
   @db = DB.new(:changesets => {

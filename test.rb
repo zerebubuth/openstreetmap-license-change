@@ -1,5 +1,5 @@
 require 'rubygems'
-require 'test/unit'
+require 'minitest/unit'
 
 require './test_node'
 require './test_odbl_tag'
@@ -14,5 +14,5 @@ require './test_auto'
 require './test_needs_clarity'
 require './test_auto_fail'
 
-Test::Unit::Runner.new.run(ARGV)
+MiniTest::Unit.new.run(ARGV)
 

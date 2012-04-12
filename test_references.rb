@@ -4,9 +4,9 @@ require './changeset'
 require './db'
 require './actions'
 require './util.rb'
-require 'test/unit'
+require 'minitest/unit'
 
-class TestReferences < Test::Unit::TestCase
+class TestReferences < MiniTest::Unit::TestCase
 
   ##
   # this tests that a clean way may have to be deleted if it contains

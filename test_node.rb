@@ -4,9 +4,9 @@ require './changeset'
 require './db'
 require './actions'
 require './util.rb'
-require 'test/unit'
+require 'minitest/unit'
 
-class TestNode < Test::Unit::TestCase
+class TestNode < MiniTest::Unit::TestCase
 
   # Setup prior to each of the node tests below
   # Changesets 1 & 2 are by agreers. Changeset 3 is by a disagreer.
