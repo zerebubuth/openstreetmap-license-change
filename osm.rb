@@ -69,6 +69,10 @@ module OSM
       position
     end
 
+    def geom=(pos)
+      @position = pos
+    end
+
     def version_zero
       Node[version_zero_geom, :id => self.element_id, :version => 0]
     end
@@ -110,6 +114,10 @@ module OSM
 
     def geom
       nodes
+    end
+
+    def geom=(n)
+      @nodes = n
     end
 
     def version_zero
@@ -179,6 +187,10 @@ module OSM
 
     def geom
       members
+    end
+
+    def geom=(m)
+      @members = m
     end
 
     def version_zero

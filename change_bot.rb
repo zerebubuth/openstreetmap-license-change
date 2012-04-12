@@ -50,7 +50,7 @@ class History
       end
       
       # update object
-      base_obj.position = new_geom
+      base_obj.geom = new_geom
       base_obj.tags = new_tags
 
       prev_obj = obj

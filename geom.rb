@@ -1,4 +1,5 @@
 require './osm'
+require './util'
 
 module Geom
   def self.diff(a, b)
@@ -48,8 +49,63 @@ module Geom
   end
 
   class WayDiff
+    def self.create(a, b)
+      WayDiff.new(Util.diff(a.nodes, b.nodes))
+    end
+
+    def empty?
+      @diff.all? {|source, elt| source == :c}
+    end
+
+    def only_deletes?
+      not @diff.any? {|source, elt| source == :b}
+    end
+
+    def apply(geom, options = {})
+      geom
+    end
+    
+    def apply!(obj, options = {})
+      obj.nodes = apply(obj.nodes, options)
+    end
+
+    def to_s
+      "WayDiff[" + @diff + "]"
+    end
+
+    private
+    def initialize(d)
+      @diff = d
+    end
   end
 
   class RelationDiff
+    def self.create(a, b)
+      RelationDiff.new
+    end
+
+    def empty?
+      false
+    end
+
+    def only_deletes?
+      false
+    end
+
+    def apply(geom, options = {})
+      geom
+    end
+    
+    def apply!(obj, options = {})
+      obj.members = apply(obj.members, options)
+    end
+
+    def to_s
+      "RelationDiff"
+    end
+
+    private
+    def initialize
+    end
   end
 end
