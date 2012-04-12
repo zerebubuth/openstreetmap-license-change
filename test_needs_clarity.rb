@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require './change_bot'
 require './user'
 require './changeset'
