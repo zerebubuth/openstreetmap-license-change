@@ -21,6 +21,10 @@ module Geom
       @null_move
     end
 
+    def only_deletes?
+      @null_move
+    end
+
     def apply(geom, options = {})
       if empty? or options[:only] == :deleted
         geom
@@ -31,6 +35,10 @@ module Geom
 
     def apply!(obj, options = {})
       obj.position = apply(obj.position, options) unless @null_move
+    end
+
+    def to_s
+      "NodeDiff[#{@null_move},#{@position}]"
     end
 
     private

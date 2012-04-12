@@ -119,6 +119,14 @@ module Tags
     def empty?
       [@created, @deleted, @edited, @moved].all? {|x| x.empty?}
     end
+    
+    def only_deletes?
+      [@created, @edited, @moved].all? {|x| x.empty?}
+    end
+
+    def to_s
+      "TagDiff[" + ([:@unchanged, :@created, :@deleted, :@edited, :@moved].map {|x| "#{x}=>#{instance_variable_get(x)}"}.join(",")) + "]"
+    end
 
     private
 

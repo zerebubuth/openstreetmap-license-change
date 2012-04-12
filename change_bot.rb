@@ -16,8 +16,9 @@ class History
 
   def actions
     prev_obj = @versions.first.version_zero
+
     base_obj = prev_obj.clone
-    actions = Array.new
+    xactions = Array.new
 
     @versions.each do |obj|
       # generate the diffs for geometry and tags separately
@@ -26,34 +27,47 @@ class History
 
       # is this version clean?
       is_clean_version = 
-        ((tags_patch.empty? and geom_patch.empty?) or 
+        ((tags_patch.empty? and geom_patch.empty?) or
          Tags.odbl_clean?(obj.tags) or
          changeset_is_accepted?(obj.changeset_id))
+
+      # if this is not a clean version, then the only part
+      # of the patch we can apply is the deletions, by the
+      # 'deletions are always OK' rule.
+      apply_options = is_clean_version ? {} : {:only => :deleted}
       
-      if is_clean_version
-        tags_patch.apply!(base_obj)
-        geom_patch.apply!(base_obj)
+      # apply the patches
+      new_tags = tags_patch.apply(base_obj.tags, apply_options)
+      new_geom = geom_patch.apply(base_obj.geom, apply_options)
 
-      else
-        tags_patch.apply!(base_obj, :only => :deleted)
-        geom_patch.apply!(base_obj, :only => :deleted)
-
-        actions << Redact[obj.class, obj.element_id, obj.version, :hidden]
+      # if the result of applying the patches is any different
+      # from the version we actually have, then the object is
+      # in a state that we can't display, so redact it.
+      if (new_tags != obj.tags or new_geom != obj.geom) #and 
+        #not (geom_patch.only_deletes? and tags_patch.only_deletes?))
+        visibility = is_clean_version 
+        xactions << Redact[obj.class, obj.element_id, obj.version, visibility ? :visible : :hidden]
       end
+      
+      # update object
+      base_obj.position = new_geom
+      base_obj.tags = new_tags
+
+      prev_obj = obj
     end
 
     if base_obj.geom == base_obj.version_zero.geom
-      actions.insert(0, Delete[base_obj.class, base_obj.element_id])
+      xactions.insert(0, Delete[base_obj.class, base_obj.element_id])
 
     elsif ((base_obj.tags != @versions.last.tags) or
         (base_obj.geom != @versions.last.geom))
       base_obj.changeset_id = -1
       base_obj.version = @versions.last.version
 
-      actions.insert(0, Edit[base_obj])
+      xactions.insert(0, Edit[base_obj])
     end
     
-    return actions
+    return xactions
   end
 
   private
