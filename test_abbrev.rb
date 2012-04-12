@@ -5,9 +5,9 @@ require './db'
 require './actions'
 require './util.rb'
 require './abbreviations.rb'
-require 'test/unit'
+require 'minitest/unit'
 
-class TestAbbrev < Test::Unit::TestCase
+class TestAbbrev < MiniTest::Unit::TestCase
 
   # test that some strings are the same under abbreviation, 
   # even when there's differing whitespace or punctuation

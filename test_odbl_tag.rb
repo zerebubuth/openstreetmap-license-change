@@ -4,9 +4,9 @@ require './changeset'
 require './db'
 require './actions'
 require './util.rb'
-require 'test/unit'
+require 'minitest/unit'
 
-class TestOdblTag < Test::Unit::TestCase
+class TestOdblTag < MiniTest::Unit::TestCase
   def setup
     @db = DB.new(:changesets => {
                    1 => Changeset[User[true]],

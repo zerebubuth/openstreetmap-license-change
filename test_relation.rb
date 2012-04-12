@@ -4,9 +4,9 @@ require './changeset'
 require './db'
 require './actions'
 require './util.rb'
-require 'test/unit'
+require 'minitest/unit'
 
-class TestRelation < Test::Unit::TestCase
+class TestRelation < MiniTest::Unit::TestCase
   def setup
     @db = DB.new(:changesets => {
                    1 => Changeset[User[true]],
@@ -68,6 +68,55 @@ class TestRelation < Test::Unit::TestCase
     history = [OSM::Relation[[ [OSM::Way,1,"outer"] , [OSM::Way,2,"inner"] ], :id=>1, :changeset=>1, :version=>1, "type" => "multipolygon"],
                OSM::Relation[[ [OSM::Way,1,"outer"] , [OSM::Way,2,"aaaaa"] ], :id=>1, :changeset=>3, :version=>2, "type" => "multipolygon"],
                OSM::Relation[[ [OSM::Way,1,"outer"] , [OSM::Way,2,"inner"] ], :id=>1, :changeset=>1, :version=>3, "type" => "multipolygon"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Relation,1,2,:hidden]], actions)
+  end
+
+  # relation member deleted by decliner. Way should be readded and deletion should be redacted.
+  def test_relation_member_deleted_by_decliner
+    history = [OSM::Relation[[ [OSM::Way,1,""] , [OSM::Way,2,""] ], :id=>1, :changeset=>1, :version=>1, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,1,""] ], :id=>1, :changeset=>3, :version=>2, "type" => "multipolygon"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Relation[[ [OSM::Way,1,""] , [OSM::Way,2,""] ], :id=>1, :changeset=>-1, :version=>2, "type" => "multipolygon"]], Redact[OSM::Relation,1,2,:hidden]], actions)
+  end
+
+  # relation member deleted by decliner then readded by agreer. The event should be redacted but no edits made.
+  def test_relation_member_deleted_by_decliner_readded_by_agreer
+    history = [OSM::Relation[[ [OSM::Way,1,""] , [OSM::Way,2,""] ], :id=>1, :changeset=>1, :version=>1, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,1,""] ], :id=>1, :changeset=>3, :version=>2, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,1,""] , [OSM::Way,2,""] ], :id=>1, :changeset=>1, :version=>3, "type" => "multipolygon"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Relation,1,2,:hidden]], actions)
+  end
+
+  # relation attributes changed by decliner, then marked odbl=clean. Redact the original edit but make no edit to the final result.
+  def test_relation_attributes_marked_clean
+    history = [OSM::Relation[[ [OSM::Way,1,""]], :id=>1, :changeset=>1, :version=>1, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,1,""]], :id=>1, :changeset=>3, :version=>2, "type" => "unipolygon"],
+               OSM::Relation[[ [OSM::Way,1,""]], :id=>1, :changeset=>1, :version=>3, "type" => "unipolygon", "odbl" => "clean"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Relation,1,2,:hidden]], actions)
+  end
+
+  # member role changed by decliner, then marked odbl=clean. Redact the original edit but make no edit to the final result.
+  def test_member_role_marked_clean
+    history = [OSM::Relation[[ [OSM::Way,1,""]], :id=>1, :changeset=>1, :version=>1, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,1,"aaa"]], :id=>1, :changeset=>3, :version=>2, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,1,"aaa"]], :id=>1, :changeset=>1, :version=>3, "type" => "multipolygon", "odbl" => "clean"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Relation,1,2,:hidden]], actions)
+  end
+
+  # member role changed on way that subsequently gets deleted. Redact the change but make no edits.
+  def test_relation_attribute_changed_then_deleted
+    history = [OSM::Relation[[ [OSM::Way,1,""], [OSM::Way,2,""]], :id=>1, :changeset=>1, :version=>1, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,1,""], [OSM::Way,2,"aaa"]], :id=>1, :changeset=>3, :version=>2, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,1,""]], :id=>1, :changeset=>1, :version=>3, "type" => "multipolygon"]]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Redact[OSM::Relation,1,2,:hidden]], actions)

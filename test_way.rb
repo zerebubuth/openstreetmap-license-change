@@ -4,9 +4,9 @@ require './changeset'
 require './db'
 require './actions'
 require './util.rb'
-require 'test/unit'
+require 'minitest/unit'
 
-class TestWay < Test::Unit::TestCase
+class TestWay < MiniTest::Unit::TestCase
   def setup
     @db = DB.new(:changesets => {
                    1 => Changeset[User[true]],
@@ -161,6 +161,20 @@ class TestWay < Test::Unit::TestCase
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([], actions)
+  end
+
+  # test simplified from auto-generated test for way 4890000
+  # v1 is decliner but agreer adds a single node in v2. This could be kept but results in a single-node way so should be deleted.
+  def test_one_node_way_outcome
+    history = [OSM::Way[[1,2,3], :id => 1, :version => 1, :visible => true, :changeset => 3, "a" => "b"],    # not agreed,
+               OSM::Way[[1,2,3,4], :id => 1, :version => 2, :visible => true, :changeset => 1, "a" => "b"],    # agreed
+              ]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Delete[OSM::Way, 1], # only one node would remain so delete
+                  Redact[OSM::Way, 1, 1, :hidden],
+                  Redact[OSM::Way, 1, 2, :visible]
+                 ], actions)
   end
   # ** FIXME: add some more way tests here, and some relation ones too.
 end
