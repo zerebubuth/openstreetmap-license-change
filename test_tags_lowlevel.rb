@@ -123,3 +123,8 @@ class TestTagsLowlevel < Test::Unit::TestCase
     assert_equal(old, diff.reverse.apply(new))
   end    
 end
+
+if __FILE__ == $0
+    MiniTest::Unit.new.run(ARGV)
+end
+

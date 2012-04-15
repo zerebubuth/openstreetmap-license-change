@@ -284,3 +284,8 @@ def test_node_reformed_ccoholic_simple
                  ], actions)
 end
 
+
+if __FILE__ == $0
+    MiniTest::Unit.new.run(ARGV)
+end
+

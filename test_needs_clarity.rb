@@ -157,3 +157,8 @@ class TestNeedsClarity < MiniTest::Unit::TestCase
   end
 
 end
+
+if __FILE__ == $0
+    MiniTest::Unit.new.run(ARGV)
+end
+
