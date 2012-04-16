@@ -43,10 +43,24 @@ class History
       # of the patch we can apply is the deletions, by the
       # 'deletions are always OK' rule.
       apply_options = (status == :unclean) ? {:only => :deleted} : {}
-      
-      # apply the patches
-      new_tags = tags_patch.apply(base_obj.tags, apply_options)
-      new_geom = geom_patch.apply(base_obj.geom, apply_options)
+
+      # if the element is explicitly marked as clean, then
+      # don't bother with the application of patches, just
+      # update the element.
+      if status == :odbl_clean
+        new_tags = obj.tags
+        new_geom = obj.geom
+
+        # also remove any of the current tags which are in 
+        # the tainted set of tags - they're not tainted
+        # any more if this is explicitly obdl clean.
+        tainted_tags.select! {|k,v| new_tags[k] == v}
+
+      else
+        # apply the patches
+        new_tags = tags_patch.apply(base_obj.tags, apply_options)
+        new_geom = geom_patch.apply(base_obj.geom, apply_options)
+      end
 
       # if the tags patch is unclean then record the additions and 
       # changes to check for taint later on.
