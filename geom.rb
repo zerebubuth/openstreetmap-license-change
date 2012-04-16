@@ -91,7 +91,7 @@ module Geom
     end
 
     def to_s
-      "WayDiff[" + @diff + "]"
+      "WayDiff[" + @diff.inspect + "]"
     end
 
     private
