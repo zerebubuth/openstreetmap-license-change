@@ -246,7 +246,7 @@ class TestNode < MiniTest::Unit::TestCase
     actions = bot.action_for(history)
     assert_equal([Edit[OSM::Node[[1,1], :id => 1, :changeset => -1, :version => 8, "bar" => "baz", "dapper" => "mapper", "e" => "mc**2" ]],
                   Redact[OSM::Node, 1, 1, :hidden],
-                  Redact[OSM::Node, 1, 2, :hidden],
+                  Redact[OSM::Node, 1, 2, :visible],
                   Redact[OSM::Node, 1, 4, :hidden],
                   Redact[OSM::Node, 1, 5, :visible],
                   Redact[OSM::Node, 1, 6, :hidden],
