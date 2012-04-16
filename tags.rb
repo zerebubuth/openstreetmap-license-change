@@ -48,11 +48,22 @@ module Tags
       # unchanged tags - where the key and the value both appear
       # exactly the same in both versions.
       unchanged = Hash[a.select {|k, v| b[k] == v}]
-      
+
       # initial estimate of created and deleted entries are just
       # those which aren't in the unchanged set.
       created = b.select {|k,v| not unchanged.has_key? k}
       deleted = a.select {|k,v| not unchanged.has_key? k}
+
+      # take out updates to things with "automatic" keys. these
+      # are things that get changed by bots and can be safely
+      # assumed always clean.
+      auto_key_changes = Hash.new
+      AUTO_KEYS.each do |k|
+        if created.has_key? k
+          auto_key_changes[k] = created[k]
+          created.delete k
+        end
+      end
       
       # now look for things being created and deleted with the
       # same key, these things have had their value edited
@@ -77,7 +88,7 @@ module Tags
         created.delete keys[1]
       end
 
-      return Diff.new(unchanged, created, deleted, edited, moved)
+      return Diff.new(unchanged, created, deleted, edited, moved, auto_key_changes)
     end
 
     def apply(original, options = {})
@@ -85,7 +96,8 @@ module Tags
 
       if options[:only] == :deleted
         tags = tags.clone
-        @deleted.each_key {|k| tags.delete k}        
+        @deleted.each_key {|k| tags.delete k}
+        tags.merge!(@auto_key_changes)
 
       else
         tags = tags.merge(@created)
@@ -101,6 +113,7 @@ module Tags
             tags[new_key] = v
           end
         end
+        tags.merge!(@auto_key_changes)
       end
 
       return tags
@@ -125,13 +138,13 @@ module Tags
     end
 
     def to_s
-      "TagDiff[" + ([:@unchanged, :@created, :@deleted, :@edited, :@moved].map {|x| "#{x}=>#{instance_variable_get(x)}"}.join(",")) + "]"
+      "TagDiff[" + ([:@unchanged, :@created, :@deleted, :@edited, :@moved, :@auto_key_changes].map {|x| "#{x}=>#{instance_variable_get(x)}"}.join(",")) + "]"
     end
 
     private
 
-    def initialize(unchanged, created, deleted, edited, moved)
-      @unchanged, @created, @deleted, @edited, @moved = unchanged, created, deleted, edited, moved
+    def initialize(unchanged, created, deleted, edited, moved, auto_key_changes)
+      @unchanged, @created, @deleted, @edited, @moved, @auto_key_changes = unchanged, created, deleted, edited, moved, auto_key_changes
     end
   end
 
