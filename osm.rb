@@ -206,7 +206,7 @@ module OSM
     end
 
     def invalid?
-      false
+      @members.length < 1
     end
 
     private
