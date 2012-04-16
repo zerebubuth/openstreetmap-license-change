@@ -62,7 +62,28 @@ module Geom
     end
 
     def apply(geom, options = {})
-      geom
+      geom_idx = 0
+      new_geom = Array.new
+
+      @diff.each do |source, elt|
+        case source
+        when :a # exists only in previous - i.e: a delete
+          if geom[geom_idx] == elt
+            geom_idx += 1
+          end
+
+        when :b # exists only in new version - i.e: an add
+          new_geom << elt unless options[:only] == :deleted
+
+        when :c # exists in both - i.e: unchanged
+          if geom[geom_idx] == elt
+            new_geom << elt
+            geom_idx += 1
+          end
+        end
+      end
+
+      return new_geom
     end
     
     def apply!(obj, options = {})
