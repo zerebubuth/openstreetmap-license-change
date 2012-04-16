@@ -63,14 +63,14 @@ class History
         new_tags.delete(k) if new_tags[k] == v
       end
 
-      #puts "[#{obj.version}] #{new_tags.inspect} (#{tainted_tags.inspect})"
-
       # if the result of applying the patches is any different
       # from the version we actually have, then the object is
       # in a state that we can't display, so redact it.
-      if (new_tags != obj.tags or new_geom != obj.geom) #and 
+      if (new_tags != obj.tags || new_geom != obj.geom) #and 
         #not (geom_patch.only_deletes? and tags_patch.only_deletes?))
-        visibility = [:odbl_clean, :acceptor_edit].include?(status)
+        visibility = ((status == :unclean) ?
+                      tags_patch.only_deletes? && geom_patch.only_deletes? :
+                      new_tags != base_obj.tags || new_geom != base_obj.geom || status == :acceptor_edit)
         xactions << Redact[obj.class, obj.element_id, obj.version, visibility ? :visible : :hidden]
       end
       
@@ -81,7 +81,7 @@ class History
       prev_obj = obj
     end
 
-    if base_obj.geom == base_obj.version_zero.geom
+    if base_obj.invalid?
       xactions.insert(0, Delete[base_obj.class, base_obj.element_id])
 
     elsif ((base_obj.tags != @versions.last.tags) or
