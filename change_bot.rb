@@ -20,32 +20,57 @@ class History
     base_obj = prev_obj.clone
     xactions = Array.new
 
+    tainted_tags = Array.new
+
     @versions.each do |obj|
       # generate the diffs for geometry and tags separately
       geom_patch = Geom.diff(prev_obj, obj)
       tags_patch = Tags.diff(prev_obj, obj)
 
-      # is this version clean?
-      is_clean_version = 
-        ((tags_patch.empty? and geom_patch.empty?) or
-         Tags.odbl_clean?(obj.tags) or
-         changeset_is_accepted?(obj.changeset_id))
+      # is this version clean? there are many ways to be
+      # clean, and we try to enumerate them here.
+      status = if Tags.odbl_clean?(obj.tags)
+                 :obdl_clean
+               elsif changeset_is_accepted?(obj.changeset_id)
+                 :acceptor_edit
+               elsif tags_patch.empty? and geom_patch.empty?
+                 :empty
+               else
+                 :unclean
+               end
 
       # if this is not a clean version, then the only part
       # of the patch we can apply is the deletions, by the
       # 'deletions are always OK' rule.
-      apply_options = is_clean_version ? {} : {:only => :deleted}
+      apply_options = (status == :unclean) ? {:only => :deleted} : {}
       
       # apply the patches
       new_tags = tags_patch.apply(base_obj.tags, apply_options)
       new_geom = geom_patch.apply(base_obj.geom, apply_options)
+
+      # if the tags patch is unclean then record the additions and 
+      # changes to check for taint later on.
+      if status == :unclean
+        # taint all created tags
+        tainted_tags.concat(tags_patch.created.to_a)
+        # taint the new version of any edited or moved tag
+        tainted_tags.concat(tags_patch.edited.map {|k,vals| [k,vals[1]]})
+        tainted_tags.concat(tags_patch.moved.map {|keys,v| [keys[1],v]})
+      end
+
+      # remove any taint from the new tags
+      tainted_tags.each do |k,v|
+        new_tags.delete(k) if new_tags[k] == v
+      end
+
+      #puts "[#{obj.version}] #{new_tags.inspect} (#{tainted_tags.inspect})"
 
       # if the result of applying the patches is any different
       # from the version we actually have, then the object is
       # in a state that we can't display, so redact it.
       if (new_tags != obj.tags or new_geom != obj.geom) #and 
         #not (geom_patch.only_deletes? and tags_patch.only_deletes?))
-        visibility = is_clean_version 
+        visibility = [:odbl_clean, :acceptor_edit].include?(status)
         xactions << Redact[obj.class, obj.element_id, obj.version, visibility ? :visible : :hidden]
       end
       
