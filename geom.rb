@@ -110,7 +110,7 @@ module Geom
     end
 
     def only_deletes?
-      not @diff.any? {|source, elt| source == :b}
+      not @diff.any? {|source, elt| source == :b || source == :d}
     end
 
     def apply(geom, options = {})
@@ -132,6 +132,13 @@ module Geom
             new_geom << elt
             geom_idx += 1
           end
+
+        when :d
+          from, to = elt.role.map {|role| OSM::Relation::Member[elt.type, elt.ref, role]}
+          if geom[geom_idx] == from
+            new_geom << ((options[:only] == :deleted) ? from : to)
+            geom_idx += 1
+          end
         end
       end
 
@@ -148,7 +155,35 @@ module Geom
 
     private
     def initialize(d)
-      @diff = d
+      @diff = Array.new
+      current = Array.new
+
+      d.each do |source, elt|
+        # unchanged elements go straight into the diff
+        if source == :c
+          # along with any unmatched elements
+          @diff.concat(current)
+          @diff << [source, elt]
+
+        else
+          # if any of the current elements match this one
+          # except for the role, then consider it as a 
+          # role move instead.
+          idx = current.index {|s,e| s != source && e.type == elt.type && e.ref == elt.ref}
+          
+          if idx.nil?
+            # otherwise, queue up the element
+            current << [source, elt]
+
+          else
+            s, e = current.delete_at(idx)
+            roles = (source == :a) ? [elt.role, e.role] : [e.role, elt.role]
+            @diff << [:d, OSM::Relation::Member[elt.type, elt.ref, roles]]
+          end
+        end
+      end
+
+      @diff.concat(current)
     end
   end
 end
