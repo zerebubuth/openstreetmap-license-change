@@ -124,9 +124,11 @@ module Tags
     end
 
     def reverse
+      # TODO: auto key changes doesn't reverse properly
       Diff.new(@unchanged, @deleted, @created,
                Hash[@edited.map {|k, vals| [k, vals.reverse]}],
-               Hash[@moved.map {|keys, v| [keys.reverse, v]}])
+               Hash[@moved.map {|keys, v| [keys.reverse, v]}],
+               {})
     end
 
     def empty?
