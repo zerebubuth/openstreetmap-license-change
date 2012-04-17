@@ -23,6 +23,15 @@ class History
     tainted_tags = Array.new
 
     @versions.each do |obj|
+      # deletions are always "clean", and we consider them to
+      # have no tags and the "version zero" geometry. what
+      # happens after that may be a revert to a previous version.
+      unless obj.visible
+        base_obj.geom = base_obj.version_zero_geom
+        base_obj.tags = {}
+        next
+      end
+
       # generate the diffs for geometry and tags separately
       geom_patch = Geom.diff(prev_obj, obj)
       tags_patch = Tags.diff(prev_obj, obj)
@@ -98,7 +107,9 @@ class History
     end
 
     if base_obj.invalid?
-      xactions.insert(0, Delete[base_obj.class, base_obj.element_id])
+      if @versions.last.visible
+        xactions.insert(0, Delete[base_obj.class, base_obj.element_id])
+      end
 
     elsif ((base_obj.tags != @versions.last.tags) or
         (base_obj.geom != @versions.last.geom))
