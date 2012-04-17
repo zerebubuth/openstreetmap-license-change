@@ -39,7 +39,7 @@ class History
       # is this version clean? there are many ways to be
       # clean, and we try to enumerate them here.
       status = if Tags.odbl_clean?(obj.tags)
-                 :obdl_clean
+                 :odbl_clean
                elsif changeset_is_accepted?(obj.changeset_id)
                  :acceptor_edit
                elsif tags_patch.empty? and geom_patch.empty?
@@ -65,7 +65,7 @@ class History
         # also remove any of the current tags which are in 
         # the tainted set of tags - they're not tainted
         # any more if this is explicitly obdl clean.
-        tainted_tags.select! {|k,v| new_tags[k] == v}
+        tainted_tags.delete_if {|k,v| new_tags[k] == v}
 
       else
         # apply the patches
