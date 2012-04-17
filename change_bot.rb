@@ -35,10 +35,12 @@ class History
                  :acceptor_edit
                elsif tags_patch.empty? and geom_patch.empty?
                  :empty
+               elsif tags_patch.trivial? and geom_patch.empty?
+                 :trivial
                else
                  :unclean
                end
-
+      
       # if this is not a clean version, then the only part
       # of the patch we can apply is the deletions, by the
       # 'deletions are always OK' rule.

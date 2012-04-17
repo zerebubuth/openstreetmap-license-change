@@ -82,12 +82,12 @@ class TestTagsLowlevel < MiniTest::Unit::TestCase
   def test_apply
     old = {
       'foo' => 'bar!',
-      'foop' => 'bar1',
+      'foop' => 'bar_asdfgh',
       'bar' => 'baz',
       'baz' => 'bat'
     }
     new = {
-      'foop' => 'bar2',
+      'foop' => 'bar_qwerty',
       'bark' => 'baz',
       'baz' => 'bat',
       'new' => 'shoes'
@@ -96,7 +96,7 @@ class TestTagsLowlevel < MiniTest::Unit::TestCase
     assert_equal({'baz' => 'bat'}, diff.unchanged)
     assert_equal({'new' => 'shoes'}, diff.created)
     assert_equal({'foo' => 'bar!'}, diff.deleted)
-    assert_equal({'foop' => ['bar1','bar2']}, diff.edited)
+    assert_equal({'foop' => ['bar_asdfgh','bar_qwerty']}, diff.edited)
     assert_equal({['bar', 'bark'] => 'baz'}, diff.moved)
     assert_equal(new, diff.apply(old))
   end    
@@ -104,12 +104,12 @@ class TestTagsLowlevel < MiniTest::Unit::TestCase
   def test_apply_reverse
     old = {
       'foo' => 'bar!',
-      'foop' => 'bar1',
+      'foop' => 'bar_asdfgh',
       'bar' => 'baz',
       'baz' => 'bat'
     }
     new = {
-      'foop' => 'bar2',
+      'foop' => 'bar_qwerty',
       'bark' => 'baz',
       'baz' => 'bat',
       'new' => 'shoes'
@@ -118,7 +118,7 @@ class TestTagsLowlevel < MiniTest::Unit::TestCase
     assert_equal({'baz' => 'bat'}, diff.unchanged)
     assert_equal({'new' => 'shoes'}, diff.created)
     assert_equal({'foo' => 'bar!'}, diff.deleted)
-    assert_equal({'foop' => ['bar1','bar2']}, diff.edited)
+    assert_equal({'foop' => ['bar_asdfgh','bar_qwerty']}, diff.edited)
     assert_equal({['bar', 'bark'] => 'baz'}, diff.moved)
     assert_equal(old, diff.reverse.apply(new))
   end    

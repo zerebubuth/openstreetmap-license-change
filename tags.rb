@@ -88,34 +88,55 @@ module Tags
         created.delete keys[1]
       end
 
-      return Diff.new(unchanged, created, deleted, edited, moved, auto_key_changes)
+      # extract out the trivial changes, as these are treated
+      # very differently by the algorithm.
+      edited, trivial_edited = edited.
+        partition {|k, vals| Tags.significant_tag?(*vals)}.
+        map {|a| Hash[a]}
+
+      moved, trivial_moved = moved.
+        partition {|keys, v| Tags.significant_tag?(*keys)}.
+        map {|a| Hash[a]}
+
+      return Diff.new(unchanged, created, deleted, edited, moved, 
+                      auto_key_changes, trivial_edited, trivial_moved)
     end
 
     def apply(original, options = {})
-      tags = original
+      tags = original.clone
+      @deleted.each_key {|k| tags.delete k}
 
-      if options[:only] == :deleted
-        tags = tags.clone
-        @deleted.each_key {|k| tags.delete k}
-        tags.merge!(@auto_key_changes)
+      unless options[:only] == :deleted
+        tags.merge!(@created)
 
-      else
-        tags = tags.merge(@created)
-        @deleted.each_key {|k| tags.delete k}
         @edited.each do |k, vals|
           old_val, new_val = vals
-          tags[k] = new_val if tags[k] == old_val
+          tags[k] = new_val if tags[k] == old_val || (not tags.has_key?(k))
         end
+        
         @moved.each do |keys, v|
           old_key, new_key = keys
-          if tags[old_key] == v
+          if tags[old_key] == v || (not tags.has_key?(old_key))
             tags.delete old_key
             tags[new_key] = v
           end
         end
-        tags.merge!(@auto_key_changes)
       end
 
+      @trivial_edited.each do |k, vals|
+        old_val, new_val = vals
+        tags[k] = new_val if tags[k] == old_val
+      end
+
+      @trivial_moved.each do |keys, v|
+        old_key, new_key = keys
+        if tags[old_key] == v
+          tags.delete old_key
+          tags[new_key] = v
+        end
+      end
+
+      tags.merge!(@auto_key_changes)
       return tags
     end
 
@@ -128,25 +149,42 @@ module Tags
       Diff.new(@unchanged, @deleted, @created,
                Hash[@edited.map {|k, vals| [k, vals.reverse]}],
                Hash[@moved.map {|keys, v| [keys.reverse, v]}],
-               {})
+               {},
+               Hash[@trivial_edited.map {|k, vals| [k, vals.reverse]}],
+               Hash[@trivial_moved.map {|keys, v| [keys.reverse, v]}])
     end
 
     def empty?
-      [@created, @deleted, @edited, @moved].all? {|x| x.empty?}
+      [@created, @deleted, @edited, @moved, @trivial_edited, @trivial_moved].all? {|x| x.empty?}
     end
     
     def only_deletes?
-      [@created, @edited, @moved].all? {|x| x.empty?}
+      [@created, @edited, @moved, @trivial_edited, @trivial_moved].all? {|x| x.empty?}
     end
 
+    def trivial?
+      [@created, @deleted, @edited, @moved].all? {|x| x.empty?}
+    end
+    
     def to_s
-      "TagDiff[" + ([:@unchanged, :@created, :@deleted, :@edited, :@moved, :@auto_key_changes].map {|x| "#{x}=>#{instance_variable_get(x)}"}.join(",")) + "]"
+      members = [:@unchanged, :@created, :@deleted, :@edited, :@moved, 
+                 :@auto_key_changes, :@trivial_edited, :@trivial_moved]
+      "TagDiff[" + (members.
+                    map {|x| [x, instance_variable_get(x)]}.
+                    select {|x,m| not m.empty? }.
+                    map {|x,m| "#{x}=>#{m}"}.
+                    join(",")
+                    ) + "]"
     end
 
     private
 
-    def initialize(unchanged, created, deleted, edited, moved, auto_key_changes)
-      @unchanged, @created, @deleted, @edited, @moved, @auto_key_changes = unchanged, created, deleted, edited, moved, auto_key_changes
+    def initialize(unchanged, created, deleted, edited, moved, 
+                   auto_key_changes, trivial_edited, trivial_moved)
+      @unchanged, @created, @deleted, @edited, @moved =
+        unchanged, created, deleted, edited, moved
+      @auto_key_changes, @trivial_edited, @trivial_moved = 
+        auto_key_changes, trivial_edited, trivial_moved
     end
   end
 
