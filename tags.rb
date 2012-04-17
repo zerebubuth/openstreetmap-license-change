@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 require 'text'
 require './abbreviations'
 
@@ -260,6 +261,10 @@ module Tags
     # do the remaining tests all in downcase.
     old = old_v.downcase
     new = new_v.downcase
+    # special case: apostrophes normalise to nothing, rather than
+    # a space.
+    old.gsub!(/[＇'ʼʹ]/, "")
+    new.gsub!(/[＇'ʼʹ]/, "")
     # normalise all punctuation to single spaces
     old.gsub!(/[[:punct:][:space:]]+/," ")
     new.gsub!(/[[:punct:][:space:]]+/," ")
