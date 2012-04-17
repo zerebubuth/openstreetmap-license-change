@@ -29,6 +29,7 @@ class History
       unless obj.visible
         base_obj.geom = base_obj.version_zero_geom
         base_obj.tags = {}
+        prev_obj = base_obj
         next
       end
 
