@@ -3494,7 +3494,7 @@ def setup
     actions = bot.action_for(history)
     assert_equal([Delete[OSM::Node, 280400000],
                   Redact[OSM::Node, 280400000, 1, :hidden],
-                  Redact[OSM::Node, 280400000, 2, :visible] # trivial change leads to "visible" redaction?
+                  Redact[OSM::Node, 280400000, 2, :hidden]
                  ], actions)
   end
 
@@ -3508,7 +3508,8 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Delete[OSM::Node, 285700000],
-                  Redact[OSM::Node, 285700000, 1, :hidden]
+                  Redact[OSM::Node, 285700000, 1, :hidden],
+                  Redact[OSM::Node, 285700000, 2, :visible]
                  ], actions)
   end
 
@@ -3680,8 +3681,8 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Redact[OSM::Node, 49500000, 1, :hidden],
-                  Redact[OSM::Node, 49500000, 2, :visible] # v2 still has the tag even though moved
+    # v2 has a tag from v1, but it's just an auto tag
+    assert_equal([Redact[OSM::Node, 49500000, 1, :hidden]
                  ], actions)
   end
 
