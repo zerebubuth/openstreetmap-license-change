@@ -122,5 +122,20 @@ class TestRelation < MiniTest::Unit::TestCase
     actions = bot.action_for(history)
     assert_equal([Redact[OSM::Relation,1,2,:hidden]], actions)
   end
-  
+
+  def test_relation_diff
+    geoms = [[],
+             [                    [OSM::Way,29336166]], 
+             [                    [OSM::Way,29336166], [OSM::Way,29377987]],
+             [[OSM::Way,9650915], [OSM::Way,29336166], [OSM::Way,29377987]],
+             [[OSM::Way,9650915], [OSM::Way,29336166], [OSM::Way,29377987], [OSM::Way,29335519]]
+            ].map {|g| OSM::Relation[g]}
+
+    x = OSM::Relation[[]]
+    geoms.each_cons(2).each do |a, b|
+      d = Geom.diff(a, b)
+      x.geom = d.apply(x.geom)
+      assert_equal(b, x)
+    end
+  end
 end

@@ -163,6 +163,7 @@ module Geom
         if source == :c
           # along with any unmatched elements
           @diff.concat(current)
+          current = Array.new
           @diff << [source, elt]
 
         else
