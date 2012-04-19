@@ -3666,7 +3666,7 @@ def setup
                   Redact[OSM::Node, 415400000, 2, :hidden],
                   Redact[OSM::Node, 415400000, 3, :hidden],
                   Redact[OSM::Node, 415400000, 4, :hidden],
-                  Redact[OSM::Node, 415400000, 4, :visible]
+                  Redact[OSM::Node, 415400000, 5, :visible]
                  ], actions)
   end
 
