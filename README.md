@@ -52,8 +52,8 @@ action is one of:
    the special API call which hides a version in the history, and
    means that it won't be distributed any more. 
 
-The redaction visibilit has values `:hidden` and `:visible` and 
-these *may* have different meanings eventually. The intended 
+The redaction visibility has values `:hidden` and `:visible` and 
+these *may* have different effects eventually. The intended
 meanings are:
 
 * Hidden: This version does not contribute to the final version of
