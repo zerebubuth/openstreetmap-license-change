@@ -8,7 +8,8 @@ this against an `apidb` format database, or possibly a live API.
 # Requirements
 
 To run this, you'll need Ruby (probably >=1.9.3) and the 'text'
-gem. Then you'll be able to run:
+gem, which you can install with `bundle install`. Then you'll be able
+to run:
 
  `ruby test.rb`
 
