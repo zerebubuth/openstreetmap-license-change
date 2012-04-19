@@ -176,7 +176,7 @@ class TestWay < MiniTest::Unit::TestCase
   end
 
   # test as proposed by Spod (http://lists.openstreetmap.org/pipermail/rebuild/2012-April/000221.html)
-  # created by decliner, all tags completely changed, all nodes moved
+  # created by decliner, all tags completely changed by agreer
   def all_tags_changed
     history = [OSM::Way[[1,2,3], :id => 1, :version => 1, :visible => true, :changeset => 3, "name" => "Westgate", "highway" => "secondary"],    # not agreed,
                OSM::Way[[1,2,3], :id => 1, :version => 2, :visible => true, :changeset => 1, "name" => "Sheffield Road", "highway" => "tertiary"],    # agreed
