@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require './change_bot'
 require './user'
 require './changeset'
@@ -188,3 +190,8 @@ class TestWay < MiniTest::Unit::TestCase
 
   # ** FIXME: add some more way tests here, and some relation ones too.
 end
+
+if __FILE__ == $0
+    MiniTest::Unit.new.run(ARGV)
+end
+

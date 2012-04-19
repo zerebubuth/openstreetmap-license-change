@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require './change_bot'
 require './user'
 require './changeset'
@@ -181,3 +183,8 @@ class TestTags < MiniTest::Unit::TestCase
                  "Note: with tag pattern #{tags}")
   end
 end
+
+if __FILE__ == $0
+    MiniTest::Unit.new.run(ARGV)
+end
+

@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require './change_bot'
 require './user'
 require './changeset'
@@ -67,5 +69,10 @@ class TestUtil < MiniTest::Unit::TestCase
     assert_equal([true, true, false], Util::diff_split([1,3], [true, false], [1,2,3], [true, true, true]))
   end
 
+end
+
+
+if __FILE__ == $0
+    MiniTest::Unit.new.run(ARGV)
 end
 

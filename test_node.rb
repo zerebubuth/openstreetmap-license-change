@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require './change_bot'
 require './user'
 require './changeset'
@@ -280,5 +282,10 @@ def test_node_reformed_ccoholic_simple
                  Redact[OSM::Node, 1, 5, :hidden],
                  Redact[OSM::Node, 1, 6, :visible],
                  ], actions)
+end
+
+
+if __FILE__ == $0
+    MiniTest::Unit.new.run(ARGV)
 end
 

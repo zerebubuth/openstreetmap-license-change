@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require './change_bot'
 require './user'
 require './changeset'
@@ -62,3 +64,8 @@ class TestExceptions < MiniTest::Unit::TestCase
   end
 
 end
+
+if __FILE__ == $0
+    MiniTest::Unit.new.run(ARGV)
+end
+

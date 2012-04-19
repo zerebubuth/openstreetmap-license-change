@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require './change_bot'
 require './user'
 require './changeset'
@@ -25,5 +27,10 @@ class TestAbbrev < MiniTest::Unit::TestCase
   def check_abbrev_equality(a, b)
     assert_equal(true, Abbrev.equal_expansions(a, b), "Expecting #{a.inspect} to equal #{b.inspect} under abbreviation/expansion, but it doesn't.")
   end
+end
+
+
+if __FILE__ == $0
+    MiniTest::Unit.new.run(ARGV)
 end
 

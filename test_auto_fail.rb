@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 
 require './change_bot'
@@ -4614,3 +4615,8 @@ def setup
   end
 
 end
+
+if __FILE__ == $0
+    MiniTest::Unit.new.run(ARGV)
+end
+
