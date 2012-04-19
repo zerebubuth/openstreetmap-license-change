@@ -3437,6 +3437,9 @@ def setup
   # auto-generated test for node 196200000
   # http://wtfe.gryph.de/report/node/196200000
   # http://osm.mapki.com/history/node.php?id=196200000
+  #
+  # Although the presence of a decliner's tag in v2 should lead it to be redacted, the v2 can stay
+  # since we ignore all changes to created_by tags.
   def test_automatic_node196200000
     history = [OSM::Node[[50.9992675, 10.3179326], :id => 196200000, :version => 1, :visible => true, :changeset => 468759, "created_by" => "JOSM"],    # not agreed,
                OSM::Node[[50.9992948, 10.3179453], :id => 196200000, :version => 2, :visible => true, :changeset => 528665, "created_by" => "JOSM"],    # agreed,
@@ -3450,8 +3453,7 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Redact[OSM::Node, 196200000, 1, :hidden],
-                  Redact[OSM::Node, 196200000, 2, :visible] # still has evil tag
+    assert_equal([Redact[OSM::Node, 196200000, 1, :hidden] # ignore created_by tag in v2, therefore doesn't need redacting
                  ], actions)
   end
 
