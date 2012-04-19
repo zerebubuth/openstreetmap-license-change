@@ -75,23 +75,24 @@ class TestRelation < MiniTest::Unit::TestCase
     assert_equal([Redact[OSM::Relation,1,2,:hidden]], actions)
   end
 
-  # relation member deleted by decliner. Way should be readded and deletion should be redacted.
+  # relation member deleted by decliner. by the "deletions are OK" rule, nothing needs to happen
   def test_relation_member_deleted_by_decliner
     history = [OSM::Relation[[ [OSM::Way,1,""] , [OSM::Way,2,""] ], :id=>1, :changeset=>1, :version=>1, "type" => "multipolygon"],
                OSM::Relation[[ [OSM::Way,1,""] ], :id=>1, :changeset=>3, :version=>2, "type" => "multipolygon"]]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Relation[[ [OSM::Way,1,""] , [OSM::Way,2,""] ], :id=>1, :changeset=>-1, :version=>2, "type" => "multipolygon"]], Redact[OSM::Relation,1,2,:hidden]], actions)
+    assert_equal([], actions)
   end
 
-  # relation member deleted by decliner then readded by agreer. The event should be redacted but no edits made.
+  # relation member deleted by decliner then re-added by agreer. by the "deletions are OK" rule
+  # there is no need to do anything to the element.
   def test_relation_member_deleted_by_decliner_readded_by_agreer
     history = [OSM::Relation[[ [OSM::Way,1,""] , [OSM::Way,2,""] ], :id=>1, :changeset=>1, :version=>1, "type" => "multipolygon"],
                OSM::Relation[[ [OSM::Way,1,""] ], :id=>1, :changeset=>3, :version=>2, "type" => "multipolygon"],
                OSM::Relation[[ [OSM::Way,1,""] , [OSM::Way,2,""] ], :id=>1, :changeset=>1, :version=>3, "type" => "multipolygon"]]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Redact[OSM::Relation,1,2,:hidden]], actions)
+    assert_equal([], actions)
   end
 
   # relation attributes changed by decliner, then marked odbl=clean. Redact the original edit but make no edit to the final result.
@@ -123,7 +124,22 @@ class TestRelation < MiniTest::Unit::TestCase
     actions = bot.action_for(history)
     assert_equal([Redact[OSM::Relation,1,2,:hidden]], actions)
   end
-  
+
+  def test_relation_diff
+    geoms = [[],
+             [                    [OSM::Way,29336166]], 
+             [                    [OSM::Way,29336166], [OSM::Way,29377987]],
+             [[OSM::Way,9650915], [OSM::Way,29336166], [OSM::Way,29377987]],
+             [[OSM::Way,9650915], [OSM::Way,29336166], [OSM::Way,29377987], [OSM::Way,29335519]]
+            ].map {|g| OSM::Relation[g]}
+
+    x = OSM::Relation[[]]
+    geoms.each_cons(2).each do |a, b|
+      d = Geom.diff(a, b)
+      x.geom = d.apply(x.geom)
+      assert_equal(b, x)
+    end
+  end
 end
 
 if __FILE__ == $0

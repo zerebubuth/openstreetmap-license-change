@@ -20,32 +20,83 @@ class History
     base_obj = prev_obj.clone
     xactions = Array.new
 
+    tainted_tags = Array.new
+
     @versions.each do |obj|
+      # deletions are always "clean", and we consider them to
+      # have no tags and the "version zero" geometry. what
+      # happens after that may be a revert to a previous version.
+      unless obj.visible
+        base_obj.geom = base_obj.version_zero_geom
+        base_obj.tags = {}
+        prev_obj = base_obj
+        next
+      end
+
       # generate the diffs for geometry and tags separately
       geom_patch = Geom.diff(prev_obj, obj)
       tags_patch = Tags.diff(prev_obj, obj)
 
-      # is this version clean?
-      is_clean_version = 
-        ((tags_patch.empty? and geom_patch.empty?) or
-         Tags.odbl_clean?(obj.tags) or
-         changeset_is_accepted?(obj.changeset_id))
-
+      # is this version clean? there are many ways to be
+      # clean, and we try to enumerate them here.
+      status = if Tags.odbl_clean?(obj.tags)
+                 :odbl_clean
+               elsif changeset_is_accepted?(obj.changeset_id)
+                 :acceptor_edit
+               elsif tags_patch.empty? and geom_patch.empty?
+                 :empty
+               elsif tags_patch.trivial? and geom_patch.empty?
+                 :trivial
+               else
+                 :unclean
+               end
+      
       # if this is not a clean version, then the only part
       # of the patch we can apply is the deletions, by the
       # 'deletions are always OK' rule.
-      apply_options = is_clean_version ? {} : {:only => :deleted}
-      
-      # apply the patches
-      new_tags = tags_patch.apply(base_obj.tags, apply_options)
-      new_geom = geom_patch.apply(base_obj.geom, apply_options)
+      apply_options = (status == :unclean) ? {:only => :deleted} : {}
+
+      # if the element is explicitly marked as clean, then
+      # don't bother with the application of patches, just
+      # update the element.
+      if status == :odbl_clean
+        new_tags = obj.tags
+        new_geom = obj.geom
+
+        # also remove any of the current tags which are in 
+        # the tainted set of tags - they're not tainted
+        # any more if this is explicitly obdl clean.
+        tainted_tags.delete_if {|k,v| new_tags[k] == v}
+
+      else
+        # apply the patches
+        new_tags = tags_patch.apply(base_obj.tags, apply_options)
+        new_geom = geom_patch.apply(base_obj.geom, apply_options)
+      end
+
+      # if the tags patch is unclean then record the additions and 
+      # changes to check for taint later on.
+      if status == :unclean
+        # taint all created tags
+        tainted_tags.concat(tags_patch.created.to_a)
+        # taint the new version of any edited or moved tag
+        tainted_tags.concat(tags_patch.edited.map {|k,vals| [k,vals[1]]})
+        tainted_tags.concat(tags_patch.moved.map {|keys,v| [keys[1],v]})
+      end
+
+      # remove any taint from the new tags
+      tainted_tags.each do |k,v|
+        new_tags.delete(k) if new_tags[k] == v
+      end
 
       # if the result of applying the patches is any different
       # from the version we actually have, then the object is
       # in a state that we can't display, so redact it.
-      if (new_tags != obj.tags or new_geom != obj.geom) #and 
+      if (new_tags != obj.tags || new_geom != obj.geom) #and 
         #not (geom_patch.only_deletes? and tags_patch.only_deletes?))
-        visibility = is_clean_version 
+        visibility = ((status == :unclean) ?
+                      tags_patch.only_deletes? && geom_patch.only_deletes? :
+                      new_tags != base_obj.tags || new_geom != base_obj.geom || status == :acceptor_edit)
         xactions << Redact[obj.class, obj.element_id, obj.version, visibility ? :visible : :hidden]
       end
       
@@ -56,8 +107,10 @@ class History
       prev_obj = obj
     end
 
-    if base_obj.geom == base_obj.version_zero.geom
-      xactions.insert(0, Delete[base_obj.class, base_obj.element_id])
+    if base_obj.invalid?
+      if @versions.last.visible
+        xactions.insert(0, Delete[base_obj.class, base_obj.element_id])
+      end
 
     elsif ((base_obj.tags != @versions.last.tags) or
         (base_obj.geom != @versions.last.geom))

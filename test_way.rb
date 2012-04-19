@@ -63,10 +63,8 @@ class TestWay < MiniTest::Unit::TestCase
                OSM::Way[[1,2,  4,5], :id=>1, :changeset=>2, :version=>3, "highway"=>"primary"]] # tag change by agreer
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Way[[1,2,3,4,5], :id=>1, :changeset=>-1, :version=>3, "highway"=>"primary"]],
-                  Redact[OSM::Way, 1, 2, :hidden],
-                  Redact[OSM::Way, 1, 3, :visible] # needs to be redacted, as node 3 are still missing in this version
-                 ], actions)
+    # by the "deletes are OK" rule, the deletion of node 3 is OK to keep.
+    assert_equal([], actions)
   end
 
   # as above, but adding nodes

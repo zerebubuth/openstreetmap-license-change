@@ -77,6 +77,10 @@ module OSM
       Node[version_zero_geom, :id => self.element_id, :version => 0]
     end
 
+    def invalid?
+      @position == version_zero_geom
+    end
+
     private
     def initialize(attrs, pos, tags)
       @position = pos
@@ -122,6 +126,10 @@ module OSM
 
     def version_zero
       Way[version_zero_geom, :id => self.element_id, :version => 0]
+    end
+
+    def invalid?
+      @nodes.size < 2
     end
 
     private
@@ -195,6 +203,10 @@ module OSM
 
     def version_zero
       Relation[version_zero_geom, :id => self.element_id, :version => 0]
+    end
+
+    def invalid?
+      @members.length < 1
     end
 
     private

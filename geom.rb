@@ -62,7 +62,28 @@ module Geom
     end
 
     def apply(geom, options = {})
-      geom
+      geom_idx = 0
+      new_geom = Array.new
+
+      @diff.each do |source, elt|
+        case source
+        when :a # exists only in previous - i.e: a delete
+          if geom[geom_idx] == elt
+            geom_idx += 1
+          end
+
+        when :b # exists only in new version - i.e: an add
+          new_geom << elt unless options[:only] == :deleted
+
+        when :c # exists in both - i.e: unchanged
+          if geom[geom_idx] == elt
+            new_geom << elt
+            geom_idx += 1
+          end
+        end
+      end
+
+      return new_geom
     end
     
     def apply!(obj, options = {})
@@ -70,7 +91,7 @@ module Geom
     end
 
     def to_s
-      "WayDiff[" + @diff + "]"
+      "WayDiff[" + @diff.inspect + "]"
     end
 
     private
@@ -81,19 +102,47 @@ module Geom
 
   class RelationDiff
     def self.create(a, b)
-      RelationDiff.new
+      RelationDiff.new(Util.diff(a.members, b.members))
     end
 
     def empty?
-      false
+      @diff.all? {|source, elt| source == :c}
     end
 
     def only_deletes?
-      false
+      not @diff.any? {|source, elt| source == :b || source == :d}
     end
 
     def apply(geom, options = {})
-      geom
+      geom_idx = 0
+      new_geom = Array.new
+
+      @diff.each do |source, elt|
+        case source
+        when :a # exists only in previous - i.e: a delete
+          if geom[geom_idx] == elt
+            geom_idx += 1
+          end
+
+        when :b # exists only in new version - i.e: an add
+          new_geom << elt unless options[:only] == :deleted
+
+        when :c # exists in both - i.e: unchanged
+          if geom[geom_idx] == elt
+            new_geom << elt
+            geom_idx += 1
+          end
+
+        when :d
+          from, to = elt.role.map {|role| OSM::Relation::Member[elt.type, elt.ref, role]}
+          if geom[geom_idx] == from
+            new_geom << ((options[:only] == :deleted) ? from : to)
+            geom_idx += 1
+          end
+        end
+      end
+
+      return new_geom
     end
     
     def apply!(obj, options = {})
@@ -101,11 +150,41 @@ module Geom
     end
 
     def to_s
-      "RelationDiff"
+      "RelationDiff[" + @diff.inspect + "]"
     end
 
     private
-    def initialize
+    def initialize(d)
+      @diff = Array.new
+      current = Array.new
+
+      d.each do |source, elt|
+        # unchanged elements go straight into the diff
+        if source == :c
+          # along with any unmatched elements
+          @diff.concat(current)
+          current = Array.new
+          @diff << [source, elt]
+
+        else
+          # if any of the current elements match this one
+          # except for the role, then consider it as a 
+          # role move instead.
+          idx = current.index {|s,e| s != source && e.type == elt.type && e.ref == elt.ref}
+          
+          if idx.nil?
+            # otherwise, queue up the element
+            current << [source, elt]
+
+          else
+            s, e = current.delete_at(idx)
+            roles = (source == :a) ? [elt.role, e.role] : [e.role, elt.role]
+            @diff << [:d, OSM::Relation::Member[elt.type, elt.ref, roles]]
+          end
+        end
+      end
+
+      @diff.concat(current)
     end
   end
 end
