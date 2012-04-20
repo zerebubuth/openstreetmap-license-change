@@ -176,6 +176,18 @@ class TestWay < MiniTest::Unit::TestCase
                   Redact[OSM::Way, 1, 2, :visible]
                  ], actions)
   end
+
+  # test as proposed by Spod (http://lists.openstreetmap.org/pipermail/rebuild/2012-April/000221.html)
+  # created by decliner, all tags completely changed by agreer
+  def test_way_all_tags_changed
+    history = [OSM::Way[[1,2,3], :id => 1, :version => 1, :visible => true, :changeset => 3, "name" => "Westgate", "highway" => "secondary"],    # not agreed,
+               OSM::Way[[4,5,6], :id => 1, :version => 2, :visible => true, :changeset => 1, "name" => "Sheffield Road", "highway" => "tertiary"],    # agreed
+              ]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Way, 1, 1, :hidden]], actions)
+  end
+
   # ** FIXME: add some more way tests here, and some relation ones too.
 end
 
