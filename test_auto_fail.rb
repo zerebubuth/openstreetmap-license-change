@@ -3634,7 +3634,8 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Edit[OSM::Node[[46.6765029, -123.7317393], :id => 32500000, :version => 2, :visible => true, :changeset => -1]], # move rescues node but tag is lost
-                  Redact[OSM::Node, 32500000, 1, :hidden]
+                  Redact[OSM::Node, 32500000, 1, :hidden],
+                  Redact[OSM::Node, 32500000, 2, :visible]
                  ], actions)
   end
 
