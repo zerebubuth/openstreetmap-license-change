@@ -3846,8 +3846,17 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Edit[OSM::Way[[569670924,761117130,380290033,1109578859,569670928,569670930], :id => 4520000, :version => 9, :visible => true, :changeset => -1, "highway" => "primary_link", "maxspeed" => "50", "source:maxspeed" => "DE:urban"]],
+                  # original non-agreed edits, tainted and have to be reverted.
                   Redact[OSM::Way, 4520000, 1, :hidden],
-                  Redact[OSM::Way, 4520000, 2, :hidden]
+                  Redact[OSM::Way, 4520000, 2, :hidden],
+                  # the rest of the edits still have the "oneway=yes" tag which is tainted.
+                  Redact[OSM::Way, 4520000, 3, :visible],
+                  Redact[OSM::Way, 4520000, 4, :visible],
+                  Redact[OSM::Way, 4520000, 5, :visible],
+                  Redact[OSM::Way, 4520000, 6, :visible],
+                  Redact[OSM::Way, 4520000, 7, :visible],
+                  Redact[OSM::Way, 4520000, 8, :visible],
+                  Redact[OSM::Way, 4520000, 9, :visible]
                  ], actions)
   end
 
