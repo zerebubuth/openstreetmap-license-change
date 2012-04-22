@@ -3524,9 +3524,7 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Delete[OSM::Node, 292600000],
-                  Redact[OSM::Node, 292600000, 1, :hidden],
-                  Redact[OSM::Node, 292600000, 2, :visible] # trivial change leads to visible redaction
+    assert_equal([Redact[OSM::Node, 292600000, 1, :hidden]
                  ], actions)
   end
 
