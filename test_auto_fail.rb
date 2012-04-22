@@ -3872,7 +3872,6 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Edit[OSM::Way[[810214222,1659210898,1659210890], :id => 4630000, :version => 4, :visible => true, :changeset => -1, "highway" => "tertiary"]],
-                  Delete[OSM::Way, 4630000],
                   Redact[OSM::Way, 4630000, 1, :hidden],
                   Redact[OSM::Way, 4630000, 2, :visible],
                   Redact[OSM::Way, 4630000, 3, :visible],
