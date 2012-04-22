@@ -112,15 +112,13 @@ module Tags
 
         @edited.each do |k, vals|
           old_val, new_val = vals
-          tags[k] = new_val if tags[k] == old_val || (not tags.has_key?(k))
+          tags[k] = new_val
         end
         
         @moved.each do |keys, v|
           old_key, new_key = keys
-          if tags[old_key] == v || (not tags.has_key?(old_key))
-            tags.delete old_key
-            tags[new_key] = v
-          end
+          tags.delete old_key
+          tags[new_key] = v
         end
       end
 
