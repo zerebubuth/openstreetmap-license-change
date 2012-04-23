@@ -77,7 +77,7 @@ class TestOdblTag < MiniTest::Unit::TestCase
   end
   
   # Some people like to use "clear" instead of "clean"
-  def test_node_odbl_clean_case_insensitive_one
+  def test_node_odbl_clean_case_insensitive_clear
     history = [OSM::Node[[0,0], :id=>1, :changeset => 1, :version => 1], # created by agreer
                OSM::Node[[0,0], :id=>1, :changeset => 3, :version => 2, "foo" => "bar"], # edited by decliner
                OSM::Node[[0,0], :id=>1, :changeset => 2, :version => 3, "foo" => "bar", "odbl" => "clear"]] # odbl=clean added by agreer
