@@ -134,10 +134,14 @@ module Geom
           end
 
         when :d
-          from, to = elt.role.map {|role| OSM::Relation::Member[elt.type, elt.ref, role]}
-          if geom[geom_idx] == from
-            new_geom << ((options[:only] == :deleted) ? from : to)
-            geom_idx += 1
+          cur = geom[geom_idx]
+          unless cur.nil?
+            from_role, to_role = elt.role
+            if cur.type == elt.type && cur.ref == elt.ref
+              new_role = (options[:only] == :deleted) ? cur.role : to_role
+              new_geom << OSM::Relation::Member[elt.type, elt.ref, new_role]
+              geom_idx += 1
+            end
           end
         end
       end

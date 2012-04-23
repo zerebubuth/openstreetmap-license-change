@@ -3466,9 +3466,8 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Delete[OSM::Node, 206100000],
-                  Redact[OSM::Node, 206100000, 1, :hidden],
-                  Redact[OSM::Node, 206100000, 2, :visible]
+    # no need to delete again - is already deleted.
+    assert_equal([Redact[OSM::Node, 206100000, 1, :hidden],
                  ], actions)
   end
 
@@ -3525,9 +3524,7 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Delete[OSM::Node, 292600000],
-                  Redact[OSM::Node, 292600000, 1, :hidden],
-                  Redact[OSM::Node, 292600000, 2, :visible] # trivial change leads to visible redaction
+    assert_equal([Redact[OSM::Node, 292600000, 1, :hidden]
                  ], actions)
   end
 
@@ -3635,7 +3632,8 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Edit[OSM::Node[[46.6765029, -123.7317393], :id => 32500000, :version => 2, :visible => true, :changeset => -1]], # move rescues node but tag is lost
-                  Redact[OSM::Node, 32500000, 1, :hidden]
+                  Redact[OSM::Node, 32500000, 1, :hidden],
+                  Redact[OSM::Node, 32500000, 2, :visible]
                  ], actions)
   end
 
@@ -3847,8 +3845,17 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Edit[OSM::Way[[569670924,761117130,380290033,1109578859,569670928,569670930], :id => 4520000, :version => 9, :visible => true, :changeset => -1, "highway" => "primary_link", "maxspeed" => "50", "source:maxspeed" => "DE:urban"]],
+                  # original non-agreed edits, tainted and have to be reverted.
                   Redact[OSM::Way, 4520000, 1, :hidden],
-                  Redact[OSM::Way, 4520000, 2, :hidden]
+                  Redact[OSM::Way, 4520000, 2, :hidden],
+                  # the rest of the edits still have the "oneway=yes" tag which is tainted.
+                  Redact[OSM::Way, 4520000, 3, :visible],
+                  Redact[OSM::Way, 4520000, 4, :visible],
+                  Redact[OSM::Way, 4520000, 5, :visible],
+                  Redact[OSM::Way, 4520000, 6, :visible],
+                  Redact[OSM::Way, 4520000, 7, :visible],
+                  Redact[OSM::Way, 4520000, 8, :visible],
+                  Redact[OSM::Way, 4520000, 9, :visible]
                  ], actions)
   end
 
@@ -3864,7 +3871,6 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Edit[OSM::Way[[810214222,1659210898,1659210890], :id => 4630000, :version => 4, :visible => true, :changeset => -1, "highway" => "tertiary"]],
-                  Delete[OSM::Way, 4630000],
                   Redact[OSM::Way, 4630000, 1, :hidden],
                   Redact[OSM::Way, 4630000, 2, :visible],
                   Redact[OSM::Way, 4630000, 3, :visible],
