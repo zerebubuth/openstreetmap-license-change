@@ -159,6 +159,16 @@ module OSM
         @role <=> o.role
       end
 
+      def hash
+        [@type, @ref, @role].hash
+      end
+
+      def eql?(o)
+        @type.eql?(o.type) &&
+          @ref.eql?(o.ref) &&
+          @role.eql?(o.role)
+      end
+
       def to_s
         "Member[#{@type.inspect},#{@ref},#{@role.inspect}]"
       end
