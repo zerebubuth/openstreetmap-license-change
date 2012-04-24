@@ -23,10 +23,13 @@ module Tags
       # special case for this one misspelling, as it's fairly
       # common to find "obdl" and there's no chance that we're
       # confusing "obdl" with anything else.
-      if k.downcase == "odbl" or k.downcase == "obdl"
+      if (k.downcase == "odbl" or 
+          k.downcase == "obdl" or
+          k.downcase == "oodbl")
         val = tags[k].downcase
         # tag synonyms for "clean" in this context
         (val == "clean" ||
+         val == "clear"  ||
          val == "true"  ||
          val == "yes"   ||
          val == "1")
@@ -286,8 +289,12 @@ module Tags
     # now check for homophones (TODO: is this really appropriate?)
     return false if Text::Metaphone.metaphone(old) == Text::Metaphone.metaphone(new)
 
-    # finally, look for changes in abbreviation.
+    # look for changes in abbreviation.
     return false if Abbrev.equal_expansions(old, new)
+
+    # check if the strings are the same except for whitespace
+    # presence. this would be considered insignificant.
+    return false if old.gsub(/ /,"") == new.gsub(/ /,"")
 
     # otherwise, just look at the strings...
     old != new
