@@ -51,6 +51,11 @@ class History
                  :unclean
                end
       
+      #puts
+      #puts "[#{obj.version}] status:#{status}"
+      #puts "[#{obj.version}] geom:#{obj.geom}"
+      #puts "[#{obj.version}] geom_patch:#{geom_patch}"
+
       # if this is not a clean version, then the only part
       # of the patch we can apply is the deletions, by the
       # 'deletions are always OK' rule.
@@ -89,6 +94,9 @@ class History
         new_tags.delete(k) if new_tags[k] == v
       end
 
+      #puts "[#{obj.version}] new_geom:#{new_geom}"
+      #puts "[#{obj.version}] obj_geom:#{obj.geom}"
+
       # if the result of applying the patches is any different
       # from the version we actually have, then the object is
       # in a state that we can't display, so redact it.
@@ -103,6 +111,8 @@ class History
       # update object
       base_obj.geom = new_geom
       base_obj.tags = new_tags
+
+      #puts "[#{obj.version}] base_obj:#{base_obj}"
 
       prev_obj = obj
     end
