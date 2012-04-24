@@ -70,7 +70,8 @@ class TestTags < MiniTest::Unit::TestCase
       "Oxford St" => "Oxford Street", 
       "Johnann Wolfgang von Goethe Allee" => "Johann-Wolfgang-von-Goethe-Allee",
       "Mulberry Hiway" => "Mulberry Highway",
-      "old fen way" => "Old Fen Way"
+      "old fen way" => "Old Fen Way",
+      "Lodnon" => "London"
     }
 
     trivial_changes.each do |old, new|
@@ -161,6 +162,40 @@ class TestTags < MiniTest::Unit::TestCase
       assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => -1, :version => 3, "name" => old]],
                     Redact[OSM::Node, 1, 3, :hidden]
                    ], actions)
+    end
+  end
+  
+  # This tests the following scenario:
+  # * agreer creates object
+  # * decliner adds a ref tag
+  # * agreer makes a trivial change to that tag
+  # * therefore the decliner retains "ownership" and the tag must be 
+  #   removed.
+
+  def test_trivial_ref_change_by_agreer
+
+    trivialchanges = {
+        "E16" => "E 16", 
+        "1;R5" => "R1;R5",
+        "Rv7" => "RV7"
+    }
+
+    trivialchanges.each do | old, new |
+      assert_equal(false, Tags.significant_tag?(old, new), "#{old.inspect} -> #{new.inspect} not considered trivial.")
+
+        history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1], 
+                   OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2,
+                             "ref" => old],
+                   OSM::Node[[0,0], :id => 1, :changeset => 2, :version => 3, 
+                             "ref" => new]]
+
+        bot = ChangeBot.new(@db)
+        actions = bot.action_for(history)
+
+        assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => -1, :version => 3]],
+                      Redact[OSM::Node, 1, 2, :hidden],
+                      Redact[OSM::Node, 1, 3, :visible],
+                     ], actions)
     end
   end
 
