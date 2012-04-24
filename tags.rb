@@ -23,12 +23,13 @@ module Tags
       # special case for this one misspelling, as it's fairly
       # common to find "obdl" and there's no chance that we're
       # confusing "obdl" with anything else.
-      if k.downcase == "odbl" or k.downcase == "obdl"
+      if k.downcase == "odbl" or k.downcase == "obdl" or k.downcase == "oodbl"
         val = tags[k].downcase
         # tag synonyms for "clean" in this context
         (val == "clean" ||
          val == "true"  ||
          val == "yes"   ||
+         val == "clear" ||
          val == "1")
       else
         false
