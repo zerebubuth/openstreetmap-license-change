@@ -14,6 +14,7 @@ require './test_tags_lowlevel'
 require './test_tags'
 require './test_util'
 require './test_way'
+require './test_geom'
 require './test_needs_clarity'
 require './test_auto_fail'
 
