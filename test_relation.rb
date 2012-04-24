@@ -140,6 +140,43 @@ class TestRelation < MiniTest::Unit::TestCase
       assert_equal(b, x)
     end
   end
+
+  # relation created by agreer, then order changed by decliner
+  #
+  # this is tricky for the same reason as the way-node ordering stuff above.
+  # the change of order can equally be interpreted as a deletion and 
+  # addition, which trigger a completely different set of rules.
+  #
+  def test_relation_order_changed
+    history = [OSM::Relation[[ [OSM::Way,1] , [OSM::Way,4], [OSM::Way,2], [OSM::Way,3] ], :id => 1,  :changeset => 1,  :version => 1, "type" => "route" ],
+               OSM::Relation[[ [OSM::Way,1] , [OSM::Way,2], [OSM::Way,3], [OSM::Way,4] ], :id => 1,  :changeset => 3,  :version => 2, "type" => "route" ]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Relation[[ [OSM::Way,1], [OSM::Way,4], [OSM::Way,2], [OSM::Way,3] ], :id=>1, :changeset=>-1, :version=>2, "type" => "route"]],
+                  Redact[OSM::Relation,1,2,:hidden]
+                 ], actions)
+  end
+  
+  # relation created by agreer, then order changed by decliner, then extra members added by agreer
+  # (we can't preserve order in this case. Difficult to know what to do - fall back to the last 
+  #  good order, with new members appended? Or try and insert at the same index, even if it doesn't
+  #  make any sense without the previous order?)
+  #
+  # this is tricky for the same reason as the way-node ordering stuff above.
+  # the change of order can equally be interpreted as a deletion and 
+  # addition, which trigger a completely different set of rules.
+  #
+  def test_relation_order_changed_then_member_appended
+    history = [OSM::Relation[[ [OSM::Way,1] , [OSM::Way,4], [OSM::Way,2], [OSM::Way,3]               ], :id => 1,  :changeset => 1,  :version => 1, "type" => "route" ],
+               OSM::Relation[[ [OSM::Way,1] , [OSM::Way,2], [OSM::Way,3], [OSM::Way,4]               ], :id => 1,  :changeset => 3,  :version => 2, "type" => "route" ],
+               OSM::Relation[[ [OSM::Way,1] , [OSM::Way,2], [OSM::Way,3], [OSM::Way,4], [OSM::Way,5] ], :id => 1,  :changeset => 2,  :version => 3, "type" => "route" ]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Relation[[ [OSM::Way,1], [OSM::Way,4], [OSM::Way,2], [OSM::Way,3], [OSM::Way,5] ], :id=>1, :changeset=>-1, :version=>3, "type" => "route"]],
+                  Redact[OSM::Relation,1,2,:hidden],
+                  Redact[OSM::Relation,1,3,:visible]
+                 ], actions)
+  end
 end
 
 if __FILE__ == $0
