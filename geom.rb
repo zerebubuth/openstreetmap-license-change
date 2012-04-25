@@ -39,7 +39,7 @@ module Geom
     end
 
     def to_s
-      "NodeDiff[#{@null_move},#{@position}]"
+      @null_move ? "NodeDiff[]" : "NodeDiff#{@position.inspect}"
     end
 
     private
