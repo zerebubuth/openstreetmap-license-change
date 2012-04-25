@@ -3570,7 +3570,8 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Delete[OSM::Node, 296700000],
-                  Redact[OSM::Node, 296700000, 1, :hidden]
+                  Redact[OSM::Node, 296700000, 1, :hidden],
+                  Redact[OSM::Node, 296700000, 2, :visible] # some tags changed, but most still tainted
                  ], actions)
   end
 
@@ -3584,7 +3585,10 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Node[[50.2204098, 15.8607321], :id => 296800000, :version => 3, :visible => true, :changeset => -1 ]],
+    assert_equal([Edit[OSM::Node[[50.2204098, 15.8607321], :id => 296800000, :version => 3, :visible => true, :changeset => -1,
+                                 "addr:conscriptionnumber" => "483", # significant move in v2
+                                 "addr:housenumber" => "483/5", # significant edit in v2
+                                 "addr:streetnumber" => "5"]], # added in v2, agreed
                   Redact[OSM::Node, 296800000, 1, :hidden],  # this is an ugly test and it is never going to work. all tags in the v2 and v3
                   Redact[OSM::Node, 296800000, 2, :visible], # are obviously derived from v1 and therefore need to be removed, but it is
                   Redact[OSM::Node, 296800000, 3, :visible]  # virtually impossible to determine that automatically.
