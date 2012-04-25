@@ -120,7 +120,7 @@ class TestOdblTag < MiniTest::Unit::TestCase
     actions = bot.action_for(history)
     assert_equal([Edit[OSM::Node[[0, 0], :id => 1, :version => 4, :visible => true, :changeset => -1]],
                   Redact[OSM::Node, 1, 2, :hidden],
-                  Redact[OSM::Node, 1, 3, :hidden],
+                  Redact[OSM::Node, 1, 3, :visible],
                   Redact[OSM::Node, 1, 4, :visible]
                  ], actions)
   end
