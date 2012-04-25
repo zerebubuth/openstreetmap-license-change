@@ -18,22 +18,8 @@ class History
     # we need to track odbl clean-ness. if the tag is set and
     # later unset, then we consider it a mistake.
 
-    # early exit if this is not taged clean
-    if not Tags.odbl_clean?(o.tags)
-      return false
-    end
-
-    # see if it is part of the last set of objects with the odbl=clean tag
-    @versions.reverse.each do |obj|
-      if obj == o
-        return true
-      elsif not Tags.odbl_clean?(obj.tags)
-        # there is a version later then this that does not have the odbl=clean tag
-        return false
-      end
-    end
-    
-    return false
+    # see if o and all later objects have the odbl=clean tag
+    @versions.drop_while {|obj| o != obj}.all? {|obj| Tags.odbl_clean?(obj.tags)}
   end
 
   def actions
