@@ -14,23 +14,26 @@ class History
     @versions.sort_by! {|obj| obj.version}
   end
 
-  def odbl_reset?
+  def odbl_clean? (o)
     # we need to track odbl clean-ness. if the tag is set and
     # later unset, then we consider it a mistake.
-    odbl_set = false
-    odbl_reset = false
 
-    @versions.each do |obj|
-      odbl = Tags.odbl_clean?(obj.tags)
-      if odbl
-        odbl_set = true
-        odbl_reset = false
-      elsif odbl_set
-        odbl_reset = true
+    # early exit if this is not taged clean
+    if not Tags.odbl_clean?(o.tags)
+      return false
+    end
+
+    # see if it is part of the last set of objects with the odbl=clean tag
+    @versions.reverse.each do |obj|
+      if obj == o
+        return true
+      elsif not Tags.odbl_clean?(obj.tags)
+        # there is a version later then this that does not have the odbl=clean tag
+        return false
       end
     end
     
-    return odbl_reset
+    return false
   end
 
   def actions
@@ -40,12 +43,6 @@ class History
     xactions = Array.new
 
     tainted_tags = Array.new
-
-    # ignore odbl flags if the odbl=clean tag ends up being reset
-    # at some later point in history - we consider this case to
-    # be an indicator that the original setting of odbl=clean was
-    # in error.
-    ignore_odbl = odbl_reset?
 
     @versions.each do |obj|
       # deletions are always "clean", and we consider them to
@@ -64,7 +61,7 @@ class History
 
       # is this version clean? there are many ways to be
       # clean, and we try to enumerate them here.
-      status = if Tags.odbl_clean?(obj.tags) and not ignore_odbl
+      status = if odbl_clean?(obj)
                  :odbl_clean
                elsif changeset_is_accepted?(obj.changeset_id)
                  :acceptor_edit

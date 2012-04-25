@@ -124,6 +124,21 @@ class TestOdblTag < MiniTest::Unit::TestCase
                   Redact[OSM::Node, 1, 4, :visible]
                  ], actions)
   end
+  
+  # What if someone was adding and removing the odbl=clean tag
+  def test_node_odbl_clean_removed
+    history = [OSM::Node[[0,0], :id=>1, :changeset => 1, :version => 1], # created by agreer
+               OSM::Node[[0,0], :id=>1, :changeset => 3, :version => 2, "foo" => "bar"], # edited by decliner
+               OSM::Node[[0,0], :id=>1, :changeset => 2, :version => 3, "foo" => "bar", "odbl" => "clean"], # odbl=clean added by agreer
+               OSM::Node[[0,0], :id=>1, :changeset => 2, :version => 4, "foo" => "bar"], # odbl tag removed by agreer
+               OSM::Node[[0,0], :id=>1, :changeset => 2, :version => 5, "odbl" => "clean"]] # object cleaned and odbl tag reintroduced by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Node, 1, 2, :hidden],
+                  Redact[OSM::Node, 1, 3, :visible],
+                  Redact[OSM::Node, 1, 4, :visible]
+                 ], actions)
+  end
 end
 
 if __FILE__ == $0
