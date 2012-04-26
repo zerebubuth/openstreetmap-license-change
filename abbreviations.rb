@@ -168,14 +168,22 @@ module Abbrev
     # moment...
     a = a.inject(Array.new) do |ary,el| 
       if COMPASS.has_key? el
-        ary + COMPASS[el]
+        if a.count < b.count
+          ary + COMPASS[el]
+        else
+          ary << COMPASS[el].join
+        end
       else
         ary + [el]
       end
     end
     b = b.inject(Array.new) do |ary,el| 
       if COMPASS.has_key? el
-        ary + COMPASS[el]
+        if a.count > b.count
+          ary + COMPASS[el]
+        else
+          ary << COMPASS[el].join
+        end
       else
         ary + [el]
       end
