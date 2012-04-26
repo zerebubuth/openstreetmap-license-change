@@ -376,6 +376,27 @@ class TestNode < MiniTest::Unit::TestCase
                   Redact[OSM::Node, 1, 2, :visible]
                  ], actions)
   end
+  
+  # a node created by an agreer then touched by a decliner with no actual modifications
+  def test_node_no_change
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1, "foo" => "bar"],
+               OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2, "foo" => "bar"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([], actions)
+  end
+  
+  # simplified test case for test_automatic_node30100000
+  # a node created by an agreer then touched by a decliner modifying the created_by tag
+  # when the bot is editing it should drop the created_by
+  def test_node_update_created_by
+    history = [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1, "created_by" => "Potlatch"],
+               OSM::Node[[0,0], :id => 1, :changeset => 3, :version => 2, "created_by" => "JOSM", "name"=>"foo"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Node[[0,0], :id => 1, :changeset => -1, :version => 2]], # drop created_by
+                  Redact[OSM::Node, 1, 2, :hidden]], actions)
+  end
 end
 
 if __FILE__ == $0

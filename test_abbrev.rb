@@ -20,6 +20,7 @@ class TestAbbrev < MiniTest::Unit::TestCase
     check_abbrev_equality("E Foobar Wy", "East Foobar Way")
     check_abbrev_equality("NE Foobar Crescent", "North East Foobar Cr.")
     check_abbrev_equality("N.E. Foobar Crescent", "North East Foobar Cr")
+    check_abbrev_equality("NE Foobar Crescent", "Northeast Foobar Cr")
   end
 
   private
