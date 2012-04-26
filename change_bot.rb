@@ -14,12 +14,17 @@ class History
     @versions.sort_by! {|obj| obj.version}
   end
 
-  def odbl_clean? (o)
+  def odbl_clean_versions
     # we need to track odbl clean-ness. if the tag is set and
     # later unset, then we consider it a mistake.
 
-    # see if o and all later objects have the odbl=clean tag
-    @versions.drop_while {|obj| o != obj}.all? {|obj| Tags.odbl_clean?(obj.tags)}
+    # first, figure out which versions are clean.
+    version_is_clean = @versions.map {|obj| Tags.odbl_clean?(obj.tags)}
+
+    # iterate backwards, propagating uncleanness where the
+    # flag is reset.
+    global = true
+    version_is_clean.reverse.map {|flag| global = flag && global}.reverse
   end
 
   def actions
@@ -30,7 +35,7 @@ class History
 
     tainted_tags = Array.new
 
-    @versions.each do |obj|
+    @versions.zip(odbl_clean_versions).each do |obj,is_odbl_clean|
       # deletions are always "clean", and we consider them to
       # have no tags and the "version zero" geometry. what
       # happens after that may be a revert to a previous version.
@@ -47,7 +52,7 @@ class History
 
       # is this version clean? there are many ways to be
       # clean, and we try to enumerate them here.
-      status = if odbl_clean?(obj)
+      status = if is_odbl_clean
                  :odbl_clean
                elsif changeset_is_accepted?(obj.changeset_id)
                  :acceptor_edit
