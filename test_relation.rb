@@ -161,6 +161,21 @@ class TestRelation < MiniTest::Unit::TestCase
                   Redact[OSM::Relation,1,3,:visible]
                  ], actions)
   end
+  
+  # simplified version of test_automatic_relation78000
+  # member added by agreer in redacted changeset that is later removed by another agreer
+  def test_relation_members_added_then_removed
+    history = [OSM::Relation[[ [OSM::Way,1] , [OSM::Way,2]                              ], :id => 1,  :changeset => 3,  :version => 1, "type" => "route" ], #decliner
+               OSM::Relation[[                [OSM::Way,2], [OSM::Way,3] , [OSM::Way,4] ], :id => 1,  :changeset => 2,  :version => 2, "type" => "route" ], #agreer
+               OSM::Relation[[                                             [OSM::Way,4] ], :id => 1,  :changeset => 1,  :version => 3, "type" => "route" ]] #agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Relation[[ [OSM::Way,4] ], :id => 1,  :changeset => -1,  :version => 3]],
+                  Redact[OSM::Relation, 1, 1, :hidden],
+                  Redact[OSM::Relation, 1, 2, :visible],
+                  Redact[OSM::Relation, 1, 3, :visible]
+                 ], actions)
+  end
 end
 
 if __FILE__ == $0
