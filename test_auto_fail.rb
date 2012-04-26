@@ -3480,9 +3480,7 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Node[[54.6043200, 17.9837800], :id => 258300000, :version => 2, :visible => true, :changeset => -1, "source" => "UMP-PL, ./UMP-Gdansk/src/inne.ulice.txt"]],
-                 # deletion not redacted
-                 ], actions)
+    assert_equal([], actions)
   end
 
   # auto-generated test for node 280400000
@@ -3734,9 +3732,7 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Delete[OSM::Node, 61100000],
-                  Redact[OSM::Node, 61100000, 17, :hidden]
-                 ], actions)
+    assert_equal([], actions)
   end
 
   # auto-generated test for way 2630000
@@ -3785,11 +3781,11 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Redact[OSM::Way, 3870000, 2, :hidden],
-                  Redact[OSM::Way, 3870000, 3, :hidden],
-                  Redact[OSM::Way, 3870000, 4, :hidden],
-                  Redact[OSM::Way, 3870000, 5, :hidden],
-                  Redact[OSM::Way, 3870000, 6, :hidden],
-                  Redact[OSM::Way, 3870000, 7, :hidden]
+                  Redact[OSM::Way, 3870000, 3, :visible],
+                  Redact[OSM::Way, 3870000, 4, :visible],
+                  Redact[OSM::Way, 3870000, 5, :visible],
+                  Redact[OSM::Way, 3870000, 6, :visible],
+                  Redact[OSM::Way, 3870000, 7, :visible]
                  ], actions)
   end
 
@@ -3811,8 +3807,7 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Way[[12620655,590359], :id => 3990000, :version => 11, :visible => true, :changeset => -1, "created_by" => "Potlatch 0.9c", "highway" => "residential", "maxspeed" => "30", "name" => "Kronenstraße", "noexit" => "yes"]],
-                  Redact[OSM::Way, 3990000, 8, :hidden]
+    assert_equal([Redact[OSM::Way, 3990000, 8, :hidden]
                  ], actions)
   end
 
@@ -3922,7 +3917,6 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Edit[OSM::Way[[15109312,249332709,249332710,249332711,472328666,249332712,249332713,249332714,249332715,252452509,252452645,249332716,249332717,249332718,249332719,472366539,249332720,249332721,249332722,252452507,249332723,249332724,249332725,249332726,792441180,249332727,300928103], :id => 4750000, :version => 11, :visible => true, :changeset => -1, "highway" => "tertiary", "name" => "Mühlstettstraße"]],
-                  Delete[OSM::Way, 4750000],
                   Redact[OSM::Way, 4750000, 7, :hidden],
                   Redact[OSM::Way, 4750000, 8, :visible],
                   Redact[OSM::Way, 4750000, 9, :visible],
@@ -3942,7 +3936,7 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Delete[OSM::Way, 4890000], # only one node would remain so delete
+    assert_equal([Edit[ OSM::Way[[1581144847,1581145006], :id => 4890000, :version => 4, :visible => true, :changeset => -1,]],
                   Redact[OSM::Way, 4890000, 1, :hidden],
                   Redact[OSM::Way, 4890000, 2, :hidden],
                   Redact[OSM::Way, 4890000, 3, :visible],
@@ -4005,9 +3999,7 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Way[[38220052,38220054], :id => 5350000, :version => 1, :visible => true, :changeset => 280091, "highway" => "residential", "name" => "N Johnson St", "tiger:cfcc" => "A41", "tiger:county" => "Coos, OR", "tiger:name_base" => "Johnson", "tiger:name_direction_prefix" => "N", "tiger:name_type" => "St", "tiger:reviewed" => "no", "tiger:separated" => "no", "tiger:source" => "tiger_import_dch_v0.6_20070808", "tiger:tlid" => "136992146", "tiger:upload_uuid" => "bulk_upload.pl-2942b97e-42c4-41d2-9942-8c2bd0ceb333", "tiger:zip_left" => "97423", "tiger:zip_right" => "97423"]],
-                  Redact[OSM::Way, 5350000, 2, :hidden]
-                 ], actions)
+    assert_equal([], actions)
   end
 
   # auto-generated test for way 5370000
@@ -4488,7 +4480,7 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Relation[[[OSM::Way,123520061] , [OSM::Way,123520073] , [OSM::Way,122563397] , [OSM::Way,133399291] , [OSM::Way,95998226] , [OSM::Way,95998220] , [OSM::Way,140763319] , [OSM::Way,100876522] , [OSM::Way,100876537] , [OSM::Way,129481693] , [OSM::Way,144078431] , [OSM::Way,144078433] , [OSM::Way,66758379] , [OSM::Way,100876512] , [OSM::Way,130801136] , [OSM::Way,27138639] , [OSM::Way,27138646] , [OSM::Way,27138647] , [OSM::Way,38805694] , [OSM::Way,38863685] , [OSM::Way,38911480] , [OSM::Way,38911481] , [OSM::Way,100876531] , [OSM::Way,100871999] , [OSM::Way,100707581] , [OSM::Way,100872029] , [OSM::Way,100707590] , [OSM::Way,65764351]], :id  => 33000, :version => 35, :visible => true, :changeset => -1, "lcn" => "yes", "lcn_ref" => "3", "type" => "route"]],
+    assert_equal([Edit[OSM::Relation[[[OSM::Way,130801132] , [OSM::Way,123520061] , [OSM::Way,123520073] , [OSM::Way,122563397] , [OSM::Way,133399291] , [OSM::Way,95998226] , [OSM::Way,95998220] , [OSM::Way,140763319] , [OSM::Way,100876522] , [OSM::Way,100876537] , [OSM::Way,129481693] , [OSM::Way,144078431] , [OSM::Way,144078433] , [OSM::Way,66758379] , [OSM::Way,100876512] , [OSM::Way,130801136] , [OSM::Way,38805694] , [OSM::Way,38863685] , [OSM::Way,38911480] , [OSM::Way,38911481] , [OSM::Way,100876531] , [OSM::Way,100871999] , [OSM::Way,100707581] , [OSM::Way,100872029] , [OSM::Way,100707590] , [OSM::Way,65764351]], :id  => 33000, :version => 35, :visible => true, :changeset => -1, "lcn" => "yes", "lcn_ref" => "3"]],
                   Redact[OSM::Relation, 33000, 1, :hidden],
                   Redact[OSM::Relation, 33000, 2, :hidden],
                   Redact[OSM::Relation, 33000, 3, :hidden],
