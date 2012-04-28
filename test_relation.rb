@@ -176,6 +176,32 @@ class TestRelation < MiniTest::Unit::TestCase
                   Redact[OSM::Relation, 1, 3, :visible]
                  ], actions)
   end
+  
+  # member added as the first member by a decliner, that means that the member added in
+  # the third version have to be inserted as first and not as seccond member
+  def test_relation_members_added_by_decliner
+    history = [OSM::Relation[[                               [OSM::Way,3] ], :id => 1,  :changeset => 1,  :version => 1 ], #agreer
+               OSM::Relation[[ [OSM::Way,1] ,                [OSM::Way,3] ], :id => 1,  :changeset => 3,  :version => 2 ], #decliner
+               OSM::Relation[[ [OSM::Way,1] , [OSM::Way,2] , [OSM::Way,3] ], :id => 1,  :changeset => 2,  :version => 3 ]] #agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Relation[[ [OSM::Way,2], [OSM::Way,3] ], :id => 1,  :changeset => -1,  :version => 3]],
+                  Redact[OSM::Relation, 1, 2, :hidden],
+                  Redact[OSM::Relation, 1, 3, :visible]
+                 ], actions)
+  end
+  
+  def test_relation_members_added_then_moved
+    history = [OSM::Relation[[                [OSM::Way,2] , [OSM::Way,3] ], :id => 1,  :changeset => 1,  :version => 1 ], #agreer
+               OSM::Relation[[ [OSM::Way,1] , [OSM::Way,2] , [OSM::Way,3] ], :id => 1,  :changeset => 3,  :version => 2 ], #decliner
+               OSM::Relation[[ [OSM::Way,3] , [OSM::Way,1] , [OSM::Way,2] ], :id => 1,  :changeset => 2,  :version => 3 ]] #agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Relation[[ [OSM::Way,3] , [OSM::Way,2] ], :id => 1,  :changeset => -1,  :version => 3]],
+                  Redact[OSM::Relation, 1, 2, :hidden],
+                  Redact[OSM::Relation, 1, 3, :visible]
+                 ], actions)
+  end
 end
 
 if __FILE__ == $0

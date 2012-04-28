@@ -188,6 +188,30 @@ class TestWay < MiniTest::Unit::TestCase
     assert_equal([Redact[OSM::Way, 1, 1, :hidden]], actions)
   end
 
+  def test_way_nodes_added_first
+    history = [OSM::Way[[    3], :id=>1, :changeset=>1, :version=>1], # created by agreer
+               OSM::Way[[1,  3], :id=>1, :changeset=>3, :version=>2], # node added to the front by decliner
+               OSM::Way[[1,2,3], :id=>1, :changeset=>2, :version=>3]] # node addition by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Way[[2,3], :id=>1, :changeset=>-1, :version=>3]],
+                  Redact[OSM::Way, 1, 2, :hidden],
+                  Redact[OSM::Way, 1, 3, :visible]
+                 ], actions)
+  end
+  
+  def test_way_nodes_added_and_reversed
+    history = [OSM::Way[[1,2  ], :id=>1, :changeset=>1, :version=>1], # created by agreer
+               OSM::Way[[1,2,3], :id=>1, :changeset=>3, :version=>2], # node added by decliner
+               OSM::Way[[3,2,1], :id=>1, :changeset=>2, :version=>3]] # way reversed by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Way[[2,1], :id=>1, :changeset=>-1, :version=>3]],
+                  Redact[OSM::Way, 1, 2, :hidden],
+                  Redact[OSM::Way, 1, 3, :visible]
+                 ], actions)
+  end
+  
   # ** FIXME: add some more way tests here, and some relation ones too.
 end
 
