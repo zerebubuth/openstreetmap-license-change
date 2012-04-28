@@ -1,3 +1,5 @@
+# encoding: UTF-8
+
 # mod for doing stuff w/ abbrevs
 module Abbrev
   # a list of abbreviations culled, at least in part, from the USPS
@@ -132,7 +134,27 @@ module Abbrev
     "well" => ["wl"],
     "west" => ["w"],
     "crossing" => ["xing"],
-    "crossroad" => ["xrd"]
+    "crossroad" => ["xrd"],
+    
+    # Russian abbreviations
+    # Copyright (C) 2011-2012 Dmitry Marakasov
+    # from https://github.com/AMDmi3/streetmangler/blob/master/lib/locales/ru.cc#L27
+    "улица" => ["ул"],
+    "площадь" => ["пл"],
+    "переулок" => ["пер", "пер-к"],
+    "проезд" => ["пр-д"],
+    "шоссе" => ["ш"],
+    "бульвар" => ["бул", "б-р"],
+    "тупик" => ["туп"],
+    "набережная" => ["наб"],
+    "проспект" => ["просп", "пр-кт", "пр-т"],
+    "тракт" => ["тр-т", "тр"],
+    "эстакада" => ["эст"],
+    "район" => ["р-н"],
+    "микрорайон" => ["мкр-н", "мк-н", "мкр", "мкрн"],
+    "посёлок" => ["поселок", "пос"],
+    "деревня" => ["дер", "д"],
+    "квартал" => ["кв-л", "кв"],
   }
 
   # of course, this is horribly english-specific...
