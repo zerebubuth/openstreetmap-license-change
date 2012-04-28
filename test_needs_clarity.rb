@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# encoding: UTF-8
 
 require './change_bot'
 require './user'
@@ -26,6 +27,19 @@ class TestNeedsClarity < MiniTest::Unit::TestCase
                    3 => Changeset[User[false]]
                  })
   end 
+  
+  # Russians write the street names as either "foo street" or "street foo" swaping theese should not be a segnificant edit
+  def test_way_name_swap
+    history = [OSM::Way[[1,2,3], :id=>1, :changeset=>1, :version=>1, "highway"=>"residental"], # created by agreer
+               OSM::Way[[1,2,3], :id=>1, :changeset=>3, :version=>2, "highway"=>"residental", "name"=>"ул. Гая"], # name added by decliner
+               OSM::Way[[1,2,3], :id=>1, :changeset=>2, :version=>3, "highway"=>"residental", "name"=>"Гая ул."]] # name swapped around by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Way[[1,2,3], :id=>1, :changeset=>-1, :version=>3, "highway"=>"residental"]],
+                  Redact[OSM::Way, 1, 2, :hidden],
+                  Redact[OSM::Way, 1, 3, :visible]
+                 ], actions)
+  end
 end
 
 if __FILE__ == $0

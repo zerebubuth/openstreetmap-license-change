@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# encoding: UTF-8
 
 require './change_bot'
 require './user'
@@ -118,7 +119,8 @@ class TestTags < MiniTest::Unit::TestCase
     significant_changes = { 
       "Oxford St" => "Bedford St",
       "Johnann Wolfgang von Goethe Allee" => "Johann-Sebastian-Bach-Allee",
-      "Mulberry Hiway" => "Blueberry Valley Drive"
+      "Mulberry Hiway" => "Blueberry Valley Drive",
+      "Интернацион" => "Бешенковичи"
     }
 
     significant_changes.each do |old, new|
