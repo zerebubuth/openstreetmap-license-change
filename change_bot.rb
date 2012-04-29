@@ -63,7 +63,7 @@ class History
                else
                  :unclean
                end
-      
+
       # if this is not a clean version, then the only part
       # of the patch we can apply is the deletions, by the
       # 'deletions are always OK' rule.
@@ -109,7 +109,7 @@ class History
         #not (geom_patch.only_deletes? and tags_patch.only_deletes?))
         visibility = ((status == :unclean) ?
                       tags_patch.only_deletes? && geom_patch.only_deletes? :
-                      new_tags != base_obj.tags || new_geom != base_obj.geom || status == :acceptor_edit)
+                      new_tags != base_obj.tags || new_geom != base_obj.geom || status == :acceptor_edit || status == :empty)
         xactions << Redact[obj.class, obj.element_id, obj.version, visibility ? :visible : :hidden]
       end
       

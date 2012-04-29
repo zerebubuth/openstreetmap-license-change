@@ -56,7 +56,7 @@ class TestNode < MiniTest::Unit::TestCase
     actions = bot.action_for(history)
     assert_equal([Delete[OSM::Node, 1],
                   Redact[OSM::Node, 1, 1, :hidden],
-                  Redact[OSM::Node, 1, 2, :hidden]
+                  Redact[OSM::Node, 1, 2, :visible] # <- trivial edit, so visible.
                  ], actions)
   end
 
