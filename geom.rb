@@ -34,10 +34,6 @@ module Geom
       end
     end
 
-    def apply!(obj, options = {})
-      obj.position = apply(obj.position, options) unless @null_move
-    end
-
     def to_s
       @null_move ? "NodeDiff[]" : "NodeDiff#{@position.inspect}"
     end
@@ -86,10 +82,6 @@ module Geom
       return new_geom
     end
     
-    def apply!(obj, options = {})
-      obj.nodes = apply(obj.nodes, options)
-    end
-
     def to_s
       "WayDiff[" + @diff.inspect + "]"
     end
@@ -191,10 +183,6 @@ module Geom
       return new_geom
     end
     
-    def apply!(obj, options = {})
-      obj.members = apply(obj.members, options)
-    end
-
     def to_s
       "RelationDiff[" + @diff.inspect + "]"
     end

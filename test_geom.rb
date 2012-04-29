@@ -90,6 +90,30 @@ class TestGeom < MiniTest::Unit::TestCase
     check_diff_apply(geoms)
   end
 
+  # this is a very cut-down, geometry-only version of one
+  # of the auto tests, which is failing because the non-applied
+  # insert by a decliner is throwing off the diff indexes later
+  # on in the process.
+  def test_relation_partial_insertion
+    geoms = [[[OSM::Way,1],               [OSM::Way,3]],
+             [[OSM::Way,1], [OSM::Way,2], [OSM::Way,3]],
+             [[OSM::Way,1], [OSM::Way,2]              ],
+             [[OSM::Way,1],               [OSM::Way,3]],
+             ].map {|g| OSM::Relation[g]}
+    diffs = geoms.each_cons(2).map {|a, b| Geom.diff(a, b)}
+    g = geoms[0].geom
+
+    # apply diffs, with the first being a "decliner" diff
+    g = diffs[0].apply(g, :only => :deleted)
+    g = diffs[1].apply(g)
+    g = diffs[2].apply(g)
+    
+    # the "decliner" diff adds way 2, but this is deleted in
+    # the final diff, so the result should be the same as the
+    # first version of the geometry: ways 1 & 3
+    assert_equal(g, OSM::Relation[[[OSM::Way,1], [OSM::Way,3]]].geom)
+  end
+
   private
   
   def check_diff_apply(geoms)
