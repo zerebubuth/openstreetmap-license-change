@@ -120,7 +120,7 @@ class TestTags < MiniTest::Unit::TestCase
       "Oxford St" => "Bedford St",
       "Johnann Wolfgang von Goethe Allee" => "Johann-Sebastian-Bach-Allee",
       "Mulberry Hiway" => "Blueberry Valley Drive",
-      "Интернацион" => "Бешенковичи"
+      "улица Интернацион" => "улица Бешенковичи",
     }
 
     significant_changes.each do |old, new|
@@ -146,6 +146,7 @@ class TestTags < MiniTest::Unit::TestCase
       "Oxford St" => "Bedford St",
       "Johnann Wolfgang von Goethe Allee" => "Johann-Sebastian-Bach-Allee",
       "Mulberry Hiway" => "Blueberry Valley Drive",
+      "Wellington Avenue" => "Wellington Way",
     }
     
     significantchanges.each do | old, new |

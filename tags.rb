@@ -291,7 +291,7 @@ module Tags
     begin
       mp_old = Text::Metaphone.metaphone(old)
       mp_new = Text::Metaphone.metaphone(new)
-      return false if mp_old.length > 0 and mp_old == mp_new 
+      return false if mp_old.gsub(/ /,"").length > 0 and mp_old == mp_new 
     end
 
     # look for changes in abbreviation.
