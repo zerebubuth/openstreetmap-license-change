@@ -288,7 +288,11 @@ module Tags
     end
     
     # now check for homophones (TODO: is this really appropriate?)
-    return false if Text::Metaphone.metaphone(old) == Text::Metaphone.metaphone(new)
+    begin
+      mp_old = Text::Metaphone.metaphone(old)
+      mp_new = Text::Metaphone.metaphone(new)
+      return false if mp_old.length > 0 and mp_old == mp_new 
+    end
 
     # look for changes in abbreviation.
     return false if Abbrev.equal_expansions(old, new)
