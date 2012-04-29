@@ -3494,7 +3494,7 @@ def setup
     actions = bot.action_for(history)
     assert_equal([Delete[OSM::Node, 280400000],
                   Redact[OSM::Node, 280400000, 1, :hidden],
-                  Redact[OSM::Node, 280400000, 2, :hidden]
+                  Redact[OSM::Node, 280400000, 2, :visible] # is trivial change
                  ], actions)
   end
 

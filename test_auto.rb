@@ -3701,10 +3701,10 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Redact[OSM::Node, 90600000, 1, :hidden],
-                  Redact[OSM::Node, 90600000, 2, :hidden],
-                  Redact[OSM::Node, 90600000, 3, :hidden],
-                  Redact[OSM::Node, 90600000, 4, :hidden],
-                  Redact[OSM::Node, 90600000, 5, :hidden] 
+                  Redact[OSM::Node, 90600000, 2, :visible], # versions 2-5 are trivial edits, so 
+                  Redact[OSM::Node, 90600000, 3, :visible], # visible, despite them being decliner
+                  Redact[OSM::Node, 90600000, 4, :visible], # edits.
+                  Redact[OSM::Node, 90600000, 5, :visible] 
                  ], actions)
   end
 
@@ -3720,8 +3720,8 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Redact[OSM::Node, 100000000, 1, :hidden],
-                  Redact[OSM::Node, 100000000, 2, :hidden],
-                  Redact[OSM::Node, 100000000, 3, :hidden]
+                  Redact[OSM::Node, 100000000, 2, :visible], # versions 2 & 3 trivial
+                  Redact[OSM::Node, 100000000, 3, :visible]
                  ], actions)
   end
 
