@@ -130,6 +130,9 @@ class History
       base_obj.changeset_id = -1
       base_obj.version = @versions.last.version
 
+      # strip out AUTO_KEYS if we're doing an edit anyway
+      base_obj.tags.select! {|k,v| not Tags::AUTO_KEYS.include? k}
+
       xactions.insert(0, Edit[base_obj])
     end
     
