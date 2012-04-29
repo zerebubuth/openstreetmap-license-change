@@ -3700,9 +3700,8 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Delete[OSM::Node, 60300000],
-                  Redact[OSM::Node, 60300000, 1, :hidden],
-                  Redact[OSM::Node, 60300000, 2, :visible]
+    # object is deleted - no need to go deleting it again
+    assert_equal([Redact[OSM::Node, 60300000, 1, :hidden]
                  ], actions)
   end
 
