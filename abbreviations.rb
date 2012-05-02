@@ -155,6 +155,14 @@ module Abbrev
     "посёлок" => ["поселок", "пос"],
     "деревня" => ["дер", "д"],
     "квартал" => ["кв-л", "кв"],
+
+    # German abbreviations
+    "straße" => ["str."],
+    "platz" => ["pl."],
+    "gasse" => ["g."],
+    "weg" => ["wg."],
+    # Swiss German
+    "strasse" => ["str."],
   }
 
   # of course, this is horribly english-specific...
