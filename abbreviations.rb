@@ -157,6 +157,7 @@ module Abbrev
     "квартал" => ["кв-л", "кв"],
 
     # German abbreviations
+    "Bürgermeister" => ["Bgm"],
     "straße" => ["str."],
     "platz" => ["pl."],
     "gasse" => ["g."],
