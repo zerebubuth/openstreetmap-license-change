@@ -4575,7 +4575,7 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Relation[[[OSM::Way,9650915] , [OSM::Way,29336166] , [OSM::Way,29377987]], :id  => 62000, :version => 4, :visible => true, :changeset => -1, "admin_level" => "6", "boundary" => "administrative", "created_by" => "Potlatch 0.10f", "name" => "Grand Isle County", "type" => "boundary"]],
+    assert_equal([Edit[OSM::Relation[[[OSM::Way,9650915] , [OSM::Way,29336166] , [OSM::Way,29377987]], :id  => 62000, :version => 4, :visible => true, :changeset => -1, "admin_level" => "6", "boundary" => "administrative", "name" => "Grand Isle County", "type" => "boundary"]],
                   Redact[OSM::Relation, 62000, 4, :hidden]
                  ], actions)
   end
