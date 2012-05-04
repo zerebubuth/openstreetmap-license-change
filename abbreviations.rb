@@ -157,13 +157,13 @@ module Abbrev
     "квартал" => ["кв-л", "кв"],
 
     # German abbreviations
-    "Bürgermeister" => ["Bgm"],
-    "straße" => ["str."],
-    "platz" => ["pl."],
-    "gasse" => ["g."],
-    "weg" => ["wg."],
+    "bürgermeister" => ["bgm"],
+    "straße" => ["str"],
+    "platz" => ["pl"],
+    "gasse" => ["g"],
+    "weg" => ["wg"],
     # Swiss German
-    "strasse" => ["str."],
+    "strasse" => ["str"],
   }
 
   # of course, this is horribly english-specific...
