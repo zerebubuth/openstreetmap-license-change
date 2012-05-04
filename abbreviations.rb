@@ -158,10 +158,15 @@ module Abbrev
 
     # German abbreviations
     "bürgermeister" => ["bgm"],
+    "hauptbahnhof" => ["hbf"],
+    "bahnhof" => ["bf"],
+    "samtgemeinde" => ["sg"],
+    "anschlussstelle" => ["as"],
     "straße" => ["str"],
     "platz" => ["pl"],
     "gasse" => ["g"],
     "weg" => ["wg"],
+    "von" => ["v"],
     # Swiss German
     "strasse" => ["str"],
   }
