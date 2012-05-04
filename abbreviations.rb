@@ -159,9 +159,13 @@ module Abbrev
     # German abbreviations
     "bürgermeister" => ["bgm"],
     "hauptbahnhof" => ["hbf"],
+    "große" => ["gr"],
+    "kleine" => ["kl"],
     "bahnhof" => ["bf"],
     "samtgemeinde" => ["sg"],
     "anschlussstelle" => ["as"],
+    "obere" => ["ob"],
+    "untere" => ["unt"],
     "straße" => ["str"],
     "platz" => ["pl"],
     "gasse" => ["g"],
