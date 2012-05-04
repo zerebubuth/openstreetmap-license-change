@@ -199,8 +199,8 @@ module Abbrev
     "unteres" => ["unt"],
     "untere" => ["unt"],
     "vom" => ["v"],
-    "von dem" => ["vd"],
-    "von der" => ["vd"],
+    "vondem" => ["vd"],
+    "vonder" => ["vd"],
     "von" => ["v"],
     "weg" => ["wg"],
     # Swiss German
