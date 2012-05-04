@@ -35,7 +35,8 @@ class TestTags < MiniTest::Unit::TestCase
         "Oxford St" => "Oxford Street", 
         "Johnann Wolfgang von Goethe Allee" => "Johann-Wolfgang-von-Goethe-Allee",
         "Mulberry Hiway" => "Mulberry Highway",
-        "old fen way" => "Old Fen Way"
+        "old fen way" => "Old Fen Way",
+        "strasse" => "Straße",
     }
 
     trivialchanges.each do | old, new |
