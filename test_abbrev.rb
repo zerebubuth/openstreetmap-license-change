@@ -23,6 +23,11 @@ class TestAbbrev < MiniTest::Unit::TestCase
     check_abbrev_equality("N.E. Foobar Crescent", "North East Foobar Cr")
     check_abbrev_equality("NE Foobar Crescent", "Northeast Foobar Cr")
     check_abbrev_equality("бул. Космонавтов", "бульвар Космонавтов")
+    check_abbrev_equality("Hauptstr.", "Hauptstraße")
+    check_abbrev_equality("Hauptstrasse", "Hauptstr.")
+    check_abbrev_equality("Hubertus-Platz", "Hubertus-Pl.")
+    check_abbrev_equality("Herreng.", "Herrengasse")
+    check_abbrev_equality("Musterwg.", "Musterweg")
   end
 
   private
