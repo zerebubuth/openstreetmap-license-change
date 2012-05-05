@@ -267,6 +267,9 @@ module Tags
     # a space.
     old.gsub!(/[＇'ʼʹ]/, "")
     new.gsub!(/[＇'ʼʹ]/, "")
+    # handle german double s
+    old.gsub!(/[ß]/, "ss")
+    new.gsub!(/[ß]/, "ss")
     # normalise all punctuation to single spaces
     old.gsub!(/[[:punct:][:space:]]+/," ")
     new.gsub!(/[[:punct:][:space:]]+/," ")
