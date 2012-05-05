@@ -194,6 +194,7 @@ module Abbrev
     "samtgemeinde" => ["sg"],
     "sankt" => ["st"],
     "straße" => ["str"],
+    "und" => ["u","&"],
     "universität" => ["uni"],
     "unterer" => ["unt"],
     "unteres" => ["unt"],

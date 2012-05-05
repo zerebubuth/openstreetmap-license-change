@@ -30,12 +30,14 @@ class TestAbbrev < MiniTest::Unit::TestCase
   end
   
   def test_abbrev_german
+    check_abbrev_equality("Joh.-Seb.-Bach-Straße", "Johann-Sebastian-Bach-str.")
     check_abbrev_equality("Bgm. Willhelm str.", "Bürgermeister Willhelm straße")
     check_abbrev_equality("Hauptstr.", "Hauptstraße")
     check_abbrev_equality("Hauptstrasse", "Hauptstr.")
     check_abbrev_equality("Hubertus-Platz", "Hubertus-Pl.")
     check_abbrev_equality("Herreng.", "Herrengasse")
     check_abbrev_equality("Musterwg.", "Musterweg")
+    check_abbrev_equality("Streitwagenwg","Streitwagenweg")
   end
 
   private
