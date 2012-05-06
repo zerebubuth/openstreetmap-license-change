@@ -271,6 +271,7 @@ module Tags
     old.gsub!(/[ß]/, "ss")
     new.gsub!(/[ß]/, "ss")
     # normalise all punctuation to single spaces
+    # TODO: Should we treat semicolon as a splitter and do array comparison?
     old.gsub!(/[[:punct:][:space:]]+/," ")
     new.gsub!(/[[:punct:][:space:]]+/," ")
     # if there's no downcase difference, return early.
@@ -303,6 +304,11 @@ module Tags
     # check if the strings are the same except for whitespace
     # presence. this would be considered insignificant.
     return false if old.gsub(/ /,"") == new.gsub(/ /,"")
+              
+    # To handle road numbers where only difference is presence or otherwise of
+    # alphabetic prefix. Remove all alpha prefixes from numbers where present
+    # and test again. (Only handles single letter prefix, allow more?)
+    return false if old.gsub(/\w(\d)/, '\1') == new.gsub(/\w(\d)/, '\1')
 
     # otherwise, just look at the strings...
     old != new

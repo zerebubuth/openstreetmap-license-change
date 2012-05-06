@@ -180,7 +180,8 @@ class TestTags < MiniTest::Unit::TestCase
 
     trivialchanges = {
         "E16" => "E 16", 
-        "1;R5" => "R1;R5",
+        "1;R5" => "R1;R5",  # This fails, probably because 1 char is a high % of a short string
+        "1;R5;R6" => "R1;R5;R6",    # This passes
         "Rv7" => "RV7"
     }
 
