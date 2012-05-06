@@ -267,6 +267,9 @@ module Tags
     # a space.
     old.gsub!(/[＇'ʼʹ]/, "")
     new.gsub!(/[＇'ʼʹ]/, "")
+    # handle german double s
+    old.gsub!(/[ß]/, "ss")
+    new.gsub!(/[ß]/, "ss")
     # normalise all punctuation to single spaces
     old.gsub!(/[[:punct:][:space:]]+/," ")
     new.gsub!(/[[:punct:][:space:]]+/," ")
@@ -291,7 +294,7 @@ module Tags
     begin
       mp_old = Text::Metaphone.metaphone(old)
       mp_new = Text::Metaphone.metaphone(new)
-      return false if mp_old.length > 0 and mp_old == mp_new 
+      return false if mp_old.gsub(/ /,"").length > 0 and mp_old == mp_new 
     end
 
     # look for changes in abbreviation.
