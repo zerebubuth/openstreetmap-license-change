@@ -7,6 +7,7 @@ module Abbrev
   # this might be too country-specific, but it's a start.
   ABBREVIATIONS = {
     "alley" => ["aly"],
+    "and" => ["&"],
     "annex" => ["anx"],
     "arcade" => ["arc"],
     "avenue" => ["ave"],
