@@ -31,6 +31,16 @@ class TestAbbrev < MiniTest::Unit::TestCase
   
   def test_abbrev_german
     check_abbrev_equality("Joh.-Seb.-Bach-Straße", "Johann-Sebastian-Bach-str.")
+    check_abbrev_equality("Bettina-v-Arnim-Straße","Bettina-von-Arnim-Straße")
+    check_abbrev_equality("Nürnbergerstraße"," Nürnberger Str.")
+    check_abbrev_equality("Universität Münster","Uni Münster")
+    check_abbrev_equality("Kindergarten Jahnstraße","KiGa Jahnstraße")
+    check_abbrev_equality("Groß Ippener","Gr. Ippener")
+    check_abbrev_equality("Klein Ippener","Kl Ippener")
+    check_abbrev_equality("Kl. Moor","Kleines Moor")
+    check_abbrev_equality("Realschule Stralsund","RS Stralsund")
+    check_abbrev_equality("Fachhochschule Bremen","FH Bremen")
+    check_abbrev_equality("An der Bahn","A. d. Bahn")
     check_abbrev_equality("Bgm. Willhelm str.", "Bürgermeister Willhelm straße")
     check_abbrev_equality("Hauptstr.", "Hauptstraße")
     check_abbrev_equality("Hauptstrasse", "Hauptstr.")
