@@ -35,7 +35,8 @@ class TestTags < MiniTest::Unit::TestCase
         "Oxford St" => "Oxford Street", 
         "Johnann Wolfgang von Goethe Allee" => "Johann-Wolfgang-von-Goethe-Allee",
         "Mulberry Hiway" => "Mulberry Highway",
-        "old fen way" => "Old Fen Way"
+        "old fen way" => "Old Fen Way",
+        "strasse" => "Straße",
     }
 
     trivialchanges.each do | old, new |
@@ -120,7 +121,7 @@ class TestTags < MiniTest::Unit::TestCase
       "Oxford St" => "Bedford St",
       "Johnann Wolfgang von Goethe Allee" => "Johann-Sebastian-Bach-Allee",
       "Mulberry Hiway" => "Blueberry Valley Drive",
-      "Интернацион" => "Бешенковичи"
+      "улица Интернацион" => "улица Бешенковичи",
     }
 
     significant_changes.each do |old, new|
@@ -146,6 +147,7 @@ class TestTags < MiniTest::Unit::TestCase
       "Oxford St" => "Bedford St",
       "Johnann Wolfgang von Goethe Allee" => "Johann-Sebastian-Bach-Allee",
       "Mulberry Hiway" => "Blueberry Valley Drive",
+      "Wellington Avenue" => "Wellington Way",
     }
     
     significantchanges.each do | old, new |
