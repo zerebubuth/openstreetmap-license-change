@@ -17,6 +17,7 @@ require './test_way'
 require './test_geom'
 require './test_needs_clarity'
 require './test_auto_fail'
+require './test_diff'
 
 MiniTest::Unit.new.run(ARGV)
 
