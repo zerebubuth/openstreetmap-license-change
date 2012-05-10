@@ -7,14 +7,23 @@ this against an `apidb` format database, or possibly a live API.
 
 # Requirements
 
-To run this, you'll need Ruby (probably >=1.9.3) and the 'text'
-gem, which you can install with `bundle install`. Then you'll be able
+To run this, you'll need Ruby (probably >=1.9.3) and some gems,
+which you can install with `bundle install`. Then you'll be able
 to run:
 
  `ruby test.rb`
 
 which will run the full range of unit tests. The test files can also
 be individually run to concentrate on some aspects of the suite.
+
+# Tools
+
+A simple command-line tool, `check_history.rb`, is provided to query
+an API and return information about the actions that the bot would 
+execute, if it were running for real. If you find any results from 
+this which are not as expected, then they would make good unit 
+tests. Run `ruby check_history.rb --help` for more information on 
+running the tool, and on the available options.
 
 # Test-Driven Development
 
