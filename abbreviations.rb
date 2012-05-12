@@ -217,6 +217,17 @@ module Abbrev
     # Swiss German
     "strasse" => ["str"],
   }
+  
+  # In languages like German that use compound words with no spaces, we will find
+  # words that end with an abbreviated suffix. For now let's treat these as a special
+  # case to avoid too much extra load.
+  ABB_SUFFIX = {
+    "weg" => ["wg"],
+    "strasse" => ["str"],
+    "straße" => ["str"],
+    "gasse" => ["g"],
+    "platz" => ["pl"],
+  }    
 
   # of course, this is horribly english-specific...
   # but how would one expand this in a sensible fashion to
@@ -272,19 +283,39 @@ module Abbrev
       end
     end
 
+    puts "Thinking about word number for: " + a.to_s + " and " + b.to_s
+
     # no expansions which alter the number of words. (really? - check this)
     return false if a.length != b.length
+puts "Word number was OK for: " + a.to_s + " and " + b.to_s
     
     # check whether each is equal], or can be reached by expansion
     # or abbreviation.
     a.zip(b) do |a_el, b_el|
       if a_el != b_el
+          #    puts "a_el: " + a_el
+          # puts "b_el: " + b_el
         match = ((ABBREVIATIONS.has_key?(a_el) && ABBREVIATIONS[a_el].any? {|a_ab| a_ab == b_el}) or
                  (ABBREVIATIONS.has_key?(b_el) && ABBREVIATIONS[b_el].any? {|b_ab| b_ab == a_el}))
+          
+          # Maybe only the end of the words is abbreviated (a suffix)
+          
+          
+          #        split_by_common_start(a_el, b_el) if not match
         return false if not match
       end
     end
 
     return true
   end
+
+  def self.split_by_common_start(a, b)
+    i = 1
+    while a[0, i] == b[0, i] do
+      common_bit = a[0, i] 
+      i = i + 1
+    end
+    puts "Found common bit: " + common_bit
+  end
+
 end
