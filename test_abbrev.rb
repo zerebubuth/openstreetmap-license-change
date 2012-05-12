@@ -27,6 +27,9 @@ class TestAbbrev < MiniTest::Unit::TestCase
   
   def test_abbrev_russian
     check_abbrev_equality("бул. Космонавтов", "бульвар Космонавтов")
+      
+    # This fails because we split on punctuation including dash
+    # Fails immediately because of word count comparison, but wouldn't work either way
     check_abbrev_equality("пр-кт. Надеяться", "проспект Надеяться")
   end
   
