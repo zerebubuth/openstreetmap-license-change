@@ -283,11 +283,11 @@ module Abbrev
       end
     end
 
-    puts "Thinking about word number for: " + a.to_s + " and " + b.to_s
+    #puts "Thinking about word number for: " + a.to_s + " and " + b.to_s
 
     # no expansions which alter the number of words. (really? - check this)
     return false if a.length != b.length
-puts "Word number was OK for: " + a.to_s + " and " + b.to_s
+    #puts "Word number was OK for: " + a.to_s + " and " + b.to_s
     
     # check whether each is equal], or can be reached by expansion
     # or abbreviation.
