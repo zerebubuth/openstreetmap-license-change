@@ -251,9 +251,15 @@ module Abbrev
     "nnw" => ["north","north","west"]
   }
 
-  # function for expanding a string into a list of strings
-  # TODO: may need some work for internationalisation
+  # function which expanding a string into a list of strings, and then
+  # returns true if a is valid abbreviation of b (or vice versa)
   def self.equal_expansions(a, b)
+    
+    #deal with ampersands to avoid them being eliminated as punctuation in the following regex    
+    a.gsub!('&',' and ') 
+    b.gsub!('&',' and ')
+    
+    #split each string into an array of words, splitting by space or punctuation
     a = a.downcase.split(/[[:punct:][:space:]]+/)
     b = b.downcase.split(/[[:punct:][:space:]]+/)
 
