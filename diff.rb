@@ -148,7 +148,7 @@ module Diff
     foo.empty? ? nil : foo.first[1]
   end
 
-  def self.diff(a, b)
+  def self.diff(a, b, options = {})
     a_idx = 0
     rv = Array.new
 
@@ -166,13 +166,15 @@ module Diff
       end
     end
     
-    # now try and detect alterations to the role
-    # which we treat separately from other changes.
-    while (fc = first_contraction(rv))
-      from = rv[fc].class == Delete ? rv[fc] : rv[fc+1]
-      to = rv[fc+1].class == Insert ? rv[fc+1] : rv[fc]
-      rv[fc] = Alter.new(from.location, from.element, to.element)
-      rv.delete_at(fc+1)
+    unless options[:detect_alter] == false
+      # now try and detect alterations to the role
+      # which we treat separately from other changes.
+      while (fc = first_contraction(rv))
+        from = rv[fc].class == Delete ? rv[fc] : rv[fc+1]
+        to = rv[fc+1].class == Insert ? rv[fc+1] : rv[fc]
+        rv[fc] = Alter.new(from.location, from.element, to.element)
+        rv.delete_at(fc+1)
+      end
     end
     
     return rv
@@ -196,6 +198,28 @@ module Diff
     end
     
     return [new_a, new_b.compact]
+  end
+
+  def self.split_deletes(a)
+    deletes = Array.new
+    other = Array.new
+
+    a.each do |act|
+      if act.class == Delete
+        # deletes are moved before other elements,
+        # so we will need to compose them with the
+        # others before putting them onto the list.
+        other, new_act = Diff::compose(other, [act])
+        deletes += new_act
+
+      else
+        # non-deletes can be added straight onto the 
+        # list of such elements.
+        other << act.clone
+      end
+    end
+
+    return [deletes, other]
   end
 
   def self.apply(diff, arr)
