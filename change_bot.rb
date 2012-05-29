@@ -32,6 +32,7 @@ class History
 
     base_obj = prev_obj.clone
     xactions = Array.new
+    diff_state = Array.new
 
     tainted_tags = Array.new
 
@@ -68,6 +69,7 @@ class History
       # of the patch we can apply is the deletions, by the
       # 'deletions are always OK' rule.
       apply_options = (status == :unclean) ? {:only => :deleted} : {}
+      apply_options[:state] = diff_state
 
       # if the element is explicitly marked as clean, then
       # don't bother with the application of patches, just

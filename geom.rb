@@ -1,5 +1,6 @@
 require './osm'
 require './util'
+require './diff'
 
 module Geom
   def self.diff(a, b)
@@ -46,40 +47,30 @@ module Geom
 
   class WayDiff
     def self.create(a, b)
-      WayDiff.new(Util.diff(a.nodes, b.nodes))
+      WayDiff.new(Diff::diff(a.nodes, b.nodes, :detect_alter => false))
     end
 
     def empty?
-      @diff.all? {|source, elt| source == :c}
+      @diff.empty?
     end
 
     def only_deletes?
-      not @diff.any? {|source, elt| source == :b}
+      @diff.all? {|act| act.class == Diff::Delete}
     end
 
     def apply(geom, options = {})
-      geom_idx = 0
-      new_geom = Array.new
+      options[:state] = Array.new unless options.has_key?(:state)
+      new_state, comp_diff = Diff::compose(options[:state], @diff)
+      options[:state].replace(new_state)
 
-      @diff.each do |source, elt|
-        case source
-        when :a # exists only in previous - i.e: a delete
-          if geom[geom_idx] == elt
-            geom_idx += 1
-          end
+      if options[:only] == :deleted
+        delete, other = Diff::split_deletes(comp_diff)
+        options[:state][0...0] = other
+        Diff::apply(delete, geom)
 
-        when :b # exists only in new version - i.e: an add
-          new_geom << elt unless options[:only] == :deleted
-
-        when :c # exists in both - i.e: unchanged
-          if geom[geom_idx] == elt
-            new_geom << elt
-            geom_idx += 1
-          end
-        end
+      else
+        Diff::apply(comp_diff, geom)
       end
-
-      return new_geom
     end
     
     def to_s
