@@ -4039,17 +4039,16 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Edit[OSM::Way[[53120720,53100737,53182378,59699628,53109829,206249014,53092498,53099797,53163625,59713406], :id => 6510000, :version => 17, :visible => true, :changeset => -1, "highway" => "tertiary", "name" => "Northeast 40th Street", "tiger:cfcc" => "A41", "tiger:county" => "King, WA", "tiger:name_base" => "40th", "tiger:name_direction_prefix" => "NE", "tiger:name_type" => "Street", "tiger:separated" => "no", "tiger:source" => "tiger_import_dch_v0.6_20070830", "tiger:tlid" => "186586974:186586986:186586988:186705907:186583408:186583354:186583359:186583257:186586943", "tiger:zip_left" => "98105", "tiger:zip_right" => "98105"]],
-                  Redact[OSM::Way, 6510000, 5, :hidden],
-                  Redact[OSM::Way, 6510000, 6, :hidden],
-                  Redact[OSM::Way, 6510000, 7, :hidden],
+                  # versions 5-7 are either null edits, or auto-key
+                  # changes and therefore need no redaction.
                   Redact[OSM::Way, 6510000, 8, :hidden],
-                  Redact[OSM::Way, 6510000, 9, :hidden],
+                  Redact[OSM::Way, 6510000, 9, :visible], # null edit => visible
                   Redact[OSM::Way, 6510000, 10, :hidden],
-                  Redact[OSM::Way, 6510000, 11, :hidden],
+                  Redact[OSM::Way, 6510000, 11, :visible], # delete only edit => visible
                   Redact[OSM::Way, 6510000, 12, :hidden],
                   Redact[OSM::Way, 6510000, 13, :visible],
                   Redact[OSM::Way, 6510000, 14, :visible],
-                  Redact[OSM::Way, 6510000, 15, :hidden],
+                  Redact[OSM::Way, 6510000, 15, :visible], # delete only edit => visible
                   Redact[OSM::Way, 6510000, 16, :hidden],
                   Redact[OSM::Way, 6510000, 17, :visible],
                  ], actions)
