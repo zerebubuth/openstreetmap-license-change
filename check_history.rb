@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require './osm'
 require './osm_parse'
 require './db'
