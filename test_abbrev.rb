@@ -71,11 +71,24 @@ class TestAbbrev < MiniTest::Unit::TestCase
   private
   # utility func to make output from failed tests more useful
   def check_abbrev_equality(a, b)
-    assert_equal(true, Abbrev.equal_expansions(a, b), "Expecting #{a.inspect} to equal #{b.inspect} under abbreviation/expansion, but it doesn't.")
+    assert_equal(true, abbrev_equals(a, b), "Expecting #{a.inspect} to equal #{b.inspect} under abbreviation/expansion, but it doesn't.")
   end
   
   def check_abbrev_inquality(a, b)
-    assert_equal(false, Abbrev.equal_expansions(a, b), "Expecting #{a.inspect} to NOT equal #{b.inspect} under abbreviation/expansion, but it does.")
+    assert_equal(false, abbrev_equals(a, b), "Expecting #{a.inspect} to NOT equal #{b.inspect} under abbreviation/expansion, but it does.")
+  end
+  
+  def abbrev_equals(a, b)
+    #return Abbrev.equal_expansions(a, b)
+    
+    out = `./abbreviations.py "#{a}" "#{b}"`
+    
+    r = $?.exitstatus
+    if r == 1 then
+      return true
+    elsif r == 2 then
+      return false
+    end
   end
 end
 
