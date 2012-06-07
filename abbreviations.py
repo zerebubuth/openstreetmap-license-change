@@ -3,6 +3,7 @@
 #License: GPLv3
 #Author: MonkZ
 import sys
+from heapq import heappush, heappop
 
 if len(sys.argv) != 3:
   print "Please pass two strings to this program"
@@ -18,11 +19,21 @@ def mark(stri):
 def demark(stri):
   return stri.replace("|*","")
 
+# Find the distance we are from getting the right word
+def dist(s1, s2) :
+  r = max(len(s1), len(s2))
+  for i in range(min(len(s1), len(s2))):
+    if s1[i] == s2[i]:
+      r -= 1
+    else:
+      return r
+  return r
+
 #we want to reach this word
 target = sys.argv[2].decode("utf-8")
 #stack of strings to extend/substitute next round
 #we need to evaluate stack and queue here
-toextend = [mark(sys.argv[1].decode("utf-8"))]
+toextend = [(dist(sys.argv[1].decode("utf-8"), sys.argv[2].decode("utf-8")), mark(sys.argv[1].decode("utf-8")))]
 
 #classes of strings/abbrvs/synonyms
 #we can improve this by check our tag location
@@ -271,12 +282,18 @@ rules["|* "] = set(["","-"])
 rules["|*-"] = set([" "])
 print rules
 
+# a set of all the visited strings so that we don't do double work
+visited = set([])
+
 #rulemangling
 #try rules on every string until we've no more strings
 while(toextend != []):
-  #remove current word from queue and mangle it
-  current = toextend.pop()
-  print current
+  #remove the best unvisited word from queue and mangle it
+  _, current = heappop(toextend)
+  while current in visited:
+    _, current = heappop(toextend)
+  visited.add(current)
+  #print current
   #call every rule
   for rule in rules.keys():
     #and try to use it (maybe this could be improved by find our ruletrigger in first place)
@@ -285,8 +302,8 @@ while(toextend != []):
       newword = current.replace(rule,substitute,1)
       #if it is a new string we add it to our stack for further mangling
       unmarkednewword = demark(newword)
-      if newword != current:
-        toextend.append(newword)
+      if newword != current and current not in visited:
+        heappush(toextend, (dist(unmarkednewword, target), newword))
       #if we found our string we're happy
       if unmarkednewword == target:
         print "Found"
