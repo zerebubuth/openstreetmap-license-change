@@ -276,7 +276,7 @@ print rules
 while(toextend != []):
   #remove current word from queue and mangle it
   current = toextend.pop()
-  #print current
+  print current
   #call every rule
   for rule in rules.keys():
     #and try to use it (maybe this could be improved by find our ruletrigger in first place)
