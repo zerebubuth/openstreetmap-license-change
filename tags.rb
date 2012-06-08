@@ -109,9 +109,12 @@ module Tags
 
     def apply(original, options = {})
       tags = original.clone
+      omit_tags = (options.has_key? :omit_tags) ? options[:omit_tags] : {}
       @deleted.each_key {|k| tags.delete k}
 
-      unless options[:only] == :deleted
+      if options[:only] == :deleted then
+        omit_tags.each{|k, v| tags[k] = v if @created[k] == v} if not @created.nil?
+      else
         tags.merge!(@created)
 
         @edited.each do |k, vals|

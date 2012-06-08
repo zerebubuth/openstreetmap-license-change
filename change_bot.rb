@@ -37,6 +37,8 @@ class History
     diff_state = Array.new
 
     tainted_tags = Array.new
+    omit_tags = []
+    omit_tags = ["multipolygon", "route", "site", "restriction", "boundary"].map{|v| ["type", v]} if base_obj.class == OSM::Relation
 
     @versions.zip(odbl_clean_versions).each do |obj,is_odbl_clean|
       # deletions are always "clean", and we consider them to
@@ -72,6 +74,7 @@ class History
       # 'deletions are always OK' rule.
       apply_options = (status == :unclean) ? {:only => :deleted} : {}
       apply_options[:state] = diff_state
+      apply_options[:omit_tags] = omit_tags
 
       # if the element is explicitly marked as clean, then
       # don't bother with the application of patches, just
@@ -99,6 +102,8 @@ class History
         # taint the new version of any edited or moved tag
         tainted_tags.concat(tags_patch.edited.map {|k,vals| [k,vals[1]]})
         tainted_tags.concat(tags_patch.moved.map {|keys,v| [keys[1],v]})
+        
+        tainted_tags -= omit_tags
       end
 
       # remove any taint from the new tags
