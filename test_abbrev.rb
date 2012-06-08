@@ -22,7 +22,13 @@ class TestAbbrev < MiniTest::Unit::TestCase
     check_abbrev_equality("NE Foobar Crescent", "North East Foobar Cr.")
     check_abbrev_equality("N.E. Foobar Crescent", "North East Foobar Cr")
     check_abbrev_equality("NE Foobar Crescent", "Northeast Foobar Cr")
+    check_abbrev_equality("Foo & Bar", "Foo and Bar")
+    check_abbrev_equality("Foo&Bar", "Foo and Bar")
     check_abbrev_equality("North & Western", "North and Western")
+    
+    #some INequality tests. check ampersands are not getting swallowed.
+    check_abbrev_inquality("& & A & B &&", "A & B")
+    check_abbrev_inquality("Foo & Bar", "Foo Bar")
   end
   
   def test_abbrev_russian
@@ -66,6 +72,10 @@ class TestAbbrev < MiniTest::Unit::TestCase
   # utility func to make output from failed tests more useful
   def check_abbrev_equality(a, b)
     assert_equal(true, Abbrev.equal_expansions(a, b), "Expecting #{a.inspect} to equal #{b.inspect} under abbreviation/expansion, but it doesn't.")
+  end
+  
+  def check_abbrev_inquality(a, b)
+    assert_equal(false, Abbrev.equal_expansions(a, b), "Expecting #{a.inspect} to NOT equal #{b.inspect} under abbreviation/expansion, but it does.")
   end
 end
 
