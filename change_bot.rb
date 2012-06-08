@@ -28,6 +28,8 @@ class History
   end
 
   def actions
+    return [] if @versions.count{|obj| not changeset_is_accepted? obj.changeset_id} == 0
+  
     prev_obj = @versions.first.version_zero
 
     base_obj = prev_obj.clone

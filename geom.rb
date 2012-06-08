@@ -85,27 +85,35 @@ module Geom
 
   class RelationDiff
     def self.create(a, b)
-      RelationDiff.new(Util.diff(a.members, b.members))
+      RelationDiff.new(a, b)
     end
 
     def empty?
-      @diff.empty?
+      @old == @new
     end
 
     def only_deletes?
-      @diff.all? {|op, idx, elt| op == :delete}
+      @old.size > @new.size and diff.all? {|op, idx, elt| op == :delete}
     end
 
     def apply(geom, options = {})
+      only_delete = options[:only] == :deleted
+      
+      if only_delete then
+        return geom.select{|e| @new.count{|n| e.type == n.type and e.ref == n.ref} > 0}
+      end
+      
+      if geom == @old then
+        return @new
+      end
+    
       geom_idx = 0
       new_geom = geom.clone
       # mapping instruction index (i.e: in old geom) to
       # current index in new_geom.
       mapping = Hash[(0...(new_geom.length)).map {|i| [i,i]}]
-      
-      only_delete = options[:only] == :deleted
 
-      @diff.each do |op, idx, elt|
+      diff.each do |op, idx, elt|
         case op
         when :delete
           new_idx = mapping[idx]
@@ -175,11 +183,23 @@ module Geom
     end
     
     def to_s
-      "RelationDiff[" + @diff.inspect + "]"
+      "RelationDiff[" + diff.inspect + "]"
     end
 
     private
-    def initialize(d)
+    
+    def diff
+      make_diff() if @diff.nil?
+      @diff
+    end
+    
+    def initialize(a, b)
+    @old, @new = a.geom, b.geom
+    end
+    
+    def make_diff()
+      d = Util.diff(@old, @new)
+      
       a_idx = 0
       @diff = Array.new
 
