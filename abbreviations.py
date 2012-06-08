@@ -5,16 +5,13 @@
 import sys
 from heapq import heappush, heappop
 
-if len(sys.argv) != 3:
+if not(len(sys.argv) == 3 or (len(sys.argv) == 4 and sys.argv[3] == "-v")):
   print "Please pass two strings to this program"
   exit(1)
 
 #needed to trace already substituted parts in our strings
 def mark(stri):
-  nc = ""
-  for c in stri:
-    nc = nc + "|*" + c
-  return nc
+  return "|*".join(stri)
 
 def demark(stri):
   return stri.replace("|*","")
@@ -22,12 +19,14 @@ def demark(stri):
 # Find the distance we are from getting the right word
 def dist(s1, s2) :
   r = max(len(s1), len(s2))
-  for i in range(min(len(s1), len(s2))):
-    if s1[i] == s2[i]:
+  for (c1, c2) in zip(s1, s2):
+    if c1 == c2:
       r -= 1
     else:
       return r
   return r
+
+verbose = len(sys.argv) == 4
 
 #we want to reach this word
 target = sys.argv[2].decode("utf-8")
@@ -280,7 +279,8 @@ for clazz in classes:
 #add special rules like "kill spaces"
 rules["|* "] = set(["","-"])
 rules["|*-"] = set([" "])
-print rules
+if verbose:
+  print rules
 
 # a set of all the visited strings so that we don't do double work
 visited = set([])
@@ -293,7 +293,8 @@ while(toextend != []):
   while current in visited:
     _, current = heappop(toextend)
   visited.add(current)
-  #print current
+  if verbose:
+    print "pop %s"% current
   #call every rule
   for rule in rules.keys():
     #and try to use it (maybe this could be improved by find our ruletrigger in first place)
