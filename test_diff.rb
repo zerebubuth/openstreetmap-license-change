@@ -202,13 +202,13 @@ class TestDiff < MiniTest::Unit::TestCase
     b = [   2,    2, 4, 0, 1,                2, 0, 3, 4, 3   ]
     c = [   2, 0, 2,       1, 3,             2, 0, 3, 4, 4, 4]
 
-    d_ab = Diff::diff(a, b)
+    d_ab = Diff::diff(a, b, :detect_alter => (Proc.new {|a,b| true}))
     assert_equal([Diff::Delete.new(0,3), Diff::Insert.new(1,2), Diff::Insert.new(3,0), 
                   Diff::Delete.new(5,4), Diff::Delete.new(5,1), Diff::Delete.new(5,4), 
                   Diff::Insert.new(6,0), Diff::Insert.new(8,4)],
                  d_ab)
     
-    d_bc = Diff::diff(b, c)
+    d_bc = Diff::diff(b, c, :detect_alter => (Proc.new {|a,b| true}))
     assert_equal([Diff::Insert.new(1,0), Diff::Delete.new(3,4), Diff::Delete.new(3,0),
                   Diff::Insert.new(4,3), Diff::Alter.new(9,3,4), Diff::Insert.new(10,4)],
                  d_bc)
@@ -230,31 +230,91 @@ class TestDiff < MiniTest::Unit::TestCase
     end
   end
 
-  private
-  
-  def messup(a)
-    a.collect_concat do |ax| 
-      case rand(3)
-      when 0
-        [ax]
-      when 1
-        [ax, rand(5)]
-      when 2
-        []
-      end
-    end
+  def test_move_detect
+    a = [1, 2, 3,    4, 5, 6, 7, 8, 9]
+    b = [1, 2, 3, 7, 4, 5, 6,    8, 9]
+    d = Diff::diff(a, b, :detect_move => true)
+    assert_equal([Diff::Move.new(6, 3, 7)], d)
+    x = Diff::apply(d, a)
+    assert_equal(b, x)
   end
 
-  def check_compose(a, b, c)
-    d_ab = Diff::diff(a, b)
-    d_bc = Diff::diff(b, c)
+  def test_move_with_other_changes
+    a = [   1, 2, 3,    4, 5, 6, 7, 8, 9    ]
+    b = [0, 1,    3, 7, 4, 5, 6,    8, 9, 10]
+    d = Diff::diff(a, b, :detect_move => true)
+    assert_equal([Diff::Insert.new(0, 0), 
+                  Diff::Delete.new(2, 2), 
+                  Diff::Move.new(6, 3, 7), 
+                  Diff::Insert.new(9, 10)
+                 ], d)
+    x = Diff::apply(d, a)
+    assert_equal(b, x)
+  end
 
-    assert_equal(c, Diff::apply(d_bc, Diff::apply(d_ab, a)))
+  def test_move_back_null
+    a = [1,    2, 3, 4, 5, 6]
+    b = [1, 5, 2, 3, 4,    6]
 
-    d_xc, d_ax = Diff::compose(d_ab, d_bc)
-    x = Diff::apply(d_ax, a)
+    check_diff_move(a, b)
+  end
 
-    assert_equal(c, Diff::apply(d_xc, x), "With a=#{a}, b=#{b}, c=#{c}")
+  def test_move_back_del
+    a = [1,    2, 3, 4, 5, 6]
+    b = [1, 5, 2,    4,    6]
+
+    check_diff_move(a, b)
+  end
+
+  def test_move_back_ins
+    a = [1,    2, 3,    4, 5, 6]
+    b = [1, 5, 2, 3, 9, 4,    6]
+
+    check_diff_move(a, b)
+  end
+
+  def test_move_fwd_null
+    a = [1, 5, 2, 3, 4,    6]
+    b = [1,    2, 3, 4, 5, 6]
+
+    check_diff_move(a, b)
+  end
+
+  def test_move_fwd_ins
+    a = [1, 5, 2,    4,    6]
+    b = [1,    2, 3, 4, 5, 6]
+
+    check_diff_move(a, b)
+  end
+
+  def test_move_fwd_del
+    a = [1, 5, 2, 3, 9, 4,    6]
+    b = [1,    2, 3,    4, 5, 6]
+
+    check_diff_move(a, b)
+  end
+
+  def test_compose_move
+    1000.times do
+      a = 10.times.map { rand(5) }
+      b = messup(a)
+      c = messup(b)
+
+      begin
+        d_ab = Diff::diff(a, b, :detect_move => true)
+        d_bc = Diff::diff(b, c, :detect_move => true)
+        
+        assert_equal(c, Diff::apply(d_bc, Diff::apply(d_ab, a)))
+        
+        #d_xc, d_ax = Diff::compose(d_ab, d_bc)
+        #x = Diff::apply(d_ax, a)
+        
+        #assert_equal(c, Diff::apply(d_xc, x), "With a=#{a}, b=#{b}, c=#{c}")
+        
+      rescue
+        flunk("With a=#{a}, b=#{b}, c=#{c}: #{$!}")
+      end
+    end
   end
 
   def test_split_deletes
@@ -262,9 +322,9 @@ class TestDiff < MiniTest::Unit::TestCase
       a = 10.times.map { rand(5) }
       b = messup(a)
       
-      d = Diff::diff(a, b)
+      d = Diff::diff(a, b, :detect_alter => (Proc.new {|a,b| true}))
 
-      delete, others = Diff::split_deletes(d, a)
+      delete, others = Diff::split_deletes(d)
       
       x = Diff::apply(others, Diff::apply(delete, a))
 
@@ -301,19 +361,52 @@ class TestDiff < MiniTest::Unit::TestCase
     clean = []
     history.zip(agreed).each do |cur, agree|
       diff = Diff::diff(last, cur)
+      state, xdiff = Diff::compose(state, diff)
 
       if agree
-        state, xdiff = Diff::compose(state, diff)
         clean = Diff::apply(xdiff, clean)
 
       else
-        del, oth = Diff::split_deletes(diff)
+        del, oth = Diff::split_deletes(xdiff)
         clean = Diff::apply(del, clean)
         state[0...0] = oth
       end
 
       last = cur
     end
+  end
+
+
+  private
+  
+  def messup(a)
+    a.collect_concat do |ax| 
+      case rand(3)
+      when 0
+        [ax]
+      when 1
+        [ax, rand(5)]
+      when 2
+        []
+      end
+    end
+  end
+
+  def check_compose(a, b, c)
+    d_ab = Diff::diff(a, b, :detect_alter => (Proc.new {|a,b| true}))
+    d_bc = Diff::diff(b, c, :detect_alter => (Proc.new {|a,b| true}))
+
+    assert_equal(c, Diff::apply(d_bc, Diff::apply(d_ab, a)))
+
+    d_xc, d_ax = Diff::compose(d_ab, d_bc)
+    x = Diff::apply(d_ax, a)
+
+    assert_equal(c, Diff::apply(d_xc, x), "With a=#{a}, b=#{b}, c=#{c}")
+  end
+
+  def check_diff_move(a, b)
+    d = Diff::diff(a, b, :detect_move => true)
+    assert_equal(b, Diff::apply(d, a))
   end
 end
 
