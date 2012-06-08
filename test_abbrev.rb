@@ -23,6 +23,8 @@ class TestAbbrev < MiniTest::Unit::TestCase
     "Foo & Bar" => "Foo and Bar",
     "Foo&Bar" => "Foo and Bar",
     "North & Western" => "North and Western",
+    "New NW Route" => "New North West Route",
+    "The old road " => "The old road",
     # Russian
     "бул. Космонавтов" => "бульвар Космонавтов",
     "пр-кт. Надеяться" => "проспект Надеяться",
@@ -57,12 +59,14 @@ class TestAbbrev < MiniTest::Unit::TestCase
   EQUAL_STRINGS.each do |k, v|
     define_method("test_abbrev_#{k}") {
       check_abbrev_equality("#{k}", "#{v}")
+      check_abbrev_equality("#{v}", "#{k}")
     }
   end
   
   INQUAL_STRINGS.each do |k, v|
     define_method("test_abbrev_#{k}") {
       check_abbrev_inquality("#{k}", "#{v}")
+      check_abbrev_inquality("#{v}", "#{k}")
     }
   end
 
