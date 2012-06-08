@@ -4478,7 +4478,7 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Relation[[[OSM::Way,130801132] , [OSM::Way,123520061] , [OSM::Way,123520073] , [OSM::Way,122563397] , [OSM::Way,133399291] , [OSM::Way,95998226] , [OSM::Way,95998220] , [OSM::Way,140763319] , [OSM::Way,100876522] , [OSM::Way,100876537] , [OSM::Way,129481693] , [OSM::Way,144078431] , [OSM::Way,144078433] , [OSM::Way,66758379] , [OSM::Way,100876512] , [OSM::Way,130801136] , [OSM::Way,38805694] , [OSM::Way,38863685] , [OSM::Way,38911480] , [OSM::Way,38911481] , [OSM::Way,100876531] , [OSM::Way,100871999] , [OSM::Way,100707581] , [OSM::Way,100872029] , [OSM::Way,100707590] , [OSM::Way,65764351]], :id  => 33000, :version => 35, :visible => true, :changeset => -1, "lcn" => "yes", "lcn_ref" => "3"]],
+    assert_equal([Edit[OSM::Relation[[[OSM::Way,130801132], [OSM::Way,123520061], [OSM::Way,123520073], [OSM::Way,122563397], [OSM::Way,133399291], [OSM::Way,95998226], [OSM::Way,95998220], [OSM::Way,140763319], [OSM::Way,100876522], [OSM::Way,100876537], [OSM::Way,129481693], [OSM::Way,144078431], [OSM::Way,144078433], [OSM::Way,66758379], [OSM::Way,100876512], [OSM::Way,130801136], [OSM::Way,38805694], [OSM::Way,38863685], [OSM::Way,38911480], [OSM::Way,38911481], [OSM::Way,100876531], [OSM::Way,100871999], [OSM::Way,100707581], [OSM::Way,100872029], [OSM::Way,100707590], [OSM::Way,65764351]], :id  => 33000, :version => 35, :visible => true, :changeset => -1, "lcn" => "yes", "lcn_ref" => "3"]],
                   Redact[OSM::Relation, 33000, 1, :hidden],
                   Redact[OSM::Relation, 33000, 2, :hidden],
                   Redact[OSM::Relation, 33000, 3, :hidden],
@@ -4512,7 +4512,8 @@ def setup
                   Redact[OSM::Relation, 33000, 31, :visible],
                   Redact[OSM::Relation, 33000, 32, :visible],
                   Redact[OSM::Relation, 33000, 33, :visible],
-                  Redact[OSM::Relation, 33000, 34, :visible]
+                  Redact[OSM::Relation, 33000, 34, :visible],
+                  Redact[OSM::Relation, 33000, 35, :visible]
                  ], actions)
   end
 
