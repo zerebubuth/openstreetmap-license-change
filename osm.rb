@@ -9,7 +9,7 @@ module OSM
   end
 
   module Element
-    attr_accessor :element_id, :changeset_id, :timestamp, :visible, :version
+    attr_accessor :element_id, :changeset_id, :timestamp, :visible, :version, :uid
     private
     def init_attrs(attrs)
       @element_id = attrs[:id]
@@ -17,6 +17,7 @@ module OSM
       @timestamp = attrs[:timestamp]
       @visible = attrs.has_key?(:visible) ? attrs[:visible] : true
       @version = attrs[:version]
+      @uid = attrs[:uid]
     end
 
     def self.parse_options(options)

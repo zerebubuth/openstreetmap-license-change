@@ -7,7 +7,8 @@ module OSM
     :changeset => ["changeset", :to_i],
     :timestamp => ["timestamp", :to_s],
     :visible => ["visible", Proc.new {|a| a == "true"}],
-    :version => ["version", :to_i]
+    :version => ["version", :to_i],
+    :uid => ["uid", :to_i],
   }
   
   TYPES = {
@@ -25,7 +26,7 @@ module OSM
       
       attrs = Hash[ATTRIBUTES.collect do |k,v| 
                      elt = xml_elem[v[0]]
-                     val = (v[1].class == Symbol) ? elt.send(v[1]) : v[1].call(elt)
+                     val = elt.nil? ? nil : (v[1].class == Symbol) ? elt.send(v[1]) : v[1].call(elt)
                      [k, val]
                    end]
       
@@ -48,10 +49,13 @@ module OSM
         
         OSM::Relation[members, attrs.merge(tags)]
 
+      when "bounds"
+        # ignore
+
       else
         raise "Element type #{xml_elem.name.inspect} not expected! Was expecting one of 'node', 'way' or 'relation'."
       end
-    end
+    end.compact
   end
 
   def self.user_id_from_changeset(xml)

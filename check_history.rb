@@ -21,23 +21,26 @@ check_history.rb [OPTIONS...] [elements]
 -h, --help:
    Show help
 
---server s:
+-s --server:
    Use server s for API calls. Defaults to the test API.
 
---verbose:
+-v --verbose:
    Output information about the actions being taken.
 
---users-agreed:
-   A URL with a list of user IDs of those who have agreed. If this
-   is not specified then it is assumed all users have agreed.
+-f --file:
+   Take a list of history files as input.
 
---changesets-agreed:
-   A URL with a list of changesets which have been agreed. This is
-   used only where the owner of the changeset is anonymous. If this
-   is not specified then it is assumed all anonymous users have 
+-u --users-agreed:
+   A URL or file with a list of user IDs of those who have agreed.
+   If this is not specified then it is assumed all users have agreed.
+
+-c --changesets-agreed:
+   A URL or file with a list of changesets which have been agreed.
+   This is used only where the owner of the changeset is anonymous.
+   If this is not specified then it is assumed all anonymous users have 
    agreed.
 
---user-agreed-limit:
+-l --user-agreed-limit:
    The user ID below which users may not have agreed. For example,
    on the main API this number is 286582 and user IDs >= this are
    guaranteed to have agreed.
@@ -50,8 +53,12 @@ EOF
 end
 
 def get_url_lines(agent, verbose, url)
-  puts "Downloading #{url}..." if verbose
-  agent.get(url).content.lines.
+  if url.start_with? "http://" then
+    puts "Downloading #{url}..." if verbose
+    agent.get(url).content
+  else
+    File.open(url, "r")
+  end.lines.
     select {|l| not l.match(/^ *#/) }.
     map {|l| l.to_i }
 end
@@ -71,6 +78,7 @@ end
 opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
                       ['--server', '-s', GetoptLong::REQUIRED_ARGUMENT ],
                       ['--verbose', '-v', GetoptLong::NO_ARGUMENT],
+                      ['--file', '-f', GetoptLong::NO_ARGUMENT],
                       ['--users-agreed', '-u', GetoptLong::REQUIRED_ARGUMENT],
                       ['--changesets-agreed', '-c', GetoptLong::REQUIRED_ARGUMENT],
                       ['--user-agreed-limit', '-l', GetoptLong::REQUIRED_ARGUMENT])
@@ -94,6 +102,9 @@ opts.each do |opt, arg|
 
   when '--verbose'
     verbose = true
+
+  when '--file'
+    read_from_file = true
 
   when '--users-agreed'
     users_agreed = arg
@@ -127,19 +138,44 @@ elements = {
 }
 
 ARGV.each do |arg|
-  type, id = arg.split("_")
-  id = id.to_i
+  # Get the history file for the element
+  content =
+  if read_from_file then
+    File.open(arg, "r").read()
+  else
+    type, id = arg.split("_")
+    id = id.to_i
 
-  url = "http://#{server}/api/0.6/#{type}/#{id}/history"
-  puts "Downloading #{url}..." if verbose
-  history = OSM::parse(agent.get(url).content)
-  elements[(type + "s").to_sym][id] = history
+    url = "http://#{server}/api/0.6/#{type}/#{id}/history"
+    puts "Downloading #{url}..." if verbose
+    agent.get(url).content
+  end
+  
+  # Parse the file into elements
+  history = OSM::parse(content)
+  history.each do |e|
+    t =  if e.class == OSM::Node then :nodes
+      elsif e.class == OSM::Way then :ways
+      elsif e.class == OSM::Relation then :relations
+    end
+    if elements[t].has_key? e.element_id then
+      elements[t][e.element_id] = elements[t][e.element_id] << e
+    else
+      elements[t][e.element_id] = [e]
+    end
+  end
 
-  history.map {|e| e.changeset_id}.each do |cs_id|
+  # Get the status of each changeset
+  history.each do |e|
+    cs_id = e.changeset_id
     unless elements[:changesets].has_key? cs_id
-      url = "http://#{server}/api/0.6/changeset/#{cs_id}"
-      puts "Downloading #{url}..." if verbose
-      uid = OSM::user_id_from_changeset(agent.get(url).content)
+      uid = if e.uid.nil? then
+        url = "http://#{server}/api/0.6/changeset/#{cs_id}"
+        puts "Downloading #{url}..." if verbose
+        OSM::user_id_from_changeset(agent.get(url).content)
+      else
+        e.uid
+      end
       agreed = if uid == 0
                  changesets_agreed.call(cs_id)
                else
