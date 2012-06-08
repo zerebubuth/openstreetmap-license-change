@@ -98,13 +98,32 @@ module Geom
 
     def apply(geom, options = {})
       only_delete = options[:only] == :deleted
+      no_order = options[:no_order] == true
       
       if only_delete then
-        return geom.select{|e| @new.count{|n| e.type == n.type and e.ref == n.ref} > 0}
+        if @new.empty? or geom.empty?
+          return []
+        else
+          return geom - @old.select{|e| @new.count{|n| e.type == n.type and e.ref == n.ref} == 0}
+        end
       end
       
       if geom == @old then
         return @new
+      end
+      
+      if no_order then
+        #deletes
+        geom.delete_if{|e| @new.count{|n| e.type == n.type and e.ref == n.ref} == 0}
+        #adds
+        geom += @new.select{|e| @old.count{|n| e.type == n.type and e.ref == n.ref} == 0}
+        #alter
+        @old.select{|e| @new.count{|n| e.type == n.type and e.ref == n.ref} > 0}.each do |e|
+          if not geom.delete(e).nil? then
+            geom += @new.select{|n| e.type == n.type and e.ref == n.ref}
+          end
+        end
+        return geom
       end
     
       geom_idx = 0

@@ -75,6 +75,7 @@ class History
       apply_options = (status == :unclean) ? {:only => :deleted} : {}
       apply_options[:state] = diff_state
       apply_options[:omit_tags] = omit_tags
+      apply_options[:no_order] = (obj.class == OSM::Relation and base_obj.tags["type"] == "multipolygon")
 
       # if the element is explicitly marked as clean, then
       # don't bother with the application of patches, just
@@ -92,6 +93,9 @@ class History
         # apply the patches
         new_tags = tags_patch.apply(base_obj.tags, apply_options)
         new_geom = geom_patch.apply(base_obj.geom, apply_options)
+        if apply_options[:no_order] and new_geom.sort == obj.geom.sort then
+          new_geom = obj.geom
+        end
       end
 
       # if the tags patch is unclean then record the additions and 
