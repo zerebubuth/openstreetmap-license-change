@@ -9,6 +9,12 @@ module OSM
     :visible => ["visible", Proc.new {|a| a == "true"}],
     :version => ["version", :to_i]
   }
+  
+  TYPES = {
+    "node" => OSM::Node,
+    "way" => OSM::Way,
+    "relation" => OSM::Relation
+  }
 
   def self.parse(xml)
     doc = XML::Parser.string(xml).parse
@@ -36,7 +42,11 @@ module OSM
         OSM::Way[nds, attrs.merge(tags)]
         
       when "relation"
-        raise "Unimplemented, yet."
+        members = xml_elem.children.
+          select {|ch| ch.element? && ch.name == "member"}.
+          map {|ch| [TYPES[ch["type"]], ch["ref"].to_i, ch["role"]]}
+        
+        OSM::Relation[members, attrs.merge(tags)]
 
       else
         raise "Element type #{xml_elem.name.inspect} not expected! Was expecting one of 'node', 'way' or 'relation'."
