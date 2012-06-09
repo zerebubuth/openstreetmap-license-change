@@ -355,6 +355,7 @@ class TestDiff < MiniTest::Unit::TestCase
   end
 
   def test_compose_move_insert
+    # going backwards...
     check_compose_move([1,    2, 3, 4, 5   ],
                        [1, 4, 2, 3,    5   ],
                        [1, 4, 2, 3,    5, 9])
@@ -379,9 +380,30 @@ class TestDiff < MiniTest::Unit::TestCase
                        [   1, 4, 2, 3,    5],
                        [9, 1, 4, 2, 3,    5])
 
-    check_compose_move([1, 2, 3, 4, 5],
-                       [1, 2, 3, 4, 5],
-                       [1, 2, 3, 4, 5])
+    # going forwards...
+    check_compose_move([   1, 4, 2, 3,    5],
+                       [   1,    2, 3, 4, 5],
+                       [9, 1,    2, 3, 4, 5])
+
+    check_compose_move([1, 4, 2, 3,    5],
+                       [1,    2, 3, 4, 5],
+                       [1, 9, 2, 3, 4, 5])
+
+    check_compose_move([1, 4, 2,    3,    5],
+                       [1,    2,    3, 4, 5],
+                       [1,    2, 9, 3, 4, 5])
+
+    check_compose_move([1, 4, 2, 3,       5],
+                       [1,    2, 3,    4, 5],
+                       [1,    2, 3, 9, 4, 5])
+
+    check_compose_move([1, 4, 2, 3,       5],
+                       [1,    2, 3, 4,    5],
+                       [1,    2, 3, 4, 9, 5])
+
+    check_compose_move([1, 4, 2, 3,    5   ],
+                       [1,    2, 3, 4, 5   ],
+                       [1,    2, 3, 4, 5, 9])
   end
 
   def test_compose_move
