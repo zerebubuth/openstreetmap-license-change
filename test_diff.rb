@@ -294,6 +294,96 @@ class TestDiff < MiniTest::Unit::TestCase
     check_diff_move(a, b)
   end
 
+  def test_compose_insert_move
+    # with move going backwards
+    check_compose_move([1,    2, 3, 4, 5   ],
+                       [1,    2, 3, 4, 5, 9],
+                       [1, 4, 2, 3,    5, 9])
+
+    check_compose_move([1,    2, 3, 4,    5],
+                       [1,    2, 3, 4, 9, 5],
+                       [1, 4, 2, 3,    9, 5])
+
+    check_compose_move([1,    2, 3,    4, 5],
+                       [1,    2, 3, 9, 4, 5],
+                       [1, 4, 2, 3, 9,    5])
+
+    check_compose_move([1,    2,    3, 4, 5],
+                       [1,    2, 9, 3, 4, 5],
+                       [1, 4, 2, 9, 3,    5])
+
+    check_compose_move([1,       2, 3, 4, 5],
+                       [1,    9, 2, 3, 4, 5],
+                       [1, 4, 9, 2, 3,    5])
+
+    check_compose_move([1,       2, 3, 4, 5],
+                       [1, 9,    2, 3, 4, 5],
+                       [1, 9, 4, 2, 3,    5])
+
+    check_compose_move([   1,    2, 3, 4, 5],
+                       [9, 1,    2, 3, 4, 5],
+                       [9, 1, 4, 2, 3,    5])
+
+    # with move going forwards
+    check_compose_move([1, 4, 2, 3,    5   ],
+                       [1, 4, 2, 3,    5, 9],
+                       [1,    2, 3, 4, 5, 9])
+
+    check_compose_move([1, 4, 2, 3,       5],
+                       [1, 4, 2, 3,    9, 5],
+                       [1,    2, 3, 4, 9, 5])
+
+    check_compose_move([1, 4, 2, 3,       5],
+                       [1, 4, 2, 3, 9,    5],
+                       [1,    2, 3, 9, 4, 5])
+
+    check_compose_move([1, 4, 2,    3,    5],
+                       [1, 4, 2, 9, 3,    5],
+                       [1,    2, 9, 3, 4, 5])
+
+    check_compose_move([1, 4,    2, 3,    5],
+                       [1, 4, 9, 2, 3,    5],
+                       [1,    9, 2, 3, 4, 5])
+
+    check_compose_move([1,    4, 2, 3,    5],
+                       [1, 9, 4, 2, 3,    5],
+                       [1, 9,    2, 3, 4, 5])
+
+    check_compose_move([   1, 4, 2, 3,    5],
+                       [9, 1, 4, 2, 3,    5],
+                       [9, 1,    2, 3, 4, 5])
+  end
+
+  def test_compose_move_insert
+    check_compose_move([1,    2, 3, 4, 5   ],
+                       [1, 4, 2, 3,    5   ],
+                       [1, 4, 2, 3,    5, 9])
+
+    check_compose_move([1,    2, 3,    4, 5],
+                       [1, 4, 2, 3,       5],
+                       [1, 4, 2, 3, 9,    5])
+
+    check_compose_move([1,    2,    3, 4, 5],
+                       [1, 4, 2,    3,    5],
+                       [1, 4, 2, 9, 3,    5])
+
+    check_compose_move([1,       2, 3, 4, 5],
+                       [1, 4,    2, 3,    5],
+                       [1, 4, 9, 2, 3,    5])
+
+    check_compose_move([1,       2, 3, 4, 5],
+                       [1,    4, 2, 3,    5],
+                       [1, 9, 4, 2, 3,    5])
+
+    check_compose_move([   1,    2, 3, 4, 5],
+                       [   1, 4, 2, 3,    5],
+                       [9, 1, 4, 2, 3,    5])
+
+    check_compose_move([1, 2, 3, 4, 5],
+                       [1, 2, 3, 4, 5],
+                       [1, 2, 3, 4, 5])
+  end
+
   def test_compose_move
     1000.times do
       a = 10.times.map { rand(5) }
@@ -301,15 +391,15 @@ class TestDiff < MiniTest::Unit::TestCase
       c = messup(b)
 
       begin
-        d_ab = Diff::diff(a, b, :detect_move => true)
-        d_bc = Diff::diff(b, c, :detect_move => true)
+        d_ab = Diff::diff(a, b, :detect_alter => Proc.new {true}, :detect_move => true)
+        d_bc = Diff::diff(b, c, :detect_alter => Proc.new {true}, :detect_move => true)
         
         assert_equal(c, Diff::apply(d_bc, Diff::apply(d_ab, a)))
         
-        #d_xc, d_ax = Diff::compose(d_ab, d_bc)
-        #x = Diff::apply(d_ax, a)
+        d_xc, d_ax = Diff::compose(d_ab, d_bc)
+        x = Diff::apply(d_ax, a)
         
-        #assert_equal(c, Diff::apply(d_xc, x), "With a=#{a}, b=#{b}, c=#{c}")
+        assert_equal(c, Diff::apply(d_xc, x), "With a=#{a}, b=#{b}, c=#{c}")
         
       rescue
         flunk("With a=#{a}, b=#{b}, c=#{c}: #{$!}")
@@ -407,6 +497,27 @@ class TestDiff < MiniTest::Unit::TestCase
   def check_diff_move(a, b)
     d = Diff::diff(a, b, :detect_move => true)
     assert_equal(b, Diff::apply(d, a))
+  end
+
+  def check_compose_move(a, b, c)
+    d_ab = Diff::diff(a, b, :detect_alter => (Proc.new {|a,b| true}), :detect_move => true)
+    d_bc = Diff::diff(b, c, :detect_alter => (Proc.new {|a,b| true}), :detect_move => true)
+
+    assert_equal(c, Diff::apply(d_bc, Diff::apply(d_ab, a)))
+
+    d_xc, d_ax = Diff::compose(d_ab, d_bc)
+    x = Diff::apply(d_ax, a)
+    #puts 
+    #puts "A: #{a.inspect}"
+    #puts "B: #{b.inspect}"
+    #puts "C: #{c.inspect}"
+    #puts "A->B: #{d_ab.inspect}"
+    #puts "B->C: #{d_bc.inspect}"
+    #puts "A->X: #{d_ax.inspect}"
+    #puts "X->C: #{d_xc.inspect}"
+    #puts "X: #{x.inspect}"
+
+    assert_equal(c, Diff::apply(d_xc, x), "With a=#{a}, b=#{b}, c=#{c}")
   end
 end
 

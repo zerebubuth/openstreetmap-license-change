@@ -128,6 +128,30 @@ module Diff
       end
     end
 
+    def self.swap_insert_move(a, b)
+      if a.location == b.from_loc
+        # the insert is immediately moved, so will end up
+        # as an insert in the moved-to location
+        [Insert.new(b.to_loc, a.element), nil]
+      else
+        dist = 0
+        new_from_loc = b.from_loc
+        new_to_loc = b.to_loc
+        
+        if a.location < b.from_loc
+          new_from_loc -= 1
+          dist += 1
+        end
+        
+        if (a.location < b.to_loc) || ((a.location == b.to_loc) && (b.from_loc < b.to_loc))
+          new_to_loc -= 1
+          dist -= 1
+        end
+
+        [Move.new(new_from_loc, new_to_loc, b.element), a.move(dist)]
+      end
+    end
+
     def self.swap_alter_insert(a, b)
       if a.location < b.location
         [b, a]
