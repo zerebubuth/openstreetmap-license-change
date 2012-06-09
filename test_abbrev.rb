@@ -12,7 +12,7 @@ require 'minitest/unit'
 
 class TestAbbrev < MiniTest::Unit::TestCase
 
-  # test that some strings are the same under abbreviation, 
+  # test that some strings are the same under abbreviation,
   # even when there's differing whitespace or punctuation
   # involved.
   def test_abbrev_english
@@ -23,16 +23,17 @@ class TestAbbrev < MiniTest::Unit::TestCase
     check_abbrev_equality("N.E. Foobar Crescent", "North East Foobar Cr")
     check_abbrev_equality("NE Foobar Crescent", "Northeast Foobar Cr")
     check_abbrev_equality("North & Western", "North and Western")
+
+    check_abbrev_inequality("North & Western", "North and East")
   end
-  
+
   def test_abbrev_russian
     check_abbrev_equality("бул. Космонавтов", "бульвар Космонавтов")
-      
-    # This fails because we split on punctuation including dash
-    # Fails immediately because of word count comparison, but wouldn't work either way
     check_abbrev_equality("пр-кт. Надеяться", "проспект Надеяться")
+
+    check_abbrev_inequality("ул. Космонавтов", "бульвар Космонавтов")
   end
-  
+
   def test_abbrev_german_normal
     check_abbrev_equality("Joh.-Seb.-Bach-Straße", "Johann-Sebastian-Bach-str.")
     check_abbrev_equality("Bettina-v-Arnim-Straße","Bettina-von-Arnim-Straße")
@@ -46,19 +47,21 @@ class TestAbbrev < MiniTest::Unit::TestCase
     check_abbrev_equality("An der Bahn","A. d. Bahn")
     check_abbrev_equality("Groß Ippener","Gr. Ippener")
     check_abbrev_equality("Klein Ippener","Kl Ippener")
+
+    check_abbrev_inequality("Klein Ippener","Gr. Ippener")
   end
-    
+
   def test_abbrev_german_abbrev_word_end
-    # These fail because the abbreviated portion is part of a larger word (at the end)
     check_abbrev_equality("Streitwagenwg","Streitwagenweg")
     check_abbrev_equality("Musterwg.", "Musterweg")
     check_abbrev_equality("Herreng.", "Herrengasse")
     check_abbrev_equality("Hauptstrasse", "Hauptstr.")
     check_abbrev_equality("Hauptstr.", "Hauptstraße")
+
+    # check_abbrev_equality("Hauptstrasse", "Hauptstraße") # Are they should be equal?
   end
-    
+
   def test_abbrev_german_diff_wordcounts
-    # This fails because the different versions have different word counts
     check_abbrev_equality("Nürnbergerstraße","Nürnberger Str.")
   end
 
@@ -66,6 +69,10 @@ class TestAbbrev < MiniTest::Unit::TestCase
   # utility func to make output from failed tests more useful
   def check_abbrev_equality(a, b)
     assert_equal(true, Abbrev.equal_expansions(a, b), "Expecting #{a.inspect} to equal #{b.inspect} under abbreviation/expansion, but it doesn't.")
+  end
+
+  def check_abbrev_inequality(a, b)
+    assert_equal(false, Abbrev.equal_expansions(a, b), "Expecting #{a.inspect} to differ from #{b.inspect} under abbreviation/expansion, but it doesn't.")
   end
 end
 
