@@ -202,6 +202,24 @@ module Diff
       end
     end
 
+    def self.swap_delete_move(a, b)
+      dist = 0
+      new_from_loc = b.from_loc
+      new_to_loc = b.to_loc
+      
+      if a.location <= b.from_loc
+        new_from_loc += 1
+        dist += 1
+      end
+      
+      if a.location <= b.to_loc
+        new_to_loc += 1
+        dist -= 1
+      end
+      
+      [Move.new(new_from_loc, new_to_loc, b.element), a.move(dist)]
+    end
+
     def self.swap_move_insert(a, b)
       dist = 0
       new_from_loc = a.from_loc
@@ -220,6 +238,31 @@ module Diff
       end
 
       [b.move(dist), Move.new(new_from_loc, new_to_loc, a.element)]
+    end
+
+    def self.swap_move_delete(a, b)
+      if a.to_loc == b.location
+        [Delete.new(a.from_loc, b.element), nil]
+
+      else
+        dist = 0
+        new_from_loc = a.from_loc
+        new_to_loc = a.to_loc
+        
+        if (b.location <= a.from_loc) && !((b.location == a.from_loc) && (a.from_loc < a.to_loc))
+          new_from_loc -= 1
+        else
+          dist += 1
+        end
+        
+        if b.location < a.to_loc
+          new_to_loc -= 1
+        else
+          dist -= 1
+        end
+
+        [b.move(dist), Move.new(new_from_loc, new_to_loc, a.element)]
+      end
     end
   end
 

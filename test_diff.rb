@@ -406,6 +406,118 @@ class TestDiff < MiniTest::Unit::TestCase
                        [1,    2, 3, 4, 5, 9])
   end
 
+  def test_compose_delete_move
+    # going backwards...
+    check_compose_move([9, 1,    2, 3, 4, 5],
+                       [   1,    2, 3, 4, 5],
+                       [   1, 4, 2, 3,    5])
+
+    check_compose_move([1, 9, 2, 3, 4, 5],
+                       [1,    2, 3, 4, 5],
+                       [1, 4, 2, 3,    5])
+
+    check_compose_move([1,    2, 9, 3, 4, 5],
+                       [1,    2,    3, 4, 5],
+                       [1, 4, 2,    3,    5])
+
+    check_compose_move([1,    2, 3, 9, 4, 5],
+                       [1,    2, 3,    4, 5],
+                       [1, 4, 2, 3,       5])
+
+    check_compose_move([1,    2, 3, 4, 9, 5],
+                       [1,    2, 3, 4,    5],
+                       [1, 4, 2, 3,       5])
+
+    check_compose_move([1,    2, 3, 4, 5, 9],
+                       [1,    2, 3, 4, 5   ],
+                       [1, 4, 2, 3,    5   ])
+
+    # going forwards...
+    check_compose_move([9, 1, 4, 2, 3,    5],
+                       [   1, 4, 2, 3,    5],
+                       [   1,    2, 3, 4, 5])
+
+    check_compose_move([1, 9, 4, 2, 3,    5],
+                       [1,    4, 2, 3,    5],
+                       [1,       2, 3, 4, 5])
+
+    check_compose_move([1, 4, 9, 2, 3,    5],
+                       [1, 4,    2, 3,    5],
+                       [1,       2, 3, 4, 5])
+
+    check_compose_move([1, 4, 2, 9, 3,    5],
+                       [1, 4, 2,    3,    5],
+                       [1,    2,    3, 4, 5])
+
+    check_compose_move([1, 4, 2, 3, 9, 5],
+                       [1, 4, 2, 3,    5],
+                       [1,    2, 3, 4, 5])
+
+    check_compose_move([1, 4, 2, 3,    5, 9],
+                       [1, 4, 2, 3,    5   ],
+                       [1,    2, 3, 4, 5   ])
+  end
+
+  def test_compose_move_delete
+    # going backwards...
+    check_compose_move([9, 1,    2, 3, 4, 5],
+                       [9, 1, 4, 2, 3,    5],
+                       [   1, 4, 2, 3,    5])
+
+    check_compose_move([1, 9,    2, 3, 4, 5],
+                       [1, 9, 4, 2, 3,    5],
+                       [1,    4, 2, 3,    5])
+
+    check_compose_move([1,    9, 2, 3, 4, 5],
+                       [1, 4, 9, 2, 3,    5],
+                       [1, 4,    2, 3,    5])
+
+    check_compose_move([1,    2, 9, 3, 4, 5],
+                       [1, 4, 2, 9, 3,    5],
+                       [1, 4, 2,    3,    5])
+
+    check_compose_move([1,    2, 3, 9, 4, 5],
+                       [1, 4, 2, 3, 9,    5],
+                       [1, 4, 2, 3,       5])
+
+    check_compose_move([1,    2, 3, 4, 9, 5],
+                       [1, 4, 2, 3,    9, 5],
+                       [1, 4, 2, 3,       5])
+
+    check_compose_move([1,    2, 3, 4, 5, 9],
+                       [1, 4, 2, 3,    5, 9],
+                       [1, 4, 2, 3,    5   ])
+
+    # going forwards...
+    check_compose_move([9, 1, 4, 2, 3,    5],
+                       [9, 1,    2, 3, 4, 5],
+                       [   1,    2, 3, 4, 5])
+
+    check_compose_move([1, 9, 4, 2, 3,    5],
+                       [1, 9,    2, 3, 4, 5],
+                       [1,       2, 3, 4, 5])
+
+    check_compose_move([1, 4, 9, 2, 3,    5],
+                       [1,    9, 2, 3, 4, 5],
+                       [1,       2, 3, 4, 5])
+
+    check_compose_move([1, 4, 2, 9, 3,    5],
+                       [1,    2, 9, 3, 4, 5],
+                       [1,    2,    3, 4, 5])
+
+    check_compose_move([1, 4, 2, 3, 9,    5],
+                       [1,    2, 3, 9, 4, 5],
+                       [1,    2, 3,    4, 5])
+
+    check_compose_move([1, 4, 2, 3,    9, 5],
+                       [1,    2, 3, 4, 9, 5],
+                       [1,    2, 3, 4,    5])
+
+    check_compose_move([1, 4, 2, 3,    5, 9],
+                       [1,    2, 3, 4, 5, 9],
+                       [1,    2, 3, 4, 5   ])
+  end
+
   def test_compose_move
     1000.times do
       a = 10.times.map { rand(5) }
@@ -527,16 +639,16 @@ class TestDiff < MiniTest::Unit::TestCase
 
     assert_equal(c, Diff::apply(d_bc, Diff::apply(d_ab, a)))
 
-    d_xc, d_ax = Diff::compose(d_ab, d_bc)
-    x = Diff::apply(d_ax, a)
     #puts 
     #puts "A: #{a.inspect}"
     #puts "B: #{b.inspect}"
     #puts "C: #{c.inspect}"
     #puts "A->B: #{d_ab.inspect}"
     #puts "B->C: #{d_bc.inspect}"
+    d_xc, d_ax = Diff::compose(d_ab, d_bc)
     #puts "A->X: #{d_ax.inspect}"
     #puts "X->C: #{d_xc.inspect}"
+    x = Diff::apply(d_ax, a)
     #puts "X: #{x.inspect}"
 
     assert_equal(c, Diff::apply(d_xc, x), "With a=#{a}, b=#{b}, c=#{c}")
