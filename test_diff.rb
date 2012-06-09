@@ -518,6 +518,43 @@ class TestDiff < MiniTest::Unit::TestCase
                        [1,    2, 3, 4, 5   ])
   end
 
+  def test_compose_move_alter
+    n = 5
+    a = (1..n).to_a
+    n.times do |i|
+      (n-1).times do |j|
+        b = a.clone
+        bx = b.delete_at(i)
+        b.insert(j, bx)
+
+        n.times do |k|
+          c = b.clone
+          c[k] = 9
+
+          check_compose_move(a, b, c)
+        end
+      end
+    end
+  end
+
+  def test_compose_alter_move
+    n = 5
+    a = (1..n).to_a
+    n.times do |i|
+      b = a.clone
+      b[i] = 9
+      n.times do |j|
+        (n-1).times do |k|
+          c = b.clone
+          cx = c.delete_at(j)
+          c.insert(k, cx)
+
+          check_compose_move(a, b, c)
+        end
+      end
+    end
+  end
+
   def test_compose_move
     1000.times do
       a = 10.times.map { rand(5) }
@@ -652,6 +689,9 @@ class TestDiff < MiniTest::Unit::TestCase
     #puts "X: #{x.inspect}"
 
     assert_equal(c, Diff::apply(d_xc, x), "With a=#{a}, b=#{b}, c=#{c}")
+
+  rescue
+    flunk("With a=#{a}, b=#{b}, c=#{c}: #{$!}")
   end
 end
 

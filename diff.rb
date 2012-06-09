@@ -178,6 +178,18 @@ module Diff
       end
     end
 
+    def self.swap_alter_move(a, b)
+      if b.from_loc == a.location
+        [Move.new(b.from_loc, b.to_loc, a.from_elt), a.move(b.to_loc - b.from_loc)]
+
+      else
+        dist = 0
+        dist -= 1 if a.location > b.from_loc
+        dist += 1 if (a.location > b.to_loc) || ((a.location == b.to_loc) && (b.from_loc > b.to_loc))
+        [b, a.move(dist)]
+      end
+    end
+
     def self.swap_delete_insert(a, b)
       if a.location <= b.location
         [b.move(1), a]
@@ -238,6 +250,18 @@ module Diff
       end
 
       [b.move(dist), Move.new(new_from_loc, new_to_loc, a.element)]
+    end
+
+    def self.swap_move_alter(a, b)
+      if b.location == a.to_loc
+        [b.move(a.from_loc - a.to_loc), Move.new(a.from_loc, a.to_loc, b.to_elt)]
+
+      else
+        dist = 0
+        dist += 1 if (b.location > a.from_loc) || ((b.location == a.from_loc) && (a.from_loc < a.to_loc))
+        dist -= 1 if b.location > a.to_loc
+        [b.move(dist), a]
+      end
     end
 
     def self.swap_move_delete(a, b)
