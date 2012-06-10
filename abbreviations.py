@@ -383,5 +383,8 @@ while(toextendforw != [] or toextendbackw != []):
           visited.add(unmarkednewword)
           heappush(toextendbackw, (dist(plainnewword, target2), newword))
 # :(
+if len(visited) >= visitedlimit:
+  print "NOT Found and HIT LIMIT"
+  exit(3)
 print "NOT Found"
 exit(2)
