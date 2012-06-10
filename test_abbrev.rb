@@ -46,12 +46,18 @@ class TestAbbrev < MiniTest::Unit::TestCase
     "Hauptstrasse" => "Hauptstr.",
     "Hauptstr." => "Hauptstraße",
     "Nürnbergerstraße" => "Nürnberger Str.",
+    "Hauptstrasse" => "Hauptstraße",
   }
   
   INQUAL_STRINGS = {
     # English
     "& & A & B &&" => "A & B",
     "Foo & Bar" => "Foo Bar",
+    "North & Western" => "North and East",
+    # Russian
+    "ул. Космонавтов" => "бульвар Космонавтов",
+    # German
+    "Klein Ippener" => "Gr. Ippener",
   }
 
   EQUAL_STRINGS.each do |k, v|
@@ -71,7 +77,7 @@ class TestAbbrev < MiniTest::Unit::TestCase
   def check_abbrev_equality(a, b)
     assert_equal(true, Abbrev.equal_expansions(a, b), "Expecting #{a.inspect} to equal #{b.inspect} under abbreviation/expansion, but it doesn't.")
   end
-  
+
   def check_abbrev_inquality(a, b)
     assert_equal(false, Abbrev.equal_expansions(a, b), "Expecting #{a.inspect} to NOT equal #{b.inspect} under abbreviation/expansion, but it does.")
   end
