@@ -5,6 +5,10 @@
 import sys
 from heapq import heappush, heappop
 
+### CONFIGURATION
+visitedlimit = 500000
+###
+
 if not(len(sys.argv) == 3 or (len(sys.argv) == 4 and sys.argv[3] == "-v")):
   print "Please pass two strings to this program"
   exit(1)
@@ -352,7 +356,7 @@ while(toextendforw != [] or toextendbackw != []):
           exit(1)
         #if it is a new string we add it to our stack for further mangling
         unmarkednewword = demark(newword)
-        if newword != current and len(visited) < 100000 and unmarkednewword not in visited:
+        if newword != current and len(visited) < visitedlimit and unmarkednewword not in visited:
           visited.add(unmarkednewword)
           heappush(toextendforw, (dist(plainnewword, target1), newword))
           
@@ -374,7 +378,7 @@ while(toextendforw != [] or toextendbackw != []):
           exit(1)
         #if it is a new string we add it to our stack for further mangling
         unmarkednewword = demark(newword)
-        if newword != current and len(visited) < 100000 and unmarkednewword not in visited:
+        if newword != current and len(visited) < visitedlimit and unmarkednewword not in visited:
           visited.add(unmarkednewword)
           heappush(toextendbackw, (dist(plainnewword, target2), newword))
 # :(
