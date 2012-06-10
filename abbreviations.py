@@ -38,15 +38,22 @@ verbose = len(sys.argv) == 4
 target1 = input2
 target2 = input1
 #stack of strings to extend/substitute next round
-#we need to evaluate stack and queue here
+def donotreplacestart(start, distance, lst=[]):
+  repst = start.replace("|*","|!",1)
+  if start != repst:
+    nlst = [(distance,start)] + lst
+    donotreplacestart(repst,distance,nlst)
+    return nlst
+
+
 markedforward = mark(input1)
 markedbackward = mark(input2)
 if verbose:
   print "TEST: %s " % markedforward
   print "TEST: %s " % markedbackward
 
-toextendforw = [(dist(input1, input2), markedforward)]
-toextendbackw = [(dist(input2, input1), markedbackward)]
+toextendforw = donotreplacestart(markedforward, dist(input1, input2))
+toextendbackw = donotreplacestart(markedbackward, dist(input2, input1))
 
 #classes of strings/abbrvs/synonyms
 #we can improve this by check our tag location
@@ -141,7 +148,7 @@ classes = [
     [u'prairie', u'pr'],
     [u'port', u'prt'],
     [u'passage', u'psge'],
-    [u'point', u'pt'],
+    [u'point', u'Crescentpt'],
     [u'radial', u'radl'],
     [u'road', u'rd'],
     [u'ridge', u'rdg'],
@@ -325,7 +332,6 @@ visited = set([input1,input2])
 #rulemangling
 #try rules on every string until we've no more strings
 while(toextendforw != [] or toextendbackw != []):
-  print visited
   if toextendforw != []:
     #remove the best unvisited word from queue and mangle it
     wdist, current = heappop(toextendforw)
@@ -366,8 +372,8 @@ while(toextendforw != [] or toextendbackw != []):
           exit(1)
         #if it is a new string we add it to our stack for further mangling
         unmarkednewword = demark(newword)
-        if newword != current and unmarkednewword not in visited:
-          visited.add(unmarkednewword)
+        if newword != current:# and unmarkednewword not in visited:
+          #visited.add(unmarkednewword)
           heappush(toextendbackw, (dist(plainnewword, target2), newword))
 # :(
 print "NOT Found"
