@@ -19,6 +19,9 @@ def mark(stri):
 def demark(stri):
   return stri.replace("|*","")
 
+def deallmark(stri):
+  return stri.replace("|*","").replace("|!","")
+
 # Find the distance we are from getting the right word
 def dist(s1, s2) :
   r = max(len(s1), len(s2))
@@ -38,6 +41,10 @@ target2 = input1
 #we need to evaluate stack and queue here
 markedforward = mark(input1)
 markedbackward = mark(input2)
+if verbose:
+  print "TEST: %s " % markedforward
+  print "TEST: %s " % markedbackward
+
 toextendforw = [(dist(input1, input2), markedforward)]
 toextendbackw = [(dist(input2, input1), markedbackward)]
 
@@ -286,7 +293,7 @@ for clazz in classes:
 #filter rules against input1
 #and prepare them for special rules
 #assume every abbreviations MAY have a . behind
-def prepspec(stri): return stri + "|*."
+def prepspec(stri): return stri + u'|*.'
 
 filteredforwardrules = {}
 for rule in rules.keys():
@@ -299,12 +306,13 @@ for rule in rules.keys():
     filteredbackwardrules[rule] = map(prepspec, rules[rule])
 
 #add special rules like "kill spaces"
-filteredforwardrules["|* "] = set(["","-", ".", ". "])
-filteredforwardrules["|*-"] = set([" "])
-filteredforwardrules["|*."] = set([""])
-filteredbackwardrules["|* "] = set(["","-", ".", ". "])
-filteredbackwardrules["|*-"] = set([" "])
-filteredbackwardrules["|*."] = set([""])
+#The character has to be in substitutions without |*
+filteredforwardrules[u'|* '] = set([u'|! ', u'', u'-', u'.', u'. '])
+filteredforwardrules[u'|*-'] = set([u'|!-', u' '])
+filteredforwardrules[u'|*.'] = set([u'|!.', u''])
+filteredbackwardrules[u'|* '] = set([u'|! ', u'', u'-', u'.', u'. '])
+filteredbackwardrules[u'|*-'] = set([u'|!-', u' '])
+filteredbackwardrules[u'|*.'] = set([u'|!.', u''])
 
 
 if verbose:
@@ -317,6 +325,7 @@ visited = set([input1,input2])
 #rulemangling
 #try rules on every string until we've no more strings
 while(toextendforw != [] or toextendbackw != []):
+  print visited
   if toextendforw != []:
     #remove the best unvisited word from queue and mangle it
     wdist, current = heappop(toextendforw)
@@ -328,15 +337,16 @@ while(toextendforw != [] or toextendbackw != []):
       for substitute in filteredforwardrules[rule]:
         #execute rule
         newword = current.replace(rule,substitute,1)
-        #if it is a new string we add it to our stack for further mangling
-        unmarkednewword = demark(newword)
         #if we found our string we're happy
-        if unmarkednewword == target1:
+        plainnewword = deallmark(newword)
+        if plainnewword == target1:
           print "Found"
           exit(1)
+        #if it is a new string we add it to our stack for further mangling
+        unmarkednewword = demark(newword)
         if newword != current and unmarkednewword not in visited:
           visited.add(unmarkednewword)
-          heappush(toextendforw, (dist(unmarkednewword, target1), newword))
+          heappush(toextendforw, (dist(plainnewword, target1), newword))
           
   if toextendbackw != []:
     #remove the best unvisited word from queue and mangle it
@@ -349,15 +359,16 @@ while(toextendforw != [] or toextendbackw != []):
       for substitute in filteredbackwardrules[rule]:
         #execute rule
         newword = current.replace(rule,substitute,1)
-        #if it is a new string we add it to our stack for further mangling
-        unmarkednewword = demark(newword)
         #if we found our string we're happy
-        if unmarkednewword == target2:
+        plainnewword = deallmark(newword)
+        if plainnewword == target2:
           print "Found"
           exit(1)
+        #if it is a new string we add it to our stack for further mangling
+        unmarkednewword = demark(newword)
         if newword != current and unmarkednewword not in visited:
           visited.add(unmarkednewword)
-          heappush(toextendbackw, (dist(unmarkednewword, target2), newword))
+          heappush(toextendbackw, (dist(plainnewword, target2), newword))
 # :(
 print "NOT Found"
 exit(2)
