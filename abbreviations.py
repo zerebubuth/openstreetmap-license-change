@@ -9,6 +9,9 @@ if not(len(sys.argv) == 3 or (len(sys.argv) == 4 and sys.argv[3] == "-v")):
   print "Please pass two strings to this program"
   exit(1)
 
+input1 = sys.argv[1].decode("utf-8").lower()
+input2 = sys.argv[2].decode("utf-8").lower()
+
 #needed to trace already substituted parts in our strings
 def mark(stri):
   return "|*".join(stri)
@@ -29,10 +32,10 @@ def dist(s1, s2) :
 verbose = len(sys.argv) == 4
 
 #we want to reach this word
-target = sys.argv[2].decode("utf-8")
+target = input2
 #stack of strings to extend/substitute next round
 #we need to evaluate stack and queue here
-toextend = [(dist(sys.argv[1].decode("utf-8"), sys.argv[2].decode("utf-8")), mark(sys.argv[1].decode("utf-8")))]
+toextend = [(dist(input1, input2), mark(input1))]
 
 #classes of strings/abbrvs/synonyms
 #we can improve this by check our tag location
@@ -277,22 +280,22 @@ for clazz in classes:
     rules[elem] = rules[elem] | (set(clazz) - set([unmarkedelem]))
 #general
 #add special rules like "kill spaces"
-rules["|* "] = set(["","-"])
+rules["|* "] = set(["","-", ".", ". "])
 rules["|*-"] = set([" "])
+rules["|*."] = set([""])
 if verbose:
   print rules
 
 # a set of all the visited strings so that we don't do double work
-visited = set([])
+visited = set([input1])
 
 #rulemangling
 #try rules on every string until we've no more strings
 while(toextend != []):
   #remove the best unvisited word from queue and mangle it
   _, current = heappop(toextend)
-  while current in visited:
-    _, current = heappop(toextend)
-  visited.add(current)
+  demcurrent = demark(current)
+  visited.add(demcurrent)
   if verbose:
     print "pop %s"% current
   #call every rule
@@ -303,7 +306,7 @@ while(toextend != []):
       newword = current.replace(rule,substitute,1)
       #if it is a new string we add it to our stack for further mangling
       unmarkednewword = demark(newword)
-      if newword != current and current not in visited:
+      if newword != current and demcurrent not in visited:
         heappush(toextend, (dist(unmarkednewword, target), newword))
       #if we found our string we're happy
       if unmarkednewword == target:
