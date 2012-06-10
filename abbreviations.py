@@ -152,7 +152,7 @@ classes = [
     [u'prairie', u'pr'],
     [u'port', u'prt'],
     [u'passage', u'psge'],
-    [u'point', u'Crescentpt'],
+    [u'point', u'pt'],
     [u'radial', u'radl'],
     [u'road', u'rd'],
     [u'ridge', u'rdg'],
