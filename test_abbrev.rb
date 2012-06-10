@@ -25,6 +25,7 @@ class TestAbbrev < MiniTest::Unit::TestCase
     "North & Western" => "North and Western",
     "New NW Route" => "New North West Route",
     "The old road " => "The old road",
+    "Foo cres." => "Foo cr",
     # Russian
     "бул. Космонавтов" => "бульвар Космонавтов",
     "пр-кт. Надеяться" => "проспект Надеяться",
@@ -54,6 +55,11 @@ class TestAbbrev < MiniTest::Unit::TestCase
     # English
     "& & A & B &&" => "A & B",
     "Foo & Bar" => "Foo Bar",
+    "Westminster st" => "Westminster abby",
+    "Camp east York" => "Cape York",
+    "Doctor Feelgood" => "Drive Feelgood",
+    # German
+    "der foo" => "den foo",
   }
 
   EQUAL_STRINGS.each do |k, v|
@@ -86,10 +92,12 @@ class TestAbbrev < MiniTest::Unit::TestCase
     out = `./abbreviations.py "#{a}" "#{b}"`
     
     r = $?.exitstatus
-    if r == 1 then
+    if r == 0 then
       return true
     elsif r == 2 then
       return false
+    else
+      raise "Error in 'abbreviations.py':\n #{out}"
     end
   end
 end

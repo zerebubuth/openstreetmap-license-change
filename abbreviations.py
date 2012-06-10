@@ -79,6 +79,7 @@ classes = [
     [u'dale', u'dl'],
     [u'dam', u'dm'],
     [u'drive', u'dr'],
+    [u'doctor', u'dr'],
     [u'divide', u'dv'],
     [u'east', u'e'],
     [u'estate', u'est'],
@@ -332,7 +333,7 @@ while(toextendforw != [] or toextendbackw != []):
         #if we found our string we're happy
         if unmarkednewword == target:
           print "Found"
-          exit(1)
+          exit(0)
         if newword != current and unmarkednewword not in visited:
           visited.add(unmarkednewword)
           heappush(toextendforw, (dist(unmarkednewword, target), newword))
@@ -353,7 +354,7 @@ while(toextendforw != [] or toextendbackw != []):
         #if we found our string we're happy
         if unmarkednewword == target:
           print "Found"
-          exit(1)
+          exit(0)
         if newword != current and unmarkednewword not in visited:
           visited.add(unmarkednewword)
           heappush(toextendbackw, (dist(unmarkednewword, target), newword))
