@@ -98,6 +98,7 @@ classes = [
     [u'dale', u'dl'],
     [u'dam', u'dm'],
     [u'drive', u'dr'],
+    [u'doctor', u'dr'],
     [u'divide', u'dv'],
     [u'east', u'e'],
     [u'estate', u'est'],
@@ -353,7 +354,7 @@ while(toextendforw != [] or toextendbackw != []):
         plainnewword = deallmark(newword)
         if plainnewword == target1:
           print "Found"
-          exit(1)
+          exit(0)
         #if it is a new string we add it to our stack for further mangling
         unmarkednewword = demark(newword)
         if newword != current and len(visited) < visitedlimit and unmarkednewword not in visited:
@@ -375,7 +376,7 @@ while(toextendforw != [] or toextendbackw != []):
         plainnewword = deallmark(newword)
         if plainnewword == target2:
           print "Found"
-          exit(1)
+          exit(0)
         #if it is a new string we add it to our stack for further mangling
         unmarkednewword = demark(newword)
         if newword != current and len(visited) < visitedlimit and unmarkednewword not in visited:
