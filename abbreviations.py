@@ -35,7 +35,8 @@ verbose = len(sys.argv) == 4
 target = input2
 #stack of strings to extend/substitute next round
 #we need to evaluate stack and queue here
-toextend = [(dist(input1, input2), mark(input1))]
+markedstart = mark(input1)
+toextend = [(dist(input1, input2), markedstart)]
 
 #classes of strings/abbrvs/synonyms
 #we can improve this by check our tag location
@@ -264,10 +265,10 @@ classes = [
   # of course, this is horribly english-specific...
   # but how would one expand this in a sensible fashion to
   # cover other languages?
-    [u'n'  , u'north', u'north|* '],
-    [u'e'  , u'east', u'east|* '],
-    [u's'  , u'south', u'south|* '],
-    [u'w'  , u'west', u'west|* '],
+    [u'n'  , u'north|* '],
+    [u'e'  , u'east|* '],
+    [u's'  , u'south|* '],
+    [u'w'  , u'west|* '],
   ]
 
 #build substitution rules out of classes (plz do this only once per redactionbot-start)
@@ -278,13 +279,25 @@ for clazz in classes:
     if not elem in rules.keys():
       rules[elem] = set([])
     rules[elem] = rules[elem] | (set(clazz) - set([unmarkedelem]))
-#general
+    
+#filter rules against input1
+#and prepare them for special rules
+#assume every abbreviations MAY have a . behind
+def prepspec(stri): return stri + "|*."
+
+filteredrules = {}
+for rule in rules.keys():
+  if markedstart.find(rule) != -1:
+    filteredrules[rule] = map(prepspec, rules[rule])
+
 #add special rules like "kill spaces"
-rules["|* "] = set(["","-", ".", ". "])
-rules["|*-"] = set([" "])
-rules["|*."] = set([""])
+filteredrules["|* "] = set(["","-", ".", ". "])
+filteredrules["|*-"] = set([" "])
+filteredrules["|*."] = set([""])
+
+
 if verbose:
-  print rules
+  print filteredrules
 
 # a set of all the visited strings so that we don't do double work
 visited = set([input1])
@@ -293,25 +306,25 @@ visited = set([input1])
 #try rules on every string until we've no more strings
 while(toextend != []):
   #remove the best unvisited word from queue and mangle it
-  _, current = heappop(toextend)
+  wdist, current = heappop(toextend)
   demcurrent = demark(current)
   visited.add(demcurrent)
   if verbose:
-    print "pop %s"% current
+    print "pop %s - dist: "% current,wdist
   #call every rule
-  for rule in rules.keys():
+  for rule in filteredrules.keys():
     #and try to use it (maybe this could be improved by find our ruletrigger in first place)
-    for substitute in rules[rule]:
+    for substitute in filteredrules[rule]:
       #execute rule
       newword = current.replace(rule,substitute,1)
       #if it is a new string we add it to our stack for further mangling
       unmarkednewword = demark(newword)
-      if newword != current and demcurrent not in visited:
-        heappush(toextend, (dist(unmarkednewword, target), newword))
       #if we found our string we're happy
       if unmarkednewword == target:
         print "Found"
         exit(1)
+      if newword != current and unmarkednewword not in visited:
+        heappush(toextend, (dist(unmarkednewword, target), newword))
 # :(
 print "NOT Found"
 exit(2)
