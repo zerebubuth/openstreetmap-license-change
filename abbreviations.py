@@ -332,6 +332,8 @@ visited = set([input1,input2])
 #rulemangling
 #try rules on every string until we've no more strings
 while(toextendforw != [] or toextendbackw != []):
+  if verbose:
+     print "len visited: %i" % len(visited)
   if toextendforw != []:
     #remove the best unvisited word from queue and mangle it
     wdist, current = heappop(toextendforw)
@@ -350,7 +352,7 @@ while(toextendforw != [] or toextendbackw != []):
           exit(1)
         #if it is a new string we add it to our stack for further mangling
         unmarkednewword = demark(newword)
-        if newword != current and unmarkednewword not in visited:
+        if newword != current and len(visited) < 100000 and unmarkednewword not in visited:
           visited.add(unmarkednewword)
           heappush(toextendforw, (dist(plainnewword, target1), newword))
           
@@ -372,8 +374,8 @@ while(toextendforw != [] or toextendbackw != []):
           exit(1)
         #if it is a new string we add it to our stack for further mangling
         unmarkednewword = demark(newword)
-        if newword != current:# and unmarkednewword not in visited:
-          #visited.add(unmarkednewword)
+        if newword != current and len(visited) < 100000 and unmarkednewword not in visited:
+          visited.add(unmarkednewword)
           heappush(toextendbackw, (dist(plainnewword, target2), newword))
 # :(
 print "NOT Found"

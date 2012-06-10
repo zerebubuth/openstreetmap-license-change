@@ -18,6 +18,7 @@ class TestAbbrev < MiniTest::Unit::TestCase
     "Foobar Road" => "Foobar Rd",
     "E Foobar Wy" => "East Foobar Way",
     "NE Foobar Crescent" => "North East Foobar Cr.",
+    "NE Foobar Crescent" => "North East Foobar Cr",
     "N.E. Foobar Crescent" => "North East Foobar Cr",
     "NE Foobar Street" => "Northeast Foobar St",
     "Foo & Bar" => "Foo and Bar",
