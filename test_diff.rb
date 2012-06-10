@@ -555,6 +555,28 @@ class TestDiff < MiniTest::Unit::TestCase
     end
   end
 
+  def test_compose_move_move
+    n = 5
+    a = (1..n).to_a
+    n.times do |bi|
+      (n-1).times do |bj|
+        b = a.clone
+        bx = b.delete_at(bi)
+        b.insert(bj, bx)
+        
+        n.times do |ci|
+          (n-1).times do |cj|
+            c = b.clone
+            cx = c.delete_at(ci)
+            c.insert(cj, cx)
+
+            check_compose_move(a, b, c)
+          end
+        end
+      end
+    end
+  end
+
   def test_compose_move
     1000.times do
       a = 10.times.map { rand(5) }

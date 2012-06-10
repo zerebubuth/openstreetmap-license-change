@@ -88,7 +88,7 @@ module Diff
     end
 
     def move(off)
-      Move.new[self.from_loc + off, self.to_loc + off, self.element]
+      Move.new(self.from_loc + off, self.to_loc + off, self.element)
     end
   end
 
@@ -287,6 +287,109 @@ module Diff
 
         [b.move(dist), Move.new(new_from_loc, new_to_loc, a.element)]
       end
+    end
+
+    def self.swap_move_move(a, b)
+      foo = lambda do |af, at, bf, bt|
+        [Move.new(b.from_loc + bf, b.to_loc + bt, b.element), Move.new(a.from_loc + af, a.to_loc + at, a.element)]
+      end
+
+      if (b.from_loc == a.to_loc) && (a.element == b.element)
+        if a.from_loc != b.to_loc
+          # we have a chain
+          [Move.new(a.from_loc, b.to_loc, a.element), nil]
+        else
+          # we have a revert
+          [nil, nil]
+        end
+      else
+        # if the moves are sufficiently far from eachother not to
+        # affect each others' indices, then we can simply swap them.
+        if (([a.from_loc, a.to_loc].max < [b.from_loc, b.to_loc].min) ||
+            ([a.from_loc, a.to_loc].min > [b.from_loc, b.to_loc].max))
+          [b, a]
+
+        else
+          rv = if ((a.from_loc < a.to_loc) && (b.from_loc < a.to_loc) && (b.to_loc < a.to_loc))
+                 if b.to_loc < a.from_loc
+                   foo.call(1, 0, 1, 0)
+                 else
+                   if b.from_loc < a.from_loc
+                     foo.call(-1, 0, 0, 1)
+                   else
+                     foo.call(0, 0, 1, 1)
+                   end
+                 end
+                 
+               elsif ((a.from_loc < a.to_loc) && (b.from_loc > a.to_loc) && (b.to_loc <= a.to_loc))
+                 if b.to_loc < a.from_loc
+                   foo.call(1, 1, 0, 0)
+                 else
+                   foo.call(0, 1, 0, 1)
+                 end
+                 
+               elsif ((a.from_loc < a.to_loc) && (b.from_loc < a.to_loc) && (b.to_loc >= a.to_loc))
+                 if b.from_loc < a.from_loc
+                   foo.call(-1, -1, 0, 0)
+                 else
+                   foo.call(0, -1, 1, 0)
+                 end
+                 
+               elsif ((a.from_loc > a.to_loc) && (b.from_loc > a.from_loc) && (b.to_loc <= a.to_loc))
+                 foo.call(1, 1, 0, 0)
+                 
+               elsif ((a.from_loc > a.to_loc) && (b.from_loc > a.from_loc) && (b.to_loc <= a.from_loc))
+                 foo.call(1, 0, 0, -1)
+                 
+               elsif ((a.from_loc > a.to_loc) && (b.from_loc <= a.from_loc) && (b.to_loc >= a.from_loc))
+                 if b.from_loc < a.to_loc
+                   foo.call(-1, -1, 0, 0)
+                 else
+                   foo.call(-1, 0, -1, 0)
+                 end
+                 
+               elsif ((a.from_loc > a.to_loc) && (b.from_loc <= a.from_loc) && (b.to_loc <= a.to_loc))
+                 if b.from_loc > b.to_loc
+                   foo.call(0, 1, -1, 0)
+                 else
+                   foo.call(0, -1, 0, -1)
+                 end
+                 
+               elsif ((a.from_loc > a.to_loc) && (b.from_loc <= a.from_loc) && (b.to_loc > a.to_loc))
+                 if b.from_loc > a.to_loc
+                   foo.call(0, 0, -1, -1)
+                 else
+                   foo.call(0, -1, 0, -1)
+                 end
+                 
+               else
+                 raise "Unhandled move-move case! [#{a} <=> #{b}]"
+               end
+          # remove no-op moves, as these aren't necessary
+          rv.map {|x| (x.from_loc == x.to_loc) ? nil : x}
+        end
+      end
+    end
+
+    private
+    def self.move_locations(b_loc, from_loc, to_loc, delta)
+      dist = 0
+      new_from_loc = from_loc
+      new_to_loc = to_loc
+      
+      if (b_loc <= from_loc)# && !((b_loc == from_loc) && (from_loc < to_loc))
+        new_from_loc += delta
+      else
+        dist += 1
+      end
+      
+      if b_loc <= to_loc
+        new_to_loc += delta
+      else
+        dist -= 1
+      end
+      
+      return [dist + b_loc, new_from_loc, new_to_loc]
     end
   end
 
