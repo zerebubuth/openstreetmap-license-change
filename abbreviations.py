@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # coding: utf-8
-#License: GPLv3
+#License: Beerware
 #Author: MonkZ
 import sys
 from heapq import heappush, heappop
