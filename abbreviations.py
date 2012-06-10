@@ -35,8 +35,10 @@ verbose = len(sys.argv) == 4
 target = input2
 #stack of strings to extend/substitute next round
 #we need to evaluate stack and queue here
-markedstart = mark(input1)
-toextend = [(dist(input1, input2), markedstart)]
+markedforward = mark(input1)
+markedbackward = mark(input2)
+toextendforw = [(dist(input1, input2), markedforward)]
+toextendbackw = [(dist(input2, input1), markedbackward)]
 
 #classes of strings/abbrvs/synonyms
 #we can improve this by check our tag location
@@ -285,46 +287,76 @@ for clazz in classes:
 #assume every abbreviations MAY have a . behind
 def prepspec(stri): return stri + "|*."
 
-filteredrules = {}
+filteredforwardrules = {}
 for rule in rules.keys():
-  if markedstart.find(rule) != -1:
-    filteredrules[rule] = map(prepspec, rules[rule])
+  if markedforward.find(rule) != -1:
+    filteredforwardrules[rule] = map(prepspec, rules[rule])
+
+filteredbackwardrules = {}
+for rule in rules.keys():
+  if markedbackward.find(rule) != -1:
+    filteredbackwardrules[rule] = map(prepspec, rules[rule])
 
 #add special rules like "kill spaces"
-filteredrules["|* "] = set(["","-", ".", ". "])
-filteredrules["|*-"] = set([" "])
-filteredrules["|*."] = set([""])
+filteredforwardrules["|* "] = set(["","-", ".", ". "])
+filteredforwardrules["|*-"] = set([" "])
+filteredforwardrules["|*."] = set([""])
+filteredbackwardrules["|* "] = set(["","-", ".", ". "])
+filteredbackwardrules["|*-"] = set([" "])
+filteredbackwardrules["|*."] = set([""])
 
 
 if verbose:
-  print filteredrules
+  print filteredforwardrules
+  print filteredbackwardrules
 
 # a set of all the visited strings so that we don't do double work
-visited = set([input1])
+visited = set([input1,input2])
 
 #rulemangling
 #try rules on every string until we've no more strings
-while(toextend != []):
-  #remove the best unvisited word from queue and mangle it
-  wdist, current = heappop(toextend)
-  demcurrent = demark(current)
-  visited.add(demcurrent)
-  if verbose:
-    print "pop %s - dist: "% current,wdist
-  #call every rule
-  for rule in filteredrules.keys():
-    #and try to use it (maybe this could be improved by find our ruletrigger in first place)
-    for substitute in filteredrules[rule]:
-      #execute rule
-      newword = current.replace(rule,substitute,1)
-      #if it is a new string we add it to our stack for further mangling
-      unmarkednewword = demark(newword)
-      #if we found our string we're happy
-      if unmarkednewword == target:
-        print "Found"
-        exit(1)
-      if newword != current and unmarkednewword not in visited:
-        heappush(toextend, (dist(unmarkednewword, target), newword))
+while(toextendforw != [] or toextendbackw != []):
+  if toextendforw != []:
+    #remove the best unvisited word from queue and mangle it
+    wdist, current = heappop(toextendforw)
+    if verbose:
+      print "fpop %s - dist: "% current,wdist
+    #call every rule
+    for rule in filteredforwardrules.keys():
+      #and try to use it (maybe this could be improved by find our ruletrigger in first place)
+      for substitute in filteredforwardrules[rule]:
+        #execute rule
+        newword = current.replace(rule,substitute,1)
+        #if it is a new string we add it to our stack for further mangling
+        unmarkednewword = demark(newword)
+        #if we found our string we're happy
+        if unmarkednewword == target:
+          print "Found"
+          exit(1)
+        if newword != current and unmarkednewword not in visited:
+          visited.add(unmarkednewword)
+          heappush(toextendforw, (dist(unmarkednewword, target), newword))
+          
+  if toextendbackw != []:
+    #remove the best unvisited word from queue and mangle it
+    wdist, current = heappop(toextendbackw)
+    if verbose:
+      print "bpop %s - dist: "% current,wdist
+    #call every rule
+    for rule in filteredbackwardrules.keys():
+      #and try to use it (maybe this could be improved by find our ruletrigger in first place)
+      for substitute in filteredbackwardrules[rule]:
+        #execute rule
+        newword = current.replace(rule,substitute,1)
+        #if it is a new string we add it to our stack for further mangling
+        unmarkednewword = demark(newword)
+        #if we found our string we're happy
+        if unmarkednewword == target:
+          print "Found"
+          exit(1)
+        if newword != current and unmarkednewword not in visited:
+          visited.add(unmarkednewword)
+          heappush(toextendbackw, (dist(unmarkednewword, target), newword))
 # :(
 print "NOT Found"
 exit(2)
