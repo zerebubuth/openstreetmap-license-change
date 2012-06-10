@@ -14,7 +14,7 @@ input2 = sys.argv[2].decode("utf-8").lower()
 
 #needed to trace already substituted parts in our strings
 def mark(stri):
-  return "|*".join(stri)
+  return '|*'+'|*'.join(stri)
 
 def demark(stri):
   return stri.replace("|*","")
@@ -320,8 +320,8 @@ while(toextendforw != [] or toextendbackw != []):
   if toextendforw != []:
     #remove the best unvisited word from queue and mangle it
     wdist, current = heappop(toextendforw)
-    #if verbose:
-    #  print "fpop %s - dist: "% current,wdist
+    if verbose:
+      print "fpop %s - dist: "% current,wdist
     #call every rule
     for rule in filteredforwardrules.keys():
       #and try to use it (maybe this could be improved by find our ruletrigger in first place)
@@ -341,8 +341,8 @@ while(toextendforw != [] or toextendbackw != []):
   if toextendbackw != []:
     #remove the best unvisited word from queue and mangle it
     wdist, current = heappop(toextendbackw)
-    #if verbose:
-    #  print "bpop %s - dist: "% current,wdist
+    if verbose:
+      print "bpop %s - dist: "% current,wdist
     #call every rule
     for rule in filteredbackwardrules.keys():
       #and try to use it (maybe this could be improved by find our ruletrigger in first place)
