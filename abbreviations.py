@@ -32,7 +32,8 @@ def dist(s1, s2) :
 verbose = len(sys.argv) == 4
 
 #we want to reach this word
-target = input2
+target1 = input2
+target2 = input1
 #stack of strings to extend/substitute next round
 #we need to evaluate stack and queue here
 markedforward = mark(input1)
@@ -319,8 +320,8 @@ while(toextendforw != [] or toextendbackw != []):
   if toextendforw != []:
     #remove the best unvisited word from queue and mangle it
     wdist, current = heappop(toextendforw)
-    if verbose:
-      print "fpop %s - dist: "% current,wdist
+    #if verbose:
+    #  print "fpop %s - dist: "% current,wdist
     #call every rule
     for rule in filteredforwardrules.keys():
       #and try to use it (maybe this could be improved by find our ruletrigger in first place)
@@ -330,18 +331,18 @@ while(toextendforw != [] or toextendbackw != []):
         #if it is a new string we add it to our stack for further mangling
         unmarkednewword = demark(newword)
         #if we found our string we're happy
-        if unmarkednewword == target:
+        if unmarkednewword == target1:
           print "Found"
           exit(1)
         if newword != current and unmarkednewword not in visited:
           visited.add(unmarkednewword)
-          heappush(toextendforw, (dist(unmarkednewword, target), newword))
+          heappush(toextendforw, (dist(unmarkednewword, target1), newword))
           
   if toextendbackw != []:
     #remove the best unvisited word from queue and mangle it
     wdist, current = heappop(toextendbackw)
-    if verbose:
-      print "bpop %s - dist: "% current,wdist
+    #if verbose:
+    #  print "bpop %s - dist: "% current,wdist
     #call every rule
     for rule in filteredbackwardrules.keys():
       #and try to use it (maybe this could be improved by find our ruletrigger in first place)
@@ -351,12 +352,12 @@ while(toextendforw != [] or toextendbackw != []):
         #if it is a new string we add it to our stack for further mangling
         unmarkednewword = demark(newword)
         #if we found our string we're happy
-        if unmarkednewword == target:
+        if unmarkednewword == target2:
           print "Found"
           exit(1)
         if newword != current and unmarkednewword not in visited:
           visited.add(unmarkednewword)
-          heappush(toextendbackw, (dist(unmarkednewword, target), newword))
+          heappush(toextendbackw, (dist(unmarkednewword, target2), newword))
 # :(
 print "NOT Found"
 exit(2)
