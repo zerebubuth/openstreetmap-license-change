@@ -70,7 +70,7 @@ class AgreedFile
   end
 
   def call(i)
-    return true if @limit and (i < @limit)
+    return true if @limit and (i >= @limit)
     @ids.include? i
   end
 end
@@ -83,11 +83,12 @@ opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
                       ['--changesets-agreed', '-c', GetoptLong::REQUIRED_ARGUMENT],
                       ['--user-agreed-limit', '-l', GetoptLong::REQUIRED_ARGUMENT])
 
-verbose = false
-server = "api06.dev.openstreetmap.org"
-users_agreed = Proc.new {|i| true}
-changesets_agreed = Proc.new {|i| true}
-user_limit = nil
+verbose = true
+read_from_file = false
+server = "api.openstreetmap.org"
+users_agreed = USERS_AGREED
+changesets_agreed = CHANGESETS_AGREED
+user_limit = 286582
 
 agent = Mechanize.new
 
