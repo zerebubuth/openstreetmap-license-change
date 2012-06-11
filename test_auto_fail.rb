@@ -4574,7 +4574,8 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Relation[[[OSM::Way,155406698] , [OSM::Way,155406701] , [OSM::Way,155406686] , [OSM::Way,155406681] , [OSM::Way,155406694] , [OSM::Way,155406691] , [OSM::Way,155406689] , [OSM::Node,26695629,"admin_centre"]], :id  => 78000, :version => 8, :visible => true, :changeset => -1, "ref:INSEE" => "71540", "source:addr:postcode" => "source of postcode is from osm nodes", "source:ref:INSEE" => "source of ref is from osm nodes"]],
+    # note: OK to keep type, as it's declared non-copyrightable.
+    assert_equal([Edit[OSM::Relation[[[OSM::Way,155406698] , [OSM::Way,155406701] , [OSM::Way,155406686] , [OSM::Way,155406681] , [OSM::Way,155406694] , [OSM::Way,155406691] , [OSM::Way,155406689] , [OSM::Node,26695629,"admin_centre"]], :id  => 78000, :version => 8, :visible => true, :changeset => -1, "type" => "boundary", "addr:postcode" => "71210", "ref:INSEE" => "71540", "source:addr:postcode" => "source of postcode is from osm nodes", "source:ref:INSEE" => "source of ref is from osm nodes"]],
                   Redact[OSM::Relation, 78000, 1, :hidden],
                   Redact[OSM::Relation, 78000, 2, :visible],
                   Redact[OSM::Relation, 78000, 3, :visible],
