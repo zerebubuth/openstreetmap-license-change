@@ -47,7 +47,7 @@ class TestRelation < MiniTest::Unit::TestCase
                OSM::Relation[[ [OSM::Way,1] , [OSM::Way,4], [OSM::Way,2], [OSM::Way,3] ], :id => 1,  :changeset => 1,  :version => 3, "type" => "route" ]]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Relation[[ [OSM::Way,4], [OSM::Way,3] ], :id => 1,  :changeset => -1,  :version => 3]],
+    assert_equal([Edit[OSM::Relation[[ [OSM::Way,4], [OSM::Way,3] ], :id => 1,  :changeset => -1,  :version => 3, "type" => "route"]],
                   Redact[OSM::Relation, 1, 1, :hidden],
                   Redact[OSM::Relation, 1, 2, :visible],
                   Redact[OSM::Relation, 1, 3, :visible]
@@ -170,10 +170,8 @@ class TestRelation < MiniTest::Unit::TestCase
                OSM::Relation[[                                             [OSM::Way,4] ], :id => 1,  :changeset => 1,  :version => 3, "type" => "route" ]] #agreer
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Relation[[ [OSM::Way,4] ], :id => 1,  :changeset => -1,  :version => 3]],
-                  Redact[OSM::Relation, 1, 1, :hidden],
-                  Redact[OSM::Relation, 1, 2, :visible],
-                  Redact[OSM::Relation, 1, 3, :visible]
+    assert_equal([Redact[OSM::Relation, 1, 1, :hidden],
+                  Redact[OSM::Relation, 1, 2, :visible]
                  ], actions)
   end
   
