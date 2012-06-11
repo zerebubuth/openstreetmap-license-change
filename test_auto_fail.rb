@@ -4427,12 +4427,31 @@ def setup
     # NOTE: decliner changes created_by tag, but that's one of the "auto tags", so
     # not copyright-worthy.
     assert_equal([Redact[OSM::Relation, 28000, 62, :hidden],
-                  Redact[OSM::Relation, 28000, 63, :hidden],
-                  Redact[OSM::Relation, 28000, 64, :hidden],
+                  Redact[OSM::Relation, 28000, 63, :visible], # this is an empty edit
+                  # version 64 is delete-only
                   Redact[OSM::Relation, 28000, 65, :hidden],
                   Redact[OSM::Relation, 28000, 66, :hidden],
                   Redact[OSM::Relation, 28000, 67, :hidden],
-                  Redact[OSM::Relation, 28000, 68, :hidden]
+                  Redact[OSM::Relation, 28000, 68, :hidden],
+                  # the following edits are by acceptors, but still contain
+                  # tainted data, so must be redacted too.
+                  Redact[OSM::Relation, 28000, 69, :visible],
+                  Redact[OSM::Relation, 28000, 70, :visible],
+                  Redact[OSM::Relation, 28000, 71, :visible],
+                  Redact[OSM::Relation, 28000, 72, :visible],
+                  Redact[OSM::Relation, 28000, 73, :visible],
+                  Redact[OSM::Relation, 28000, 74, :visible],
+                  Redact[OSM::Relation, 28000, 75, :visible],
+                  Redact[OSM::Relation, 28000, 76, :visible],
+                  Redact[OSM::Relation, 28000, 77, :visible],
+                  Redact[OSM::Relation, 28000, 78, :visible],
+                  Redact[OSM::Relation, 28000, 79, :visible],
+                  Redact[OSM::Relation, 28000, 80, :visible],
+                  Redact[OSM::Relation, 28000, 81, :visible],
+                  Redact[OSM::Relation, 28000, 82, :visible],
+                  Redact[OSM::Relation, 28000, 83, :visible],
+                  Redact[OSM::Relation, 28000, 84, :visible],
+                  # version 85 cleans the object
                  ], actions)
   end
 
