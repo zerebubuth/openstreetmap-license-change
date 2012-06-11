@@ -404,8 +404,17 @@ class TestNode < MiniTest::Unit::TestCase
                OSM::Node[[0.1234566,0], :id => 1, :changeset => 1, :version => 2, "created_by" => "Potlatch 1.4", "name"=>"foo"]]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Redact[OSM::Node, 1, 1, :hidden],
-                  Redact[OSM::Node, 1, 2, :hidden]], actions)
+    assert_equal([Delete[klass=OSM::Node,element_id=1],
+                  Redact[OSM::Node, 1, 1, :hidden],
+                  Redact[OSM::Node, 1, 2, :visible]], actions)
+  end
+  
+  def test_node_fp_bug2
+    history = [OSM::Node[[0.1234567,0], :id => 1, :changeset => 1, :version => 1, "created_by" => "JOSM"],
+               OSM::Node[[0.1234566,0], :id => 1, :changeset => 3, :version => 2, "created_by" => "Potlatch 1.4"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Node, 1, 2, :visible]], actions)
   end
 end
 

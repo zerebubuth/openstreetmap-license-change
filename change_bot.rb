@@ -139,7 +139,8 @@ class History
       end
 
     elsif ((base_obj.tags != @versions.last.tags) or
-        (base_obj.geom != @versions.last.geom))
+        ((base_obj.geom != @versions.last.geom) and
+        ((base_obj.class != OSM::Node) or not Geom::close?(base_obj.geom, @versions.last.geom))))
       base_obj.changeset_id = -1
       base_obj.version = @versions.last.version
 

@@ -3,6 +3,14 @@ require './util'
 require './diff'
 
 module Geom
+  def self.close?(a, b)
+    return false if a.nil? or b.nil?
+    delta = 0.0000002
+    x = a[0]-b[0]
+    y = a[1]-b[1]
+    x*x+y*y < delta*delta
+  end
+
   def self.diff(a, b)
     case a
     when OSM::Node
@@ -16,7 +24,7 @@ module Geom
 
   class NodeDiff
     def self.create(a, b)
-      NodeDiff.new(a.position == b.position, b.position)
+      NodeDiff.new(Geom::close?(a.position, b.position), b.position)
     end
 
     def empty?
