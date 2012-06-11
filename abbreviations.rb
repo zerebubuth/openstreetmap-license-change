@@ -264,6 +264,7 @@ module Abbrev
     (a_el == b_el) or
     (ABBREVIATIONS.has_key?(a_el) && ABBREVIATIONS[a_el].any? {|a_ab| a_ab == b_el}) or
     (ABBREVIATIONS.has_key?(b_el) && ABBREVIATIONS[b_el].any? {|b_ab| b_ab == a_el}) or
+    ABBREVIATIONS.any? {|k, v| v.include? a_el and v.include? b_el} or
     equal_abb_suffixes?(a_el, b_el) or
     equal_abb_suffixes?(b_el, a_el)
   end
