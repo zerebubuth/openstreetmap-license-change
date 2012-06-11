@@ -104,9 +104,10 @@ class TestGeom < MiniTest::Unit::TestCase
     g = geoms[0].geom
 
     # apply diffs, with the first being a "decliner" diff
-    g = diffs[0].apply(g, :only => :deleted)
-    g = diffs[1].apply(g)
-    g = diffs[2].apply(g)
+    state = []
+    g = diffs[0].apply(g, :only => :deleted, :state => state)
+    g = diffs[1].apply(g, :state => state)
+    g = diffs[2].apply(g, :state => state)
     
     # the "decliner" diff adds way 2, but this is deleted in
     # the final diff, so the result should be the same as the

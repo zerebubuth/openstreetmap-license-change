@@ -40,6 +40,15 @@ class TestNeedsClarity < MiniTest::Unit::TestCase
                   Redact[OSM::Way, 1, 3, :visible]
                  ], actions)
   end
+  
+  # The type of a relation is no more copyrightable then the type of an object
+  def test_relation_type_multipolygon
+    history = [OSM::Relation[[ [OSM::Way,1,""]], :id=>1, :changeset=>3, :version=>1, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,2,""]], :id=>1, :changeset=>1, :version=>2, "type" => "multipolygon"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Relation,1,1,:hidden]], actions)
+  end
 end
 
 if __FILE__ == $0

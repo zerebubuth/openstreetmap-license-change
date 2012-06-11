@@ -28,6 +28,8 @@ class History
   end
 
   def actions
+    return [] if @versions.count{|obj| not changeset_is_accepted? obj.changeset_id} == 0
+  
     prev_obj = @versions.first.version_zero
 
     base_obj = prev_obj.clone
@@ -35,6 +37,8 @@ class History
     diff_state = Array.new
 
     tainted_tags = Array.new
+    omit_tags = []
+    omit_tags = ["multipolygon", "route", "site", "restriction", "boundary"].map{|v| ["type", v]} if base_obj.class == OSM::Relation
 
     @versions.zip(odbl_clean_versions).each do |obj,is_odbl_clean|
       # deletions are always "clean", and we consider them to
@@ -70,6 +74,8 @@ class History
       # 'deletions are always OK' rule.
       apply_options = (status == :unclean) ? {:only => :deleted} : {}
       apply_options[:state] = diff_state
+      apply_options[:omit_tags] = omit_tags
+      apply_options[:no_order] = (obj.class == OSM::Relation and base_obj.tags["type"] == "multipolygon")
 
       # if the element is explicitly marked as clean, then
       # don't bother with the application of patches, just
@@ -87,6 +93,9 @@ class History
         # apply the patches
         new_tags = tags_patch.apply(base_obj.tags, apply_options)
         new_geom = geom_patch.apply(base_obj.geom, apply_options)
+        if apply_options[:no_order] and new_geom.sort == obj.geom.sort then
+          new_geom = obj.geom
+        end
       end
 
       # if the tags patch is unclean then record the additions and 
@@ -97,6 +106,8 @@ class History
         # taint the new version of any edited or moved tag
         tainted_tags.concat(tags_patch.edited.map {|k,vals| [k,vals[1]]})
         tainted_tags.concat(tags_patch.moved.map {|keys,v| [keys[1],v]})
+        
+        tainted_tags -= omit_tags
       end
 
       # remove any taint from the new tags
@@ -128,7 +139,8 @@ class History
       end
 
     elsif ((base_obj.tags != @versions.last.tags) or
-        (base_obj.geom != @versions.last.geom))
+        ((base_obj.geom != @versions.last.geom) and
+        ((base_obj.class != OSM::Node) or not Geom::close?(base_obj.geom, @versions.last.geom))))
       base_obj.changeset_id = -1
       base_obj.version = @versions.last.version
 
