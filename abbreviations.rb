@@ -41,6 +41,7 @@ module Abbrev
     "dale" => ["dl"],
     "dam" => ["dm"],
     "drive" => ["dr"],
+    "doctor" => ["dr"],
     "divide" => ["dv"],
     "east" => ["e"],
     "estate" => ["est"],
