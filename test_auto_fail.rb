@@ -4039,17 +4039,16 @@ def setup
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Edit[OSM::Way[[53120720,53100737,53182378,59699628,53109829,206249014,53092498,53099797,53163625,59713406], :id => 6510000, :version => 17, :visible => true, :changeset => -1, "highway" => "tertiary", "name" => "Northeast 40th Street", "tiger:cfcc" => "A41", "tiger:county" => "King, WA", "tiger:name_base" => "40th", "tiger:name_direction_prefix" => "NE", "tiger:name_type" => "Street", "tiger:separated" => "no", "tiger:source" => "tiger_import_dch_v0.6_20070830", "tiger:tlid" => "186586974:186586986:186586988:186705907:186583408:186583354:186583359:186583257:186586943", "tiger:zip_left" => "98105", "tiger:zip_right" => "98105"]],
-                  Redact[OSM::Way, 6510000, 5, :hidden],
-                  Redact[OSM::Way, 6510000, 6, :hidden],
-                  Redact[OSM::Way, 6510000, 7, :hidden],
+                  # versions 5-7 are either null edits, or auto-key
+                  # changes and therefore need no redaction.
                   Redact[OSM::Way, 6510000, 8, :hidden],
-                  Redact[OSM::Way, 6510000, 9, :hidden],
+                  Redact[OSM::Way, 6510000, 9, :visible], # null edit => visible
                   Redact[OSM::Way, 6510000, 10, :hidden],
-                  Redact[OSM::Way, 6510000, 11, :hidden],
+                  Redact[OSM::Way, 6510000, 11, :visible], # delete only edit => visible
                   Redact[OSM::Way, 6510000, 12, :hidden],
                   Redact[OSM::Way, 6510000, 13, :visible],
                   Redact[OSM::Way, 6510000, 14, :visible],
-                  Redact[OSM::Way, 6510000, 15, :hidden],
+                  Redact[OSM::Way, 6510000, 15, :visible], # delete only edit => visible
                   Redact[OSM::Way, 6510000, 16, :hidden],
                   Redact[OSM::Way, 6510000, 17, :visible],
                  ], actions)
@@ -4479,7 +4478,7 @@ def setup
               ]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Relation[[[OSM::Way,130801132] , [OSM::Way,123520061] , [OSM::Way,123520073] , [OSM::Way,122563397] , [OSM::Way,133399291] , [OSM::Way,95998226] , [OSM::Way,95998220] , [OSM::Way,140763319] , [OSM::Way,100876522] , [OSM::Way,100876537] , [OSM::Way,129481693] , [OSM::Way,144078431] , [OSM::Way,144078433] , [OSM::Way,66758379] , [OSM::Way,100876512] , [OSM::Way,130801136] , [OSM::Way,38805694] , [OSM::Way,38863685] , [OSM::Way,38911480] , [OSM::Way,38911481] , [OSM::Way,100876531] , [OSM::Way,100871999] , [OSM::Way,100707581] , [OSM::Way,100872029] , [OSM::Way,100707590] , [OSM::Way,65764351]], :id  => 33000, :version => 35, :visible => true, :changeset => -1, "lcn" => "yes", "lcn_ref" => "3"]],
+    assert_equal([Edit[OSM::Relation[[[OSM::Way,130801132], [OSM::Way,123520061], [OSM::Way,123520073], [OSM::Way,122563397], [OSM::Way,133399291], [OSM::Way,95998226], [OSM::Way,95998220], [OSM::Way,140763319], [OSM::Way,100876522], [OSM::Way,100876537], [OSM::Way,129481693], [OSM::Way,144078431], [OSM::Way,144078433], [OSM::Way,66758379], [OSM::Way,100876512], [OSM::Way,130801136], [OSM::Way,38805694], [OSM::Way,38863685], [OSM::Way,38911480], [OSM::Way,38911481], [OSM::Way,100876531], [OSM::Way,100871999], [OSM::Way,100707581], [OSM::Way,100872029], [OSM::Way,100707590], [OSM::Way,65764351]], :id  => 33000, :version => 35, :visible => true, :changeset => -1, "lcn" => "yes", "lcn_ref" => "3"]],
                   Redact[OSM::Relation, 33000, 1, :hidden],
                   Redact[OSM::Relation, 33000, 2, :hidden],
                   Redact[OSM::Relation, 33000, 3, :hidden],
@@ -4513,7 +4512,8 @@ def setup
                   Redact[OSM::Relation, 33000, 31, :visible],
                   Redact[OSM::Relation, 33000, 32, :visible],
                   Redact[OSM::Relation, 33000, 33, :visible],
-                  Redact[OSM::Relation, 33000, 34, :visible]
+                  Redact[OSM::Relation, 33000, 34, :visible],
+                  Redact[OSM::Relation, 33000, 35, :visible]
                  ], actions)
   end
 
