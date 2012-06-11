@@ -23,6 +23,7 @@ class TestAbbrev < MiniTest::Unit::TestCase
     "Foo & Bar" => "Foo and Bar",
     "Foo&Bar" => "Foo and Bar",
     "North & Western" => "North and Western",
+    "Doublespace  St" => "Doublespace street",
     # Russian
     "бул. Космонавтов" => "бульвар Космонавтов",
     "пр-кт. Надеяться" => "проспект Надеяться",
@@ -39,14 +40,14 @@ class TestAbbrev < MiniTest::Unit::TestCase
     "An der Bahn" => "A. d. Bahn",
     "Groß Ippener" => "Gr. Ippener",
     "Klein Ippener" => "Kl Ippener",
-    
+    "Hansel & Gretzel" => "Hansel und Gretzel",
     "Streitwagenwg" => "Streitwagenweg",
     "Musterwg." => "Musterweg",
     "Herreng." => "Herrengasse",
     "Hauptstrasse" => "Hauptstr.",
     "Hauptstr." => "Hauptstraße",
     "Nürnbergerstraße" => "Nürnberger Str.",
-    "Hauptstrasse" => "Hauptstraße",
+    #"Hauptstrasse" => "Hauptstraße", We handle this in tags.rb
   }
   
   INQUAL_STRINGS = {

@@ -295,7 +295,7 @@ module Abbrev
   def self.expand_tail(s)
     res = []
 
-    if m = s.split(/[[:punct:][:space:]]+/, 2) # Split first word by default separator
+    if m = s.split(/[-.,;:[:space:]]+/, 2) # Split first word by default separator
       expand_element(m[0]).each do |els|
         res << [els, m[1] || '']
       end
@@ -352,6 +352,8 @@ module Abbrev
   # function for expanding a string into a list of strings
   # TODO: may need some work for internationalisation
   def self.equal_expansions(a, b)
+    a.gsub!('&',' & ')
+    b.gsub!('&',' & ')
     equal_expansions_with_prefixes([], a.downcase, [], b.downcase) # In the start prefix words are empty and only tail present
   end
 
