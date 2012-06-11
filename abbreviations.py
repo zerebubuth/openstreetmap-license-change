@@ -5,16 +5,16 @@
 import sys
 from heapq import heappush, heappop
 
-### CONFIGURATION
-visitedlimit = 500000
-###
-
 if not(len(sys.argv) == 3 or (len(sys.argv) == 4 and sys.argv[3] == "-v")):
   print "Please pass two strings to this program"
   exit(1)
-
 input1 = sys.argv[1].decode("utf-8").lower()
 input2 = sys.argv[2].decode("utf-8").lower()
+verbose = len(sys.argv) == 4
+
+### CONFIGURATION
+visitedlimit = 500000
+###
 
 #needed to trace already substituted parts in our strings
 def mark(stri):
@@ -36,8 +36,6 @@ def dist(s1, s2) :
       return r
   return r
 
-verbose = len(sys.argv) == 4
-
 #we want to reach this word
 target1 = input2
 target2 = input1
@@ -56,8 +54,8 @@ if verbose:
   print "TEST: %s " % markedforward
   print "TEST: %s " % markedbackward
 
-toextendforw = donotreplacestart(markedforward, dist(input1, input2))
-toextendbackw = donotreplacestart(markedbackward, dist(input2, input1))
+toextendforw = donotreplacestart(markedforward, 0) # dist(input1, input2))
+toextendbackw = donotreplacestart(markedbackward, 0) # dist(input2, input1))
 
 #classes of strings/abbrvs/synonyms
 #we can improve this by check our tag location
