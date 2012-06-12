@@ -2,6 +2,7 @@
 
 require './osm'
 require './osm_parse'
+require './osm_print'
 require './db'
 require './changeset'
 require './user'
@@ -21,7 +22,7 @@ check_history.rb [OPTIONS...] [elements]
 -h, --help:
    Show help
 
--s --server:
+-s --server domain:
    Use server s for API calls. Defaults to the test API.
 
 -v --verbose:
@@ -30,17 +31,20 @@ check_history.rb [OPTIONS...] [elements]
 -f --file:
    Take a list of history files as input.
 
--u --users-agreed:
+-o --output file:
+   Prints the resulting osmChange to the output file.
+
+-u --users-agreed file:
    A URL or file with a list of user IDs of those who have agreed.
    If this is not specified then it is assumed all users have agreed.
 
--c --changesets-agreed:
+-c --changesets-agreed file:
    A URL or file with a list of changesets which have been agreed.
    This is used only where the owner of the changeset is anonymous.
    If this is not specified then it is assumed all anonymous users have 
    agreed.
 
--l --user-agreed-limit:
+-l --user-agreed-limit int:
    The user ID below which users may not have agreed. For example,
    on the main API this number is 286582 and user IDs >= this are
    guaranteed to have agreed.
@@ -79,16 +83,18 @@ opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
                       ['--server', '-s', GetoptLong::REQUIRED_ARGUMENT ],
                       ['--verbose', '-v', GetoptLong::NO_ARGUMENT],
                       ['--file', '-f', GetoptLong::NO_ARGUMENT],
+                      ['--output', '-o', GetoptLong::REQUIRED_ARGUMENT ],
                       ['--users-agreed', '-u', GetoptLong::REQUIRED_ARGUMENT],
                       ['--changesets-agreed', '-c', GetoptLong::REQUIRED_ARGUMENT],
                       ['--user-agreed-limit', '-l', GetoptLong::REQUIRED_ARGUMENT])
 
-verbose = true
+verbose = false
 read_from_file = false
 server = "api.openstreetmap.org"
 users_agreed = USERS_AGREED
 changesets_agreed = CHANGESETS_AGREED
 user_limit = 286582
+output_file = '-'
 
 agent = Mechanize.new
 
@@ -106,6 +112,9 @@ opts.each do |opt, arg|
 
   when '--file'
     read_from_file = true
+  
+  when '--output'
+    output_file = arg
 
   when '--users-agreed'
     users_agreed = arg
@@ -195,6 +204,14 @@ bot.process_all!
 if verbose 
   puts 
   puts "=== RESULT ==="
+  puts
 end
-puts bot.as_changeset.inspect
+
+if output_file == '-'
+  fp = $stdout
+else
+  fp = File.open(output_file, "w")
+end
+
+OSM::print_osmchange(bot.as_changeset, db, out = fp)
 
