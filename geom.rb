@@ -55,7 +55,7 @@ module Geom
 
   class WayDiff
     def self.create(a, b)
-      WayDiff.new(Diff::diff(a.nodes, b.nodes))
+      WayDiff.new(Diff::diff(a.nodes, b.nodes, :detect_move => true))
     end
 
     def empty?

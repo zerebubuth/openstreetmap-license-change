@@ -90,6 +90,16 @@ module Diff
     def move(off)
       Move.new(self.from_loc + off, self.to_loc + off, self.element)
     end
+
+    # don't want to create self-moves: these are null operations
+    # and should be treated as such!
+    def self.create(from_loc, to_loc, element)
+      if from_loc == to_loc
+        nil
+      else
+        Move.new(from_loc, to_loc, element)
+      end
+    end
   end
 
   class Swap
@@ -150,7 +160,7 @@ module Diff
           dist -= 1
         end
 
-        [Move.new(new_from_loc, new_to_loc, b.element), a.move(dist)]
+        [Move.create(new_from_loc, new_to_loc, b.element), a.move(dist)]
       end
     end
 
@@ -182,7 +192,7 @@ module Diff
 
     def self.swap_alter_move(a, b)
       if b.from_loc == a.location
-        [Move.new(b.from_loc, b.to_loc, a.from_elt), a.move(b.to_loc - b.from_loc)]
+        [Move.create(b.from_loc, b.to_loc, a.from_elt), a.move(b.to_loc - b.from_loc)]
 
       else
         dist = 0
@@ -231,7 +241,7 @@ module Diff
         dist -= 1
       end
       
-      [Move.new(new_from_loc, new_to_loc, b.element), a.move(dist)]
+      [Move.create(new_from_loc, new_to_loc, b.element), a.move(dist)]
     end
 
     def self.swap_move_insert(a, b)
@@ -251,12 +261,12 @@ module Diff
         dist -= 1
       end
 
-      [b.move(dist), Move.new(new_from_loc, new_to_loc, a.element)]
+      [b.move(dist), Move.create(new_from_loc, new_to_loc, a.element)]
     end
 
     def self.swap_move_alter(a, b)
       if b.location == a.to_loc
-        [b.move(a.from_loc - a.to_loc), Move.new(a.from_loc, a.to_loc, b.to_elt)]
+        [b.move(a.from_loc - a.to_loc), Move.create(a.from_loc, a.to_loc, b.to_elt)]
 
       else
         dist = 0
@@ -287,19 +297,19 @@ module Diff
           dist -= 1
         end
 
-        [b.move(dist), Move.new(new_from_loc, new_to_loc, a.element)]
+        [b.move(dist), Move.create(new_from_loc, new_to_loc, a.element)]
       end
     end
 
     def self.swap_move_move(a, b)
       foo = lambda do |af, at, bf, bt|
-        [Move.new(b.from_loc + bf, b.to_loc + bt, b.element), Move.new(a.from_loc + af, a.to_loc + at, a.element)]
+        [Move.create(b.from_loc + bf, b.to_loc + bt, b.element), Move.create(a.from_loc + af, a.to_loc + at, a.element)]
       end
 
       if (b.from_loc == a.to_loc) && (a.element == b.element)
         if a.from_loc != b.to_loc
           # we have a chain
-          [Move.new(a.from_loc, b.to_loc, a.element), nil]
+          [Move.create(a.from_loc, b.to_loc, a.element), nil]
         else
           # we have a revert
           [nil, nil]
@@ -367,31 +377,10 @@ module Diff
                else
                  raise "Unhandled move-move case! [#{a} <=> #{b}]"
                end
-          # remove no-op moves, as these aren't necessary
-          rv.map {|x| (x.from_loc == x.to_loc) ? nil : x}
+          # return answer
+          rv
         end
       end
-    end
-
-    private
-    def self.move_locations(b_loc, from_loc, to_loc, delta)
-      dist = 0
-      new_from_loc = from_loc
-      new_to_loc = to_loc
-      
-      if (b_loc <= from_loc)# && !((b_loc == from_loc) && (from_loc < to_loc))
-        new_from_loc += delta
-      else
-        dist += 1
-      end
-      
-      if b_loc <= to_loc
-        new_to_loc += delta
-      else
-        dist -= 1
-      end
-      
-      return [dist + b_loc, new_from_loc, new_to_loc]
     end
   end
 
@@ -477,7 +466,7 @@ module Diff
         else
           ins_loc -= movement
         end
-        rv[fidx] = Move.new(del_loc, ins_loc, rv[insidx].element)
+        rv[fidx] = Move.create(del_loc, ins_loc, rv[insidx].element)
         rv.delete_at(sidx)
       end
     end
