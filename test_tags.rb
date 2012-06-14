@@ -36,7 +36,9 @@ class TestTags < MiniTest::Unit::TestCase
         "Johnann Wolfgang von Goethe Allee" => "Johann-Wolfgang-von-Goethe-Allee",
         "Mulberry Hiway" => "Mulberry Highway",
         "old fen way" => "Old Fen Way",
+        "Lodnon" => "London",
         "strasse" => "Straße",
+        "Supercalifragilisticexpialidocious Stret" => "Supercalifragilisticexpialidocious Street"
     }
 
     trivialchanges.each do | old, new |
@@ -73,7 +75,9 @@ class TestTags < MiniTest::Unit::TestCase
       "Johnann Wolfgang von Goethe Allee" => "Johann-Wolfgang-von-Goethe-Allee",
       "Mulberry Hiway" => "Mulberry Highway",
       "old fen way" => "Old Fen Way",
-      "Lodnon" => "London"
+      "Lodnon" => "London",
+      "strasse" => "Straße",
+      "Supercalifragilisticexpialidocious Stret" => "Supercalifragilisticexpialidocious Street"
     }
 
     trivial_changes.each do |old, new|
