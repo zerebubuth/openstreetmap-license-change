@@ -292,53 +292,36 @@ if verbose:
 #rulemangling
 toextendforw = [(0,('',target2))]
 toextendbackw = [(0,('',target1))]
-#try rules on every string until we've no more strings
-while(toextendforw != [] or toextendbackw != []):
-  if toextendforw != []:
+
+def manglenext(heap, manglerules, target):
+  if heap != []:
     #remove the best unvisited word from queue and mangle it
-    wdist, (wordstart, wordend) = heappop(toextendforw)
+    wdist, (wordstart, wordend) = heappop(heap)
     if verbose:
-      print "fpop %s | %s - dist: %i" % (wordstart, wordend, wdist)
+      print "pop %s | %s - dist: %i" % (wordstart, wordend, wdist)
     #call every rule
-    for rule in filteredforwardrules.keys():
+    for rule in manglerules.keys():
       #and try to use it (maybe this could be improved by find our ruletrigger in first place)
-      for substitute in filteredforwardrules[rule]:
+      for substitute in manglerules[rule]:
         #execute rule
         newsplit = wordend.split(rule,1)
         if len(newsplit) == 2:
           newwordstart = wordstart + newsplit[0] + substitute
           newwordend = newsplit[1]
-          if target1.startswith(newwordstart):
-            heappush(toextendforw, (len(newwordend),(newwordstart,newwordend)))
+          if target.startswith(newwordstart):
+            heappush(heap, (len(newwordend),(newwordstart,newwordend)))
             if rule != ' ':
-              heappush(toextendforw, (len(newwordend),(newwordstart,' '+newwordend)))
+              heappush(heap, (len(newwordend),(newwordstart,' '+newwordend)))
         #if we found our string we're happy
-        if wordstart.strip() == target1.strip():
+        if wordstart == target:
           print "Found"
           exit(0)
 
-  if toextendbackw != []:
-    #remove the best unvisited word from queue and mangle it
-    wdist, (wordstart, wordend) = heappop(toextendbackw)
-    if verbose:
-      print "bpop %s | %s - dist: %i" % (wordstart, wordend, wdist)
-    #call every rule
-    for rule in filteredforwardrules.keys():
-      #and try to use it (maybe this could be improved by find our ruletrigger in first place)
-      for substitute in filteredforwardrules[rule]:
-        #execute rule
-        newsplit = wordend.split(rule,1)
-        if len(newsplit) == 2:
-          newwordstart = wordstart + newsplit[0] + substitute
-          newwordend = newsplit[1]
-          if target2.startswith(newwordstart):
-            heappush(toextendbackw, (len(newwordend),(newwordstart,newwordend)))
-            if rule != ' ':
-              heappush(toextendbackw, (len(newwordend),(newwordstart,' '+newwordend)))
-        #if we found our string we're happy
-        if wordstart == target2:
-          print "Found"
-          exit(0)
+#try rules on every string until we've no more strings
+while(toextendforw != [] or toextendbackw != []):
+  manglenext(toextendforw, filteredforwardrules, target2)
+  manglenext(toextendbackw, filteredbackwardrules, target1)
+
 # :(
 print "NOT Found"
 exit(2)
