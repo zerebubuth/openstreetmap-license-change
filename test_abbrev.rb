@@ -100,7 +100,7 @@ class TestAbbrev < MiniTest::Unit::TestCase
     #return Abbrev.equal_expansions(a, b)
     
     out = `./abbreviations.py "#{a}" "#{b}"`
-    print out
+
     r = $?.exitstatus
     if r == 0 then
       return true
