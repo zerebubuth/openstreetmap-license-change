@@ -297,31 +297,34 @@ def manglenext(heap, manglerules, target):
   if heap != []:
     #remove the best unvisited word from queue and mangle it
     wdist, (wordstart, wordend) = heappop(heap)
+    #if we found our string we're happy
+    if wordstart + wordend == target:
+      print "Found"
+      exit(0)
+
     if verbose:
-      print "pop %s | %s - dist: %i" % (wordstart, wordend, wdist)
       if target == target1:
-        print heap
-        print "Forw end"
+        print "Forw:"
       else:
-	print heap
-	print "Backw end"
+        print "Backw:"
+      print "pop %s | %s - dist: %i" % (wordstart, wordend, wdist)
+
     #call every rule
     for rule in manglerules.keys():
       #and try to use it (maybe this could be improved by find our ruletrigger in first place)
       for substitute in manglerules[rule]:
-        #execute rule
+        #execute rule (just split once!!)
         newsplit = wordend.split(rule,1)
+        # if rule doesn't apply len != 2
         if len(newsplit) == 2:
           newwordstart = wordstart + newsplit[0] + substitute
           newwordend = newsplit[1]
+          #everything in wordstart have to match targets first characters
           if target.startswith(newwordstart):
             heappush(heap, (len(newwordend),(newwordstart,newwordend)))
+            #to avoid loops with insert space (and insert special rule ' ')
             if rule != ' ':
-              heappush(heap, (len(newwordend),(newwordstart,' '+newwordend)))
-        #if we found our string we're happy
-        if wordstart + wordend == target:
-          print "Found"
-          exit(0)
+              heappush(heap, (len(newwordend),(newwordstart,' '+newwordend))) # insert space
 
 #try rules on every string until we've no more strings
 while(toextendforw != [] or toextendbackw != []):
