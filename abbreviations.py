@@ -289,8 +289,10 @@ for rule in rules.keys():
 #add special rules like "kill spaces"
 filteredforwardrules[u' '] = set([u' ', u'', u'-', u'.', u'. '])
 filteredforwardrules[u'-'] = set([u'-', u' '])
+filteredforwardrules[u'.'] = set([u'.', u' ', u''])
 filteredbackwardrules[u' '] = set([u' ', u'', u'-', u'.', u'. '])
 filteredbackwardrules[u'-'] = set([u'-', u' '])
+filteredbackwardrules[u'.'] = set([u'.', u' ', u''])
 
 
 if verbose:
@@ -321,7 +323,7 @@ while(toextendforw != [] or toextendbackw != []):
             if rule != ' ':
               heappush(toextendforw, (len(newwordend),(newwordstart,' '+newwordend)))
         #if we found our string we're happy
-        if wordstart == target1:
+        if wordstart.strip() == target1.strip():
           print "Found"
           exit(0)
 
