@@ -339,12 +339,12 @@ while(toextendforw != [] or toextendbackw != []):
         if len(newsplit) == 2:
           newwordstart = wordstart + newsplit[0] + substitute
           newwordend = newsplit[1]
-          if target1.startswith(newwordstart):
+          if target2.startswith(newwordstart):
             heappush(toextendbackw, (len(newwordend),(newwordstart,newwordend)))
             if rule != ' ':
               heappush(toextendbackw, (len(newwordend),(newwordstart,' '+newwordend)))
         #if we found our string we're happy
-        if wordstart == target1:
+        if wordstart == target2:
           print "Found"
           exit(0)
 # :(
