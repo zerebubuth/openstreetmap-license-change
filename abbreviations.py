@@ -8,23 +8,9 @@ from heapq import heappush, heappop
 if not(len(sys.argv) == 3 or (len(sys.argv) == 4 and sys.argv[3] == "-v")):
   print "Please pass two strings to this program"
   exit(1)
-input1 = sys.argv[1].decode("utf-8").lower()
-input2 = sys.argv[2].decode("utf-8").lower()
+target1 = sys.argv[1].decode("utf-8").lower()
+target2 = sys.argv[2].decode("utf-8").lower()
 verbose = len(sys.argv) == 4
-
-### CONFIGURATION
-visitedlimit = 500000
-###
-
-#needed to trace already substituted parts in our strings
-def mark(stri):
-  return '|*'+'|*'.join(stri)
-
-def demark(stri):
-  return stri.replace("|*","")
-
-def deallmark(stri):
-  return stri.replace("|*","").replace("|!","")
 
 # Find the distance we are from getting the right word
 def dist(s1, s2) :
@@ -36,26 +22,10 @@ def dist(s1, s2) :
       return r
   return r
 
-#we want to reach this word
-target1 = input2
-target2 = input1
-#stack of strings to extend/substitute next round
-def donotreplacestart(start, distance, lst=[]):
-  repst = start.replace("|*","|!",1)
-  if start != repst:
-    nlst = [(distance,start)] + lst
-    donotreplacestart(repst,distance,nlst)
-    return nlst
-
-
-markedforward = mark(input1)
-markedbackward = mark(input2)
 if verbose:
-  print "TEST: %s " % markedforward
-  print "TEST: %s " % markedbackward
+  print "TEST: %s " % target1
+  print "TEST: %s " % target2
 
-toextendforw = donotreplacestart(markedforward, 0) # dist(input1, input2))
-toextendbackw = donotreplacestart(markedbackward, 0) # dist(input2, input1))
 
 #classes of strings/abbrvs/synonyms
 #we can improve this by check our tag location
@@ -217,9 +187,11 @@ classes = [
     [u'anschlussstelle', u'as'],
     [u'an', u'a'],
     [u'bahnhof', u'bf'],
+    [u'bei', u'b'],
     [u'bürgermeister', u'bgm'],
     [u'der', u'd'],
-    [u'den', u'd'],
+    [u'den', u'd']
+    [u'dem', u'd'],
     [u'evangelische', u'ev', u'evang'],
     [u'evangelischer', u'ev', u'evang'],
     [u'evangelisches', u'ev', u'evang'],
@@ -265,11 +237,15 @@ classes = [
     [u'unterer', u'unt'],
     [u'unteres', u'unt'],
     [u'untere', u'unt'],
+    [u'unter', u'u'],
     [u'vom', u'v'],
     [u'von dem', u'vd'],
     [u'von der', u'vd'],
     [u'von', u'v'],
     [u'weg', u'wg'],
+    [u'zu', u'z'],
+    [u'zum', u'z'],
+    [u'zur', u'z'],
     # Swiss German
     [u'strasse', u'str'],
   
@@ -285,58 +261,46 @@ classes = [
   # of course, this is horribly english-specific...
   # but how would one expand this in a sensible fashion to
   # cover other languages?
-    [u'n'  , u'north|* '],
-    [u'e'  , u'east|* '],
-    [u's'  , u'south|* '],
-    [u'w'  , u'west|* '],
+    [u'n'  , u'north'],
+    [u'e'  , u'east'],
+    [u's'  , u'south'],
+    [u'w'  , u'west'],
   ]
 
 #build substitution rules out of classes (plz do this only once per redactionbot-start)
 rules = {}
 for clazz in classes:
-  for unmarkedelem in clazz:
-    elem = mark(unmarkedelem)
+  for elem in clazz:
     if not elem in rules.keys():
       rules[elem] = set([])
     rules[elem] = rules[elem] | (set(clazz) - set([unmarkedelem]))
     
-#filter rules against input1
-#and prepare them for special rules
-#assume every abbreviations MAY have a . behind
-def prepspec(stri): return stri + u'|*.'
-
+#filter rules against targets
 filteredforwardrules = {}
 for rule in rules.keys():
   if markedforward.find(rule) != -1:
-    filteredforwardrules[rule] = map(prepspec, rules[rule])
+    filteredforwardrules[rule] = rules[rule]
 
 filteredbackwardrules = {}
 for rule in rules.keys():
   if markedbackward.find(rule) != -1:
-    filteredbackwardrules[rule] = map(prepspec, rules[rule])
+    filteredbackwardrules[rule] = rules[rule]
 
 #add special rules like "kill spaces"
-#The character has to be in substitutions without |*
-filteredforwardrules[u'|* '] = set([u'|! ', u'', u'-', u'.', u'. '])
-filteredforwardrules[u'|*-'] = set([u'|!-', u' '])
-filteredforwardrules[u'|*.'] = set([u'|!.', u''])
-filteredbackwardrules[u'|* '] = set([u'|! ', u'', u'-', u'.', u'. '])
-filteredbackwardrules[u'|*-'] = set([u'|!-', u' '])
-filteredbackwardrules[u'|*.'] = set([u'|!.', u''])
+filteredforwardrules[u' '] = set([u' ', u'', u'-', u'.', u'. '])
+filteredforwardrules[u'-'] = set([u'-', u' '])
+filteredbackwardrules[u' '] = set([u' ', u'', u'-', u'.', u'. '])
+filteredbackwardrules[u'-'] = set([u'-', u' '])
 
 
 if verbose:
   print filteredforwardrules
   print filteredbackwardrules
 
-# a set of all the visited strings so that we don't do double work
-visited = set([input1,input2])
-
 #rulemangling
 #try rules on every string until we've no more strings
 while(toextendforw != [] or toextendbackw != []):
-  if verbose:
-     print "len visited: %i" % len(visited)
+  
   if toextendforw != []:
     #remove the best unvisited word from queue and mangle it
     wdist, current = heappop(toextendforw)
@@ -381,8 +345,5 @@ while(toextendforw != [] or toextendbackw != []):
           visited.add(unmarkednewword)
           heappush(toextendbackw, (dist(plainnewword, target2), newword))
 # :(
-if len(visited) >= visitedlimit:
-  print "NOT Found and HIT LIMIT"
-  exit(3)
 print "NOT Found"
 exit(2)
