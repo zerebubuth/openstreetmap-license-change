@@ -290,8 +290,8 @@ if verbose:
   print filteredbackwardrules
 
 #rulemangling
-toextendforw = [(0,('',target2))]
-toextendbackw = [(0,('',target1))]
+toextendforw = [(0,('',target1))]
+toextendbackw = [(0,('',target2))]
 
 def manglenext(heap, manglerules, target):
   if heap != []:
@@ -299,6 +299,12 @@ def manglenext(heap, manglerules, target):
     wdist, (wordstart, wordend) = heappop(heap)
     if verbose:
       print "pop %s | %s - dist: %i" % (wordstart, wordend, wdist)
+      if target == target1:
+        print heap
+        print "Forw end"
+      else:
+	print heap
+	print "Backw end"
     #call every rule
     for rule in manglerules.keys():
       #and try to use it (maybe this could be improved by find our ruletrigger in first place)
@@ -313,7 +319,7 @@ def manglenext(heap, manglerules, target):
             if rule != ' ':
               heappush(heap, (len(newwordend),(newwordstart,' '+newwordend)))
         #if we found our string we're happy
-        if wordstart == target:
+        if wordstart + wordend == target:
           print "Found"
           exit(0)
 
