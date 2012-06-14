@@ -190,7 +190,7 @@ classes = [
     [u'bei', u'b'],
     [u'bürgermeister', u'bgm'],
     [u'der', u'd'],
-    [u'den', u'd']
+    [u'den', u'd'],
     [u'dem', u'd'],
     [u'evangelische', u'ev', u'evang'],
     [u'evangelischer', u'ev', u'evang'],
@@ -273,17 +273,17 @@ for clazz in classes:
   for elem in clazz:
     if not elem in rules.keys():
       rules[elem] = set([])
-    rules[elem] = rules[elem] | (set(clazz) - set([unmarkedelem]))
+    rules[elem] = rules[elem] | (set(clazz) - set([elem]))
     
 #filter rules against targets
 filteredforwardrules = {}
 for rule in rules.keys():
-  if markedforward.find(rule) != -1:
+  if target1.find(rule) != -1:
     filteredforwardrules[rule] = rules[rule]
 
 filteredbackwardrules = {}
 for rule in rules.keys():
-  if markedbackward.find(rule) != -1:
+  if target2.find(rule) != -1:
     filteredbackwardrules[rule] = rules[rule]
 
 #add special rules like "kill spaces"
@@ -298,52 +298,55 @@ if verbose:
   print filteredbackwardrules
 
 #rulemangling
+toextendforw = [(0,('',target2))]
+toextendbackw = [(0,('',target1))]
 #try rules on every string until we've no more strings
 while(toextendforw != [] or toextendbackw != []):
-  
   if toextendforw != []:
     #remove the best unvisited word from queue and mangle it
-    wdist, current = heappop(toextendforw)
+    wdist, (wordstart, wordend) = heappop(toextendforw)
     if verbose:
-      print "fpop %s - dist: "% current,wdist
+      print "fpop %s | %s - dist: %i" % (wordstart, wordend, wdist)
     #call every rule
     for rule in filteredforwardrules.keys():
       #and try to use it (maybe this could be improved by find our ruletrigger in first place)
       for substitute in filteredforwardrules[rule]:
         #execute rule
-        newword = current.replace(rule,substitute,1)
+        newsplit = wordend.split(rule,1)
+        if len(newsplit) == 2:
+          newwordstart = wordstart + newsplit[0] + substitute
+          newwordend = newsplit[1]
+          if target1.startswith(newwordstart):
+            heappush(toextendforw, (len(newwordend),(newwordstart,newwordend)))
+            if rule != ' ':
+              heappush(toextendforw, (len(newwordend),(newwordstart,' '+newwordend)))
         #if we found our string we're happy
-        plainnewword = deallmark(newword)
-        if plainnewword == target1:
+        if wordstart == target1:
           print "Found"
           exit(0)
-        #if it is a new string we add it to our stack for further mangling
-        unmarkednewword = demark(newword)
-        if newword != current and len(visited) < visitedlimit and unmarkednewword not in visited:
-          visited.add(unmarkednewword)
-          heappush(toextendforw, (dist(plainnewword, target1), newword))
-          
+
   if toextendbackw != []:
     #remove the best unvisited word from queue and mangle it
-    wdist, current = heappop(toextendbackw)
+    wdist, (wordstart, wordend) = heappop(toextendbackw)
     if verbose:
-      print "bpop %s - dist: "% current,wdist
+      print "bpop %s | %s - dist: %i" % (wordstart, wordend, wdist)
     #call every rule
-    for rule in filteredbackwardrules.keys():
+    for rule in filteredforwardrules.keys():
       #and try to use it (maybe this could be improved by find our ruletrigger in first place)
-      for substitute in filteredbackwardrules[rule]:
+      for substitute in filteredforwardrules[rule]:
         #execute rule
-        newword = current.replace(rule,substitute,1)
+        newsplit = wordend.split(rule,1)
+        if len(newsplit) == 2:
+          newwordstart = wordstart + newsplit[0] + substitute
+          newwordend = newsplit[1]
+          if target1.startswith(newwordstart):
+            heappush(toextendbackw, (len(newwordend),(newwordstart,newwordend)))
+            if rule != ' ':
+              heappush(toextendbackw, (len(newwordend),(newwordstart,' '+newwordend)))
         #if we found our string we're happy
-        plainnewword = deallmark(newword)
-        if plainnewword == target2:
+        if wordstart == target1:
           print "Found"
           exit(0)
-        #if it is a new string we add it to our stack for further mangling
-        unmarkednewword = demark(newword)
-        if newword != current and len(visited) < visitedlimit and unmarkednewword not in visited:
-          visited.add(unmarkednewword)
-          heappush(toextendbackw, (dist(plainnewword, target2), newword))
 # :(
 print "NOT Found"
 exit(2)
