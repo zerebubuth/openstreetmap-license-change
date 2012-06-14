@@ -12,16 +12,6 @@ target1 = sys.argv[1].decode("utf-8").lower()
 target2 = sys.argv[2].decode("utf-8").lower()
 verbose = len(sys.argv) == 4
 
-# Find the distance we are from getting the right word
-def dist(s1, s2) :
-  r = max(len(s1), len(s2))
-  for (c1, c2) in zip(s1, s2):
-    if c1 == c2:
-      r -= 1
-    else:
-      return r
-  return r
-
 if verbose:
   print "TEST: %s " % target1
   print "TEST: %s " % target2
