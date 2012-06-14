@@ -28,8 +28,10 @@ class History
   end
 
   def actions
-    return [] if @versions.count{|obj| not changeset_is_accepted? obj.changeset_id} == 0
+    accepted_versions = @versions.map {|obj| changeset_is_accepted? obj.changeset_id}
   
+    return [] if accepted_versions.all?
+
     prev_obj = @versions.first.version_zero
 
     base_obj = prev_obj.clone
@@ -40,7 +42,7 @@ class History
     omit_tags = []
     omit_tags = ["multipolygon", "route", "site", "restriction", "boundary"].map{|v| ["type", v]} if base_obj.class == OSM::Relation
 
-    @versions.zip(odbl_clean_versions).each do |obj,is_odbl_clean|
+    @versions.zip(odbl_clean_versions, accepted_versions).each do |obj,is_odbl_clean,accepted|
       # deletions are always "clean", and we consider them to
       # have no tags and the "version zero" geometry. what
       # happens after that may be a revert to a previous version.
@@ -59,7 +61,7 @@ class History
       # clean, and we try to enumerate them here.
       status = if is_odbl_clean
                  :odbl_clean
-               elsif changeset_is_accepted?(obj.changeset_id)
+               elsif accepted
                  :acceptor_edit
                elsif tags_patch.empty? and geom_patch.empty?
                  :empty
@@ -225,8 +227,20 @@ class ChangeBot
   end
 
   def process_all!
+    process_nodes!
+    process_ways!
+    process_relations!
+  end
+  
+  def process_nodes!
     @db.nodes.keys.each     {|n| process!(OSM::Node, n)}
+  end
+  
+  def process_ways!
     @db.ways.keys.each      {|w| process!(OSM::Way, w)}
+  end
+  
+  def process_relations!
     @db.relations.keys.each {|r| process!(OSM::Relation, r)}
   end
 

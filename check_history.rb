@@ -75,6 +75,16 @@ def get_url_lines(agent, verbose, url)
     map {|l| l.to_i }
 end
 
+@start_time = nil
+
+def print_time(verbose, name = nil)
+  now_time = Time.now
+  print "(#{now_time - @start_time} s)\n" if verbose and not @start_time.nil?
+  @start_time = now_time
+  
+  print "#{name}..." if verbose and not name.nil?
+end
+
 class AgreedFile
   def initialize(agent, verbose, url, limit = nil)
     @ids = get_url_lines(agent, verbose, url)
@@ -157,6 +167,7 @@ elements = {
 
 ARGV.each do |arg|
   # Get the history file for the element
+  print_time(verbose, "Get the content of #{arg}")
   content =
   if read_from_file then
     if @enable_bzip2 and arg.end_with? '.bz2' then
@@ -174,6 +185,7 @@ ARGV.each do |arg|
   end
   
   # Parse the file into elements
+  print_time(verbose, "Parse the content of #{arg}")
   history = OSM::parse(content)
   history.each do |e|
     t =  if e.class == OSM::Node then :nodes
@@ -186,8 +198,9 @@ ARGV.each do |arg|
       elements[t][e.element_id] = [e]
     end
   end
-
+  
   # Get the status of each changeset
+  print_time(verbose, "Get the status of each changeset in #{arg}")
   history.each do |e|
     cs_id = e.changeset_id
     unless elements[:changesets].has_key? cs_id
@@ -211,14 +224,17 @@ end
 db = DB.new(elements)
 
 bot = ChangeBot.new(db)
-bot.process_all!
+print_time(verbose, "Process all nodes")
+bot.process_nodes!
+print_time(verbose, "Process all ways")
+bot.process_ways!
+print_time(verbose, "Process all relations")
+bot.process_relations!
 
-if verbose 
-  puts 
-  puts "=== RESULT ==="
-  puts
-end
+print_time(verbose, "Delete empty objects")
+changeset = bot.as_changeset
 
+print_time(verbose, "Output the changeset")
 if output_file == '-'
   fp = $stdout
 elsif @enable_bzip2 and output_file.end_with? '.bz2'
@@ -226,6 +242,7 @@ elsif @enable_bzip2 and output_file.end_with? '.bz2'
 else
   fp = File.open(output_file, "w")
 end
+OSM::print_osmchange(changeset, db, out = fp)
 
-OSM::print_osmchange(bot.as_changeset, db, out = fp)
+print_time(verbose)
 
