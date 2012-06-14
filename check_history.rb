@@ -12,6 +12,14 @@ require 'getoptlong'
 require 'mechanize'
 require 'set'
 
+@enable_bzip2 = false
+begin
+  require 'bzip2-ruby'
+  @enable_bzip2 = true
+rescue LoadError
+  puts 'Compression with bzip2 disabled enable by installing bzip2-ruby'
+end
+
 USERS_AGREED = "http://planet.openstreetmap.org/users_agreed/users_agreed.txt"
 CHANGESETS_AGREED = "http://planet.openstreetmap.org/users_agreed/anon_changesets_agreed.txt"
 
@@ -151,7 +159,11 @@ ARGV.each do |arg|
   # Get the history file for the element
   content =
   if read_from_file then
-    File.open(arg, "r").read()
+    if @enable_bzip2 and arg.end_with? '.bz2' then
+      Bzip2::Reader.new File.open(arg, "r")
+    else
+      File.open(arg, "r")
+    end.read()
   else
     type, id = arg.split("_")
     id = id.to_i
@@ -209,6 +221,8 @@ end
 
 if output_file == '-'
   fp = $stdout
+elsif @enable_bzip2 and output_file.end_with? '.bz2'
+  fp = Bzip2::Writer.new File.open(output_file, "w")
 else
   fp = File.open(output_file, "w")
 end
