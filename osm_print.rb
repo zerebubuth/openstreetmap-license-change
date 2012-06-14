@@ -5,23 +5,47 @@ USERNAME = "Redaction bot"
 UID = 0
 TIMESTAMP = "2012-04-01T00:00:00Z"
 
+def compare(a, b)
+  aklass, bklass = nil, nil
+  aid, bid = 0, 0
+  
+  if a.class == Delete then
+    aklass = a.klass
+    aid = a.element_id
+  else
+    aklass = a.obj.class
+    aid = a.obj.element_id
+  end
+  if b.class == Delete then
+    bklass = b.klass
+    bid = b.element_id
+  else
+    bklass = b.obj.class
+    bid = b.obj.element_id
+  end
+  
+  ai = if aklass == OSM::Node then 0 elsif aklass == OSM::Way then 1 else 2 end
+  bi = if bklass == OSM::Node then 0 elsif bklass == OSM::Way then 1 else 2 end
+  return ai <=> bi if ai != bi
+  
+  aid <=> bid
+end
+
 module OSM
   def self.print_osmchange(changeset, db, out = $stdout)
-    changes = changeset.group_by {|obj| obj.class}
-    edits = (changes.has_key? Edit) ? changes[Edit] : []
-    deletes = (changes.has_key? Delete) ? changes[Delete] : []
+    changeset.sort! {|a, b| compare(a, b)}
   
     out << '<osmChange version="0.6" generator="Redaction bot">' << "\n"
-    if not edits.empty? then
-      out << '  <modify' << "\n"
-      edits.each {|edit| self.print(edit.obj, out, 2)}
-      out << '  </modify>' << "\n"
-    end
-    
-    if not deletes.empty? then
-      out << '  <delete>' << "\n"
-      deletes.each {|delete| self.print(self.from_delete(delete, db), out, 2)}
-      out << '  </delete>' << "\n"
+    changeset.each do |o|
+      if o.class == Edit then
+        out << '  <modify>' << "\n"
+        self.print(o.obj, out, 2)
+        out << '  </modify>' << "\n"
+      elsif o.class == Delete then
+        out << '  <delete>' << "\n"
+        self.print(self.from_delete(o, db), out, 2)
+        out << '  </delete>' << "\n"
+      end
     end
     
     out << '</osmChange>' << "\n"
@@ -53,8 +77,8 @@ module OSM
     
     if obj.class == OSM::Node
       name = "node"
-      attributes[:lat] = obj.position[0]
-      attributes[:lon] = obj.position[1]
+      attributes[:lat] = obj.position.size == 2 ? obj.position[0] : 0
+      attributes[:lon] = obj.position.size == 2 ? obj.position[1] : 0
     elsif obj.class == OSM::Way
       name = "way"
       child_name = "nd"
