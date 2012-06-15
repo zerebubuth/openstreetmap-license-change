@@ -252,6 +252,13 @@ end
   # TODO: may need some work for internationalisation
   def self.equal_expansions(a, b)
     # TODO: insert abbrev-python-v2 algo here
+    # filter rules
+    
+    # add specialrules
+    
+    #init toextend (priorityqueue)
+    
+    
     return false
   end
 
