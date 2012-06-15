@@ -175,6 +175,7 @@ module Abbrev
     "gasse" => ["g"],
     "gemeinschaft" => ["gem"],
     "gemeinschafts" => ["gem"],
+    "georg" => ["gg"],
     "groß" => ["gr"],
     "große" => ["gr"],
     "großer" => ["gr"],
