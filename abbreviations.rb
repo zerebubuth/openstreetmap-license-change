@@ -1,11 +1,11 @@
 # encoding: UTF-8
-
+require 'set'
 # mod for doing stuff w/ abbrevs
 module Abbrev
   # a list of abbreviations culled, at least in part, from the USPS
   # official list https://www.usps.com/send/official-abbreviations.htm#2
   # this might be too country-specific, but it's a start.
-  ABBREVIATIONS = [
+  classes = [
     ["alley", "aly"],
     ["and", "&"],
     ["annex", "anx"],
@@ -237,8 +237,12 @@ module Abbrev
     ["o", "ost"],
     ["s", "süd"],
   ]
-RULES = {}
-
+rules = Hash.new(Set.new)
+for clazz in classes
+  for elem in clazz
+    rules[elem] = rules[elem] | ((Set.new clazz) - (Set.new [elem]))
+  end
+end
 
   # function for expanding a string into a list of strings
   # TODO: may need some work for internationalisation
