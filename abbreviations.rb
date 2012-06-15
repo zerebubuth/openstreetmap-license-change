@@ -237,12 +237,16 @@ module Abbrev
     ["o", "ost"],
     ["s", "süd"],
   ]
+
+#build substitution rules out of classes (plz do this only once per redactionbot-start)
 rules = Hash.new(Set.new)
 for clazz in classes
   for elem in clazz
     rules[elem] = rules[elem] | ((Set.new clazz) - (Set.new [elem]))
   end
 end
+
+
 
   # function for expanding a string into a list of strings
   # TODO: may need some work for internationalisation
