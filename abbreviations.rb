@@ -237,6 +237,7 @@ module Abbrev
     ["o", "ost"],
     ["s", "süd"],
   ]
+RULES = {}
 
 
   # function for expanding a string into a list of strings
