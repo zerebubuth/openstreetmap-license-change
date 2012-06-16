@@ -257,46 +257,58 @@ end
       if !heap.empty?()
         #remove the best unvisited word from queue and mangle it
         wordstart, wordend = heap.next!()
-	puts wordend
+        print "\n------\n"
+        print [wordstart]
+        print " - "
+        print [wordend]
         #call every rule
         for rule in manglerules.keys()
           #and try to use it
-          for substitute in manglerules[rule]
-            #execute rule (just split once!!)
-            newsplit = wordend.split(rule,1)
-            # if rule doesn't apply len != 2
-            if newsplit.size() == 2
+	  if rule == ' '
+	    print "\nSPACE\n"
+	  end
+          #execute rule (just split once!!)
+          newsplit = wordend.split(rule,2)
+          # if rule doesn't apply len != 2
+          if newsplit.size() == 2
+            for substitute in manglerules[rule]
               newwordstart = wordstart + newsplit[0] + substitute
               newwordend = newsplit[1]
               #everything in wordstart have to match targets first characters
               if target.start_with?(newwordstart)
                 #if we found our string we're happy
-                if target.end_with?(newwordend)
+		print "\n>>"
+		print [target]
+		print [newwordstart + newwordend]
+                if target == newwordstart + newwordend
                   puts "Found"
                   return true
-		end
+                end
                 heap.push([newwordstart,newwordend],-newwordend.size())
                 #to avoid loops with insert space (and insert special rule ' ')
                 if rule != ' '
+		  newwordspaceend = ' ' + newwordend
                   #if we found our string we're happy
-                  if target.endswith(' ' + newwordend)
+                  if target == newwordstart + newwordspaceend
                     puts "Found"
                     return true
-		  end
-                  heap.push([newwordstart,' '+newwordend],-newwordend.size()) # insert space
-		end
-	      end
-	    end
-	  end
-	end
+                  end
+                  heap.push([newwordstart,newwordspaceend],-newwordend.size()) # insert space
+                end
+              end
+            end
+          end
+        end
       end
       return false
     end
 
   # TODO: may need some work for internationalisation
   def self.equal_expansions(a, b)
+    input1 = a.downcase() + ' '
+    input2 = b.downcase() + ' '
     # TODO: insert abbrev-python-v2 algo here
-    if a == b
+    if input1 == input2
       #shortcut if string a matches string b
       return true
     end
@@ -304,14 +316,19 @@ end
     
     #init toextend (priorityqueue)
     extendforwpq = Containers::PriorityQueue.new
-    extendforwpq.push(['',a],0)
+    extendforwpq.push(['',input1],0)
     extendbackwpq = Containers::PriorityQueue.new
-    extendbackwpq.push(['',b],0)
+    extendbackwpq.push(['',input2],0)
     
         
     until extendforwpq.empty?() and extendbackwpq.empty?()
-      if manglenext(extendforwpq, @@rules, b) or manglenext(extendbackwpq, @@rules, a)
-	return true
+      print "\nForward"
+      if manglenext(extendforwpq, @@rules, input2)
+        return true
+      end
+      print "\nBackward"
+      if manglenext(extendbackwpq, @@rules, input1)
+        return true
       end
     end
     return false
