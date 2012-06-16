@@ -247,9 +247,9 @@ for clazz in classes
   end
 end
 #special rules like kill spaces, dashes and dots
-@@rules[' '] = @@rules[elem] | Set.new(['', '-', '.', '. '])
-@@rules['-'] = @@rules[elem] | Set.new([' ', ''])
-@@rules['.'] = @@rules[elem] | Set.new([' ', ''])
+@@rules[' '] = @@rules[elem] | Set.new([' ', '', '-', '.', '. '])
+@@rules['-'] = @@rules[elem] | Set.new(['-', ' ', ''])
+@@rules['.'] = @@rules[elem] | Set.new(['.', ' ', ''])
 
 
   # function for expanding a string into a list of strings
@@ -257,16 +257,9 @@ end
       if !heap.empty?()
         #remove the best unvisited word from queue and mangle it
         wordstart, wordend = heap.next!()
-        print "\n------\n"
-        print [wordstart]
-        print " - "
-        print [wordend]
         #call every rule
         for rule in manglerules.keys()
           #and try to use it
-	  if rule == ' '
-	    print "\nSPACE\n"
-	  end
           #execute rule (just split once!!)
           newsplit = wordend.split(rule,2)
           # if rule doesn't apply len != 2
@@ -277,11 +270,7 @@ end
               #everything in wordstart have to match targets first characters
               if target.start_with?(newwordstart)
                 #if we found our string we're happy
-		print "\n>>"
-		print [target]
-		print [newwordstart + newwordend]
                 if target == newwordstart + newwordend
-                  puts "Found"
                   return true
                 end
                 heap.push([newwordstart,newwordend],-newwordend.size())
@@ -290,7 +279,6 @@ end
 		  newwordspaceend = ' ' + newwordend
                   #if we found our string we're happy
                   if target == newwordstart + newwordspaceend
-                    puts "Found"
                     return true
                   end
                   heap.push([newwordstart,newwordspaceend],-newwordend.size()) # insert space
@@ -322,11 +310,9 @@ end
     
         
     until extendforwpq.empty?() and extendbackwpq.empty?()
-      print "\nForward"
       if manglenext(extendforwpq, @@rules, input2)
         return true
       end
-      print "\nBackward"
       if manglenext(extendbackwpq, @@rules, input1)
         return true
       end
