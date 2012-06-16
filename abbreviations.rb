@@ -303,7 +303,6 @@ end
   def self.equal_expansions(a, b)
     input1 = a.downcase() + ' '
     input2 = b.downcase() + ' '
-    # TODO: insert abbrev-python-v2 algo here
     if input1 == input2
       #shortcut if string a matches string b
       return true
