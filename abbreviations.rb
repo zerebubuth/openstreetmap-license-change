@@ -260,6 +260,9 @@ end
         #call every rule
         for rule in manglerules.keys()
           #and try to use it
+	  if wordend.size() < rule.size() # TODO: BENCHMARKTEST NEEDED
+	    next
+	  end
           #execute rule (just split once!!)
 	  newsplit = []
 	  if rule == ' '
@@ -306,6 +309,21 @@ end
       return true
     end
     # filter rules? maybe if words are long enough / dont remove special rules
+    #forwardrules = @@rules
+    #backwardrules = @@rules
+    
+    forwardrules = Hash.new() # TODO Benchmark needed
+    backwardrules = Hash.new()
+    for rule in @@rules.keys()
+      if input1.include? rule or rule == ' ' or rule == '-' or rule == '.'
+	forwardrules[rule] = @@rules[rule]
+      end
+    end
+    for rule in @@rules.keys()
+      if input2.include? rule or rule == ' ' or rule == '-' or rule == '.'
+	backwardrules[rule] = @@rules[rule]
+      end
+    end
     
     #init toextend (priorityqueue)
     extendforwpq = Containers::PriorityQueue.new
@@ -315,10 +333,10 @@ end
     
         
     until extendforwpq.empty?() and extendbackwpq.empty?()
-      if manglenext(extendforwpq, @@rules, input2)
+      if manglenext(extendforwpq, forwardrules, input2)
         return true
       end
-      if manglenext(extendbackwpq, @@rules, input1)
+      if manglenext(extendbackwpq, backwardrules, input1)
         return true
       end
     end
