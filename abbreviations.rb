@@ -245,16 +245,21 @@ for clazz in classes
     rules[elem] = rules[elem] | ((Set.new clazz) - (Set.new [elem]))
   end
 end
-
+#special rules like kill spaces, dashes and dots
+rules[' '] = rules[elem] | Set.new(['', '-', '.', '. '])
+rules['-'] = rules[elem] | Set.new([' ', ''])
+rules['.'] = rules[elem] | Set.new([' ', ''])
 
 
   # function for expanding a string into a list of strings
   # TODO: may need some work for internationalisation
   def self.equal_expansions(a, b)
     # TODO: insert abbrev-python-v2 algo here
-    # filter rules
-    
-    # add specialrules
+    if a == b
+      #shortcut if string a matches string b
+      return true
+    end
+    # filter rules? maybe if words are long enough / dont remove special rules
     
     #init toextend (priorityqueue)
     
