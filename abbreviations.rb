@@ -252,6 +252,7 @@ end
 @@rules['.'] = @@rules[elem] | Set.new([' ', ''])
 
 
+  # function for expanding a string into a list of strings
     def self.manglenext(heap, manglerules, target)
       if !heap.empty?()
         #remove the best unvisited word from queue and mangle it
@@ -289,9 +290,9 @@ end
 	  end
 	end
       end
+      return false
     end
 
-  # function for expanding a string into a list of strings
   # TODO: may need some work for internationalisation
   def self.equal_expansions(a, b)
     # TODO: insert abbrev-python-v2 algo here
@@ -309,11 +310,10 @@ end
     
         
     until extendforwpq.empty?() and extendbackwpq.empty?()
-      if manglenext(extendforwpq, @@rules, b) or manglenext(extendbackwpq, rules, a)
+      if manglenext(extendforwpq, @@rules, b) or manglenext(extendbackwpq, @@rules, a)
 	return true
       end
     end
-    
     return false
   end
 
