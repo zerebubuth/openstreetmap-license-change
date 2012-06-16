@@ -261,7 +261,12 @@ end
         for rule in manglerules.keys()
           #and try to use it
           #execute rule (just split once!!)
-          newsplit = wordend.split(rule,2)
+	  newsplit = []
+	  if rule == ' '
+	    newsplit = wordend.split(/ /,2)
+	  else
+	    newsplit = wordend.split(rule,2)
+	  end
           # if rule doesn't apply len != 2
           if newsplit.size() == 2
             for substitute in manglerules[rule]
