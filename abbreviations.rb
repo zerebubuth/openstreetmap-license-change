@@ -1,5 +1,6 @@
 # encoding: UTF-8
 require 'set'
+require 'algorithms'
 # mod for doing stuff w/ abbrevs
 module Abbrev
   # a list of abbreviations culled, at least in part, from the USPS
@@ -239,17 +240,56 @@ module Abbrev
   ]
 
 #build substitution rules out of classes (plz do this only once per redactionbot-start)
-rules = Hash.new(Set.new)
+@@rules = Hash.new(Set.new)
 for clazz in classes
   for elem in clazz
-    rules[elem] = rules[elem] | ((Set.new clazz) - (Set.new [elem]))
+    @@rules[elem] = @@rules[elem] | ((Set.new clazz) - (Set.new [elem]))
   end
 end
 #special rules like kill spaces, dashes and dots
-rules[' '] = rules[elem] | Set.new(['', '-', '.', '. '])
-rules['-'] = rules[elem] | Set.new([' ', ''])
-rules['.'] = rules[elem] | Set.new([' ', ''])
+@@rules[' '] = @@rules[elem] | Set.new(['', '-', '.', '. '])
+@@rules['-'] = @@rules[elem] | Set.new([' ', ''])
+@@rules['.'] = @@rules[elem] | Set.new([' ', ''])
 
+
+    def self.manglenext(heap, manglerules, target)
+      if !heap.empty?()
+        #remove the best unvisited word from queue and mangle it
+        wordstart, wordend = heap.next!()
+	puts wordend
+        #call every rule
+        for rule in manglerules.keys()
+          #and try to use it
+          for substitute in manglerules[rule]
+            #execute rule (just split once!!)
+            newsplit = wordend.split(rule,1)
+            # if rule doesn't apply len != 2
+            if newsplit.size() == 2
+              newwordstart = wordstart + newsplit[0] + substitute
+              newwordend = newsplit[1]
+              #everything in wordstart have to match targets first characters
+              if target.start_with?(newwordstart)
+                #if we found our string we're happy
+                if target.end_with?(newwordend)
+                  puts "Found"
+                  return true
+		end
+                heap.push([newwordstart,newwordend],-newwordend.size())
+                #to avoid loops with insert space (and insert special rule ' ')
+                if rule != ' '
+                  #if we found our string we're happy
+                  if target.endswith(' ' + newwordend)
+                    puts "Found"
+                    return true
+		  end
+                  heap.push([newwordstart,' '+newwordend],-newwordend.size()) # insert space
+		end
+	      end
+	    end
+	  end
+	end
+      end
+    end
 
   # function for expanding a string into a list of strings
   # TODO: may need some work for internationalisation
@@ -262,7 +302,17 @@ rules['.'] = rules[elem] | Set.new([' ', ''])
     # filter rules? maybe if words are long enough / dont remove special rules
     
     #init toextend (priorityqueue)
+    extendforwpq = Containers::PriorityQueue.new
+    extendforwpq.push(['',a],0)
+    extendbackwpq = Containers::PriorityQueue.new
+    extendbackwpq.push(['',b],0)
     
+        
+    until extendforwpq.empty?() and extendbackwpq.empty?()
+      if manglenext(extendforwpq, @@rules, b) or manglenext(extendbackwpq, rules, a)
+	return true
+      end
+    end
     
     return false
   end
