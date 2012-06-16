@@ -278,7 +278,7 @@ end
                 if target == newwordstart + newwordend
                   return true
                 end
-                heap.push([newwordstart,newwordend],-newwordend.size())
+                heap.push([newwordstart,newwordend],newwordstart.size())
                 #to avoid loops with insert space (and insert special rule ' ')
                 if rule != ' '
 		  newwordspaceend = ' ' + newwordend
@@ -286,7 +286,7 @@ end
                   if target == newwordstart + newwordspaceend
                     return true
                   end
-                  heap.push([newwordstart,newwordspaceend],-newwordend.size()) # insert space
+                  heap.push([newwordstart,newwordspaceend],newwordstart.size()) # insert space
                 end
               end
             end
