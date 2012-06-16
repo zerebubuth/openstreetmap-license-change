@@ -260,16 +260,16 @@ end
         #call every rule
         for rule in manglerules.keys()
           #and try to use it
-	  if wordend.size() < rule.size() # TODO: BENCHMARKTEST NEEDED
-	    next
-	  end
+          if wordend.size() < rule.size() # TODO: BENCHMARKTEST NEEDED
+            next
+          end
           #execute rule (just split once!!)
-	  newsplit = []
-	  if rule == ' '
-	    newsplit = wordend.split(/ /,2)
-	  else
-	    newsplit = wordend.split(rule,2)
-	  end
+          newsplit = []
+          if rule == ' '
+            newsplit = wordend.split(/ /,2)
+          else
+            newsplit = wordend.split(rule,2)
+          end
           # if rule doesn't apply len != 2
           if newsplit.size() == 2
             for substitute in manglerules[rule]
@@ -284,7 +284,7 @@ end
                 heap.push([newwordstart,newwordend],newwordstart.size())
                 #to avoid loops with insert space (and insert special rule ' ')
                 if rule != ' '
-		  newwordspaceend = ' ' + newwordend
+                  newwordspaceend = ' ' + newwordend
                   #if we found our string we're happy
                   if target == newwordstart + newwordspaceend
                     return true
@@ -315,12 +315,12 @@ end
     backwardrules = Hash.new()
     for rule in @@rules.keys()
       if input1.include? rule or rule == ' ' or rule == '-' or rule == '.'
-	forwardrules[rule] = @@rules[rule]
+        forwardrules[rule] = @@rules[rule]
       end
     end
     for rule in @@rules.keys()
       if input2.include? rule or rule == ' ' or rule == '-' or rule == '.'
-	backwardrules[rule] = @@rules[rule]
+        backwardrules[rule] = @@rules[rule]
       end
     end
     
