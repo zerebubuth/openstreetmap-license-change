@@ -212,7 +212,42 @@ class TestWay < MiniTest::Unit::TestCase
                  ], actions)
   end
   
-  # ** FIXME: add some more way tests here, and some relation ones too.
+  def test_way_reversed_by_decliner
+    history = [OSM::Way[[1,2  ], :id=>1, :changeset=>1, :version=>1, "oneway"=>"-1"], # created by agreer
+               OSM::Way[[2,1  ], :id=>1, :changeset=>3, :version=>2, "oneway"=>"yes"], # way reversed by decliner
+               OSM::Way[[3,2,1], :id=>1, :changeset=>2, :version=>3, "oneway"=>"yes"]] # node added by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Way[[1,2,3], :id=>1, :changeset=>-1, :version=>3, "oneway"=>"-1"]],
+                  Redact[OSM::Way, 1, 2, :hidden],
+                  Redact[OSM::Way, 1, 3, :visible]
+                 ], actions)
+  end
+  
+  def test_way_nodes_added_and_moved
+    history = [OSM::Way[[1  ,3], :id=>1, :changeset=>1, :version=>1], # created by agreer
+               OSM::Way[[1,2,3], :id=>1, :changeset=>3, :version=>2], # node added by decliner
+               OSM::Way[[2,1,3], :id=>1, :changeset=>2, :version=>3]] # node moved by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Way[[1,3], :id=>1, :changeset=>-1, :version=>3]],
+                  Redact[OSM::Way, 1, 2, :hidden],
+                  Redact[OSM::Way, 1, 3, :visible]
+                 ], actions)
+  end
+  
+  def test_way_nodes_added_and_moved2
+    history = [OSM::Way[[1  ,3  ], :id=>1, :changeset=>3, :version=>1], # created by decliner
+               OSM::Way[[1,2,3,4], :id=>1, :changeset=>1, :version=>2], # node added by agreer
+               OSM::Way[[3,1,2,4], :id=>1, :changeset=>2, :version=>3]] # node moved by agreer
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Way[[2,4], :id=>1, :changeset=>-1, :version=>3]],
+                  Redact[OSM::Way, 1, 1, :hidden],
+                  Redact[OSM::Way, 1, 2, :visible],
+                  Redact[OSM::Way, 1, 3, :visible]
+                 ], actions)
+  end
 end
 
 if __FILE__ == $0

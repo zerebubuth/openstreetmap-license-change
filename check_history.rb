@@ -2,6 +2,7 @@
 
 require './osm'
 require './osm_parse'
+require './osm_print'
 require './db'
 require './changeset'
 require './user'
@@ -10,6 +11,14 @@ require 'open-uri'
 require 'getoptlong'
 require 'mechanize'
 require 'set'
+
+@enable_bzip2 = false
+begin
+  require 'bzip2-ruby'
+  @enable_bzip2 = true
+rescue LoadError
+  puts 'Compression with bzip2 disabled enable by installing bzip2-ruby'
+end
 
 USERS_AGREED = "http://planet.openstreetmap.org/users_agreed/users_agreed.txt"
 CHANGESETS_AGREED = "http://planet.openstreetmap.org/users_agreed/anon_changesets_agreed.txt"
@@ -21,7 +30,7 @@ check_history.rb [OPTIONS...] [elements]
 -h, --help:
    Show help
 
--s --server:
+-s --server domain:
    Use server s for API calls. Defaults to the test API.
 
 -v --verbose:
@@ -30,17 +39,20 @@ check_history.rb [OPTIONS...] [elements]
 -f --file:
    Take a list of history files as input.
 
--u --users-agreed:
+-o --output file:
+   Prints the resulting osmChange to the output file.
+
+-u --users-agreed file:
    A URL or file with a list of user IDs of those who have agreed.
    If this is not specified then it is assumed all users have agreed.
 
--c --changesets-agreed:
+-c --changesets-agreed file:
    A URL or file with a list of changesets which have been agreed.
    This is used only where the owner of the changeset is anonymous.
    If this is not specified then it is assumed all anonymous users have 
    agreed.
 
--l --user-agreed-limit:
+-l --user-agreed-limit int:
    The user ID below which users may not have agreed. For example,
    on the main API this number is 286582 and user IDs >= this are
    guaranteed to have agreed.
@@ -63,6 +75,16 @@ def get_url_lines(agent, verbose, url)
     map {|l| l.to_i }
 end
 
+@start_time = nil
+
+def print_time(verbose, name = nil)
+  now_time = Time.now
+  print "(#{now_time - @start_time} s)\n" if verbose and not @start_time.nil?
+  @start_time = now_time
+  
+  print "#{name}..." if verbose and not name.nil?
+end
+
 class AgreedFile
   def initialize(agent, verbose, url, limit = nil)
     @ids = get_url_lines(agent, verbose, url)
@@ -79,16 +101,18 @@ opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
                       ['--server', '-s', GetoptLong::REQUIRED_ARGUMENT ],
                       ['--verbose', '-v', GetoptLong::NO_ARGUMENT],
                       ['--file', '-f', GetoptLong::NO_ARGUMENT],
+                      ['--output', '-o', GetoptLong::REQUIRED_ARGUMENT ],
                       ['--users-agreed', '-u', GetoptLong::REQUIRED_ARGUMENT],
                       ['--changesets-agreed', '-c', GetoptLong::REQUIRED_ARGUMENT],
                       ['--user-agreed-limit', '-l', GetoptLong::REQUIRED_ARGUMENT])
 
-verbose = true
+verbose = false
 read_from_file = false
 server = "api.openstreetmap.org"
 users_agreed = USERS_AGREED
 changesets_agreed = CHANGESETS_AGREED
 user_limit = 286582
+output_file = '-'
 
 agent = Mechanize.new
 
@@ -106,6 +130,9 @@ opts.each do |opt, arg|
 
   when '--file'
     read_from_file = true
+  
+  when '--output'
+    output_file = arg
 
   when '--users-agreed'
     users_agreed = arg
@@ -140,9 +167,14 @@ elements = {
 
 ARGV.each do |arg|
   # Get the history file for the element
+  print_time(verbose, "Get the content of #{arg}")
   content =
   if read_from_file then
-    File.open(arg, "r").read()
+    if @enable_bzip2 and arg.end_with? '.bz2' then
+      Bzip2::Reader.new File.open(arg, "r")
+    else
+      File.open(arg, "r")
+    end.read()
   else
     type, id = arg.split("_")
     id = id.to_i
@@ -153,6 +185,7 @@ ARGV.each do |arg|
   end
   
   # Parse the file into elements
+  print_time(verbose, "Parse the content of #{arg}")
   history = OSM::parse(content)
   history.each do |e|
     t =  if e.class == OSM::Node then :nodes
@@ -165,8 +198,9 @@ ARGV.each do |arg|
       elements[t][e.element_id] = [e]
     end
   end
-
+  
   # Get the status of each changeset
+  print_time(verbose, "Get the status of each changeset in #{arg}")
   history.each do |e|
     cs_id = e.changeset_id
     unless elements[:changesets].has_key? cs_id
@@ -190,11 +224,25 @@ end
 db = DB.new(elements)
 
 bot = ChangeBot.new(db)
-bot.process_all!
+print_time(verbose, "Process all nodes")
+bot.process_nodes!
+print_time(verbose, "Process all ways")
+bot.process_ways!
+print_time(verbose, "Process all relations")
+bot.process_relations!
 
-if verbose 
-  puts 
-  puts "=== RESULT ==="
+print_time(verbose, "Delete empty objects")
+changeset = bot.as_changeset
+
+print_time(verbose, "Output the changeset")
+if output_file == '-'
+  fp = $stdout
+elsif @enable_bzip2 and output_file.end_with? '.bz2'
+  fp = Bzip2::Writer.new File.open(output_file, "w")
+else
+  fp = File.open(output_file, "w")
 end
-puts bot.as_changeset.inspect
+OSM::print_osmchange(changeset, db, out = fp)
+
+print_time(verbose)
 

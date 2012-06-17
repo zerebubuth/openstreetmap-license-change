@@ -14,6 +14,7 @@ class TestAbbrev < MiniTest::Unit::TestCase
 
   EQUAL_STRINGS = {
     # English
+    "Foobarbaz Rd" => "Foobarbaz Rd",
     "Foobar Rd" => "Foobar Road",
     "Foobar Road" => "Foobar Rd",
     "E Foobar Wy" => "East Foobar Way",
@@ -23,6 +24,7 @@ class TestAbbrev < MiniTest::Unit::TestCase
     "NE Foobar Street" => "Northeast Foobar St",
     "Foo & Bar" => "Foo and Bar",
     "Foo&Bar" => "Foo and Bar",
+    "Foo&BarBaz" => "Foo&BarBaz",
     "North & Western" => "North and Western",
     "Doublespace  St" => "Doublespace street",
     "New NW Route" => "New North West Route",
@@ -94,21 +96,6 @@ class TestAbbrev < MiniTest::Unit::TestCase
 
   def check_abbrev_inquality(a, b)
     assert_equal(false, abbrev_equals(a, b), "Expecting #{a.inspect} to NOT equal #{b.inspect} under abbreviation/expansion, but it does.")
-  end
-  
-  def abbrev_equals(a, b)
-    #return Abbrev.equal_expansions(a, b)
-    
-    out = `./abbreviations.py "#{a}" "#{b}"`
-
-    r = $?.exitstatus
-    if r == 0 then
-      return true
-    elsif r == 2 then
-      return false
-    else
-      raise "Error in 'abbreviations.py':\n #{out}"
-    end
   end
 end
 
