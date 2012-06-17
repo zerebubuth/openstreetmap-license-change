@@ -27,6 +27,9 @@ For running on Ubuntu Linux/Debian Linux you will need Ubuntu Linux 12.04 LTS or
 'sudo gem1.9.1 install text'
 3. To install 'libxml' gem, run this command in your terminal:
 'sudo gem1.9.1 install libxml-ruby'
+4. To install 'mechanize' gem, run these commands in your terminal:
+'sudo apt-get install libxslt-dev'
+'sudo gem1.9.1 install mechanize'
 4. To run tests, use 'ruby1.9.1' binary like this:
 'ruby1.9.1 test.rb'
 
