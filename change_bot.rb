@@ -233,15 +233,15 @@ class ChangeBot
   end
   
   def process_nodes!
-    @db.nodes.keys.each     {|n| process!(OSM::Node, n)}
+    @db.each_node     {|n| process!(OSM::Node, n)}
   end
   
   def process_ways!
-    @db.ways.keys.each      {|w| process!(OSM::Way, w)}
+    @db.each_way      {|w| process!(OSM::Way, w)}
   end
   
   def process_relations!
-    @db.relations.keys.each {|r| process!(OSM::Relation, r)}
+    @db.each_relation {|r| process!(OSM::Relation, r)}
   end
 
   def as_changeset

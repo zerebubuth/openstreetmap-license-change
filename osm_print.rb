@@ -52,13 +52,13 @@ module OSM
   end
   
   def self.from_delete(delete, db)
-    t =  if delete.klass == OSM::Node then db.nodes
-      elsif delete.klass == OSM::Way then db.ways
-      elsif delete.klass == OSM::Relation then db.relations
+    t =  if delete.klass == OSM::Node then db.current_node(delete.element_id)
+      elsif delete.klass == OSM::Way then db.current_way(delete.element_id)
+      elsif delete.klass == OSM::Relation then db.current_relation(delete.element_id)
       end
-      
-    version = t[delete.element_id].map {|obj| obj.version}.max
-    delete.klass.new({:id => delete.element_id, :changeset => -1, :visible => false, :version => version},[],[])
+    
+    geom = delete.klass == OSM::Node ? t.geom : []
+    delete.klass.new({:id => delete.element_id, :changeset => -1, :visible => false, :version => t.version},geom,[])
   end
   
   def self.print(obj, out = $stdout, indent = 0)

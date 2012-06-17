@@ -151,6 +151,11 @@ module OSM
       attr_accessor :type, :ref, :role
 
       def self.[](type, ref, role = "")
+        if type.class == String then
+          type = OSM::Node if type == 'node'
+          type = OSM::Way if type == 'way'
+          type = OSM::Relation if type == 'relation'
+        end
         Member.new(type, ref, role)
       end
 

@@ -5,7 +5,7 @@ class DB
   # constructor.
   def metaclass; class << self; self; end; end
 
-  attr_reader :changesets, :nodes, :ways, :relations
+  #attr_reader :changesets, :nodes, :ways, :relations
 
   def initialize(options = {})
     # define a set of accessors for changesets, nodes, ways and 
@@ -19,6 +19,12 @@ class DB
       self.instance_variable_set(instance_name, hash)
       metaclass.send(:define_method, non_plural_name) do |elt_id|
         self.instance_variable_get(instance_name)[elt_id]
+      end
+      metaclass.send(:define_method, 'each_' + non_plural_name) do |&block|
+        self.instance_variable_get(instance_name).keys.each &block
+      end
+      metaclass.send(:define_method, 'current_' + non_plural_name) do |elt_id|
+        self.instance_variable_get(instance_name)[elt_id].last
       end
     end
 
