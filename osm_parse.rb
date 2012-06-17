@@ -32,7 +32,7 @@ module OSM
       
       case xml_elem.name
       when "node"
-        OSM::Node[[xml_elem["lon"].to_f, xml_elem["lat"].to_f],
+        OSM::Node[[xml_elem["lon"].to_r, xml_elem["lat"].to_r],
                   attrs.merge(tags)]
         
       when "way"
