@@ -224,7 +224,8 @@ module Abbrev
     ["zu", "z"],
     # Swiss German
     ["strasse", "str"],
-    
+    #other
+    ["ulica","u"],
     #compass
      # of course, this is horribly english-specific...
      # but how would one expand this in a sensible fashion to
