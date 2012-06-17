@@ -14,6 +14,7 @@ class TestAbbrev < MiniTest::Unit::TestCase
 
   EQUAL_STRINGS = {
     # English
+    "Foobarbaz Rd" => "Foobarbaz Rd",
     "Foobar Rd" => "Foobar Road",
     "Foobar Road" => "Foobar Rd",
     "E Foobar Wy" => "East Foobar Way",
@@ -23,6 +24,7 @@ class TestAbbrev < MiniTest::Unit::TestCase
     "NE Foobar Street" => "Northeast Foobar St",
     "Foo & Bar" => "Foo and Bar",
     "Foo&Bar" => "Foo and Bar",
+    "Foo&BarBaz" => "Foo&BarBaz",
     "North & Western" => "North and Western",
     "Doublespace  St" => "Doublespace street",
     "New NW Route" => "New North West Route",
