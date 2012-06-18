@@ -259,7 +259,7 @@ end
         #remove the best unvisited word from queue and mangle it
         wordstart, wordend = heap.next!()
         #call every rule
-        for rule in manglerules.keys()
+        for rule in manglerules
           #and try to use it
           if wordend.size() < rule.size() # TODO: BENCHMARKTEST NEEDED
             next
@@ -273,7 +273,7 @@ end
           end
           # if rule doesn't apply len != 2
           if newsplit.size() == 2
-            for substitute in manglerules[rule]
+            for substitute in @@rules[rule]
               newwordstart = wordstart + newsplit[0] + substitute
               newwordend = newsplit[1]
               #everything in wordstart have to match targets first characters
@@ -309,19 +309,17 @@ end
       return true
     end
     # filter rules? maybe if words are long enough / dont remove special rules
-    #forwardrules = @@rules
-    #backwardrules = @@rules
     
-    forwardrules = Hash.new() # TODO Benchmark needed
-    backwardrules = Hash.new()
+    forwardrules = [] # TODO Benchmark needed
+    backwardrules = []
     for rule in @@rules.keys()
-      if input1.include? rule or rule == ' ' or rule == '-' or rule == '.'
-        forwardrules[rule] = @@rules[rule]
+      if rule == ' ' or rule == '-' or rule == '.' or input1.include? rule
+        forwardrules.push(rule)
       end
     end
     for rule in @@rules.keys()
-      if input2.include? rule or rule == ' ' or rule == '-' or rule == '.'
-        backwardrules[rule] = @@rules[rule]
+      if rule == ' ' or rule == '-' or rule == '.' or input2.include? rule
+        backwardrules.push(rule)
       end
     end
     
