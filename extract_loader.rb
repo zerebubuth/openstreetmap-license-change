@@ -90,6 +90,56 @@ def truncate_tables
   @conn.exec("truncate table users cascade")
 end
 
+# This relies on the history file being properly ordered by type, id, version
+def change_entity(new)
+  unless @current_entity.nil?
+    unless new[:type] == @current_entity[:type] && new[:id] == @current_entity[:id]
+      case @current_entity[:type]
+      when :node
+        @conn.exec("insert into current_nodes (id, latitude, longitude, tile, changeset_id, visible, timestamp, version)
+                  (select node_id, latitude, longitude, tile, changeset_id, visible, timestamp, version from nodes where node_id = $1 and version = $2)",
+                  [ @current_entity[:id],
+                    @current_entity[:version]
+                  ])
+        @conn.exec("insert into current_node_tags (node_id, k, v) (select node_id, k, v from node_tags where node_id = $1 and version = $2)",
+                  [ @current_entity[:id],
+                    @current_entity[:version]
+                  ])
+      when :way
+        @conn.exec("insert into current_ways (id, changeset_id, timestamp, visible, version)
+                   (select way_id, changeset_id, timestamp, visible, version from ways where way_id = $1 and version = $2)",
+                  [ @current_entity[:id],
+                    @current_entity[:version]
+                  ])
+        @conn.exec("insert into current_way_tags (way_id, k, v) (select way_id, k, v from way_tags where way_id = $1 and version = $2)",
+                   [ @current_entity[:id],
+                     @current_entity[:version]
+                   ])
+        @conn.exec("insert into current_way_nodes (way_id, node_id, sequence_id) (select way_id, node_id, sequence_id from way_nodes where way_id = $1 and version = $2)",
+                   [ @current_entity[:id],
+                     @current_entity[:version]
+                   ])
+      when :relation
+        @conn.exec("insert into current_relations (id, changeset_id, timestamp, visible, version)
+                   (select relation_id, changeset_id, timestamp, visible, version from relations where relation_id = $1 and version = $2)",
+                   [ @current_entity[:id],
+                     @current_entity[:version]
+                   ])
+        @conn.exec("insert into current_relation_tags (relation_id, k, v) (select relation_id, k, v from relation_tags where relation_id = $1 and version = $2)",
+                   [ @current_entity[:id],
+                     @current_entity[:version]
+                   ])
+        @conn.exec("insert into current_relation_members (relation_id, member_type, member_id, member_role, sequence_id)
+                   (select relation_id, member_type, member_id, member_role, sequence_id from relation_members where relation_id = $1 and version = $2)",
+                   [ @current_entity[:id],
+                     @current_entity[:version]
+                   ])
+      end
+    end
+  end
+  @current_entity = new
+end
+
 truncate_tables()
 create_user(1, 'Anonymous Users')
 
@@ -118,7 +168,7 @@ while parser.read do
                 parser["timestamp"],
                 parser["version"]
               ])
-    @current_entity = {type: :node, id: id, version: version}
+    change_entity({type: :node, id: id, version: version})
 
   when "way"
     id = parser["id"]
@@ -132,7 +182,7 @@ while parser.read do
                 changeset_id,
                 parser["visible"]
               ])
-    @current_entity = {type: :way, id: id, version: version, sequence_id: 0}
+    change_entity({type: :way, id: id, version: version, sequence_id: 0})
 
   when "nd"
     raise unless @current_entity[:type] == :way
@@ -156,7 +206,7 @@ while parser.read do
                 version,
                 parser["visible"]
               ])
-    @current_entity = {type: :relation, id: id, version: version, sequence_id: 0}
+    change_entity({type: :relation, id: id, version: version, sequence_id: 0})
 
   when "member"
     raise unless @current_entity[:type] == :relation
@@ -177,4 +227,6 @@ while parser.read do
   end
 end
 
-  
+# flush the final entity into the current_tables
+change_entity(type: :dummy, id: 0, version: 0)
+
