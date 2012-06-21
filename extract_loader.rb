@@ -119,18 +119,21 @@ while parser.read do
                 parser["version"]
               ])
     @current_entity = {type: :node, id: id, version: version}
+
   when "way"
     id = parser["id"]
     changeset_id = parser["changeset"]
     create_changeset(parser) unless @changesets.include? changeset_id
-    @conn.exec("insert into ways (way_id, version, timestamp, changeset, visible) values ($1, $2, $3, $4, $5)",
+    version = parser["version"]
+    @conn.exec("insert into ways (way_id, version, timestamp, changeset_id, visible) values ($1, $2, $3, $4, $5)",
               [ id,
-                parser["version"],
+                version,
                 parser["timestamp"],
                 changeset_id,
                 parser["visible"]
               ])
     @current_entity = {type: :way, id: id, version: version, sequence_id: 0}
+
   when "nd"
     raise unless @current_entity[:type] == :way
     @conn.exec("insert into way_nodes (way_id, node_id, version, sequence_id) values ($1, $2, $3, $4)",
