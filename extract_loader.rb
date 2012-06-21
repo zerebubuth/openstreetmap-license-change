@@ -140,6 +140,33 @@ while parser.read do
                 @current_entity[:sequence_id]
               ])
     @current_entity[:sequence_id] += 1
+
+  when "relation"
+    id = parser["id"]
+    changeset_id = parser["changeset"]
+    create_changeset(parser) unless @changesets.include? changeset_id
+    version = parser["version"]
+    @conn.exec("insert into relations (relation_id, changeset_id, timestamp, version, visible) values ($1, $2, $3, $4, $5)",
+              [ id,
+                changeset_id,
+                parser["timestamp"],
+                version,
+                parser["visible"]
+              ])
+    @current_entity = {type: :relation, id: id, version: version, sequence_id: 0}
+
+  when "member"
+    raise unless @current_entity[:type] == :relation
+    @conn.exec("insert into relation_members (relation_id, member_type, member_id, member_role, version, sequence_id) values ($1, $2, $3, $4, $5, $6)",
+               [ @current_entity[:id],
+                 parser["type"].capitalize,
+                 parser["ref"],
+                 parser["role"],
+                 @current_entity[:version],
+                 @current_entity[:sequence_id]
+               ])
+    @current_entity[:sequence_id] += 1
+
   when "tag"
     type = @current_entity[:type].to_s
     @conn.exec("insert into #{type}_tags (#{type}_id, version, k, v) values ($1, $2, $3, $4)", [@current_entity[:id], @current_entity[:version], parser['k'], parser['v']])
