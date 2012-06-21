@@ -98,7 +98,7 @@ parser = XML::Reader.io(File.open(input_file, "r"))
 @current_entity = nil
 
 while parser.read do
-  next unless ["node", "way", "relation", "tag"].include? parser.name
+  next unless ["node", "way", "relation", "tag", "nd", "member"].include? parser.name
   next if parser.node_type == XML::Reader::TYPE_END_ELEMENT
   case parser.name
   when "node"
@@ -119,6 +119,27 @@ while parser.read do
                 parser["version"]
               ])
     @current_entity = {type: :node, id: id, version: version}
+  when "way"
+    id = parser["id"]
+    changeset_id = parser["changeset"]
+    create_changeset(parser) unless @changesets.include? changeset_id
+    @conn.exec("insert into ways (way_id, version, timestamp, changeset, visible) values ($1, $2, $3, $4, $5)",
+              [ id,
+                parser["version"],
+                parser["timestamp"],
+                changeset_id,
+                parser["visible"]
+              ])
+    @current_entity = {type: :way, id: id, version: version, sequence_id: 0}
+  when "nd"
+    raise unless @current_entity[:type] == :way
+    @conn.exec("insert into way_nodes (way_id, node_id, version, sequence_id) values ($1, $2, $3, $4)",
+              [ @current_entity[:id],
+                parser["ref"],
+                @current_entity[:version],
+                @current_entity[:sequence_id]
+              ])
+    @current_entity[:sequence_id] += 1
   when "tag"
     type = @current_entity[:type].to_s
     @conn.exec("insert into #{type}_tags (#{type}_id, version, k, v) values ($1, $2, $3, $4)", [@current_entity[:id], @current_entity[:version], parser['k'], parser['v']])
