@@ -30,11 +30,11 @@ class PG_DB
      FROM %{type}_tags
      WHERE %{type}_id = %{id};'
   HISTORY_SQL = \
-    'SELECT %{type}s.%{type}_id AS id, %{type}s.version AS version, changeset_id %{fields}
+    'SELECT %{type}s.%{type}_id AS id, %{type}s.version AS version, changeset_id, visible %{fields}
      FROM %{type}s 
      WHERE %{type}s.%{type}_id = %{id}'
   HISTORY_CURRENT_SQL = \
-    'SELECT %{type}s.%{type}_id AS id, %{type}s.version AS version, changeset_id %{fields}
+    'SELECT %{type}s.%{type}_id AS id, %{type}s.version AS version, changeset_id, visible %{fields}
      FROM %{type}s 
      WHERE %{type}s.%{type}_id = %{id}
      ORDER BY %{type}s.version DESC
@@ -110,7 +110,7 @@ class PG_DB
   end
   
   def get_attr(r)
-    {:id => r['id'].to_i, :changeset => r['changeset_id'].to_i, :version => r['version'].to_i}
+    {:id => r['id'].to_i, :changeset => r['changeset_id'].to_i, :version => r['version'].to_i, :visible => (r['visible'] == "t" ? true : false)}
   end
   
   def get_geom(sql)
