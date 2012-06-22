@@ -9,6 +9,14 @@ SCALE = 10000000
 USERS_AGREED = "http://planet.openstreetmap.org/users_agreed/users_agreed.txt"
 CHANGESETS_AGREED = "http://planet.openstreetmap.org/users_agreed/anon_changesets_agreed.txt"
 
+@enable_bzip2 = false
+begin
+  require 'bzip2-ruby'
+  @enable_bzip2 = true
+rescue LoadError
+  puts 'Compression with bzip2 disabled enable by installing bzip2-ruby'
+end
+
 def usage
   puts <<-EOF
 extract_loader.rb [OPTIONS...] [elements]
@@ -116,7 +124,7 @@ def tile_for_xy(x, y)
   return t
 end
 
-@conn = PG.connect( dbname: 'openstreetmap' )
+@conn = PGconn.open( dbname: 'openstreetmap' )
 @changesets = []
 @uids = []
 @time = Time.now.strftime('%FT%T')
@@ -216,7 +224,14 @@ truncate_tables()
 create_user(ANON_AGREED_UID, 'Anonymous Agreed Users', false)
 create_user(ANON_UNKNOWN_UID, 'Anonymous Unknown Users', false)
 
-parser = XML::Reader.io(File.open(input_file, "r"))
+file_io = \
+if @enable_bzip2 and input_file.end_with? '.bz2' then
+  Bzip2::Reader.new File.open(input_file, "r")
+else
+  File.open(input_file, "r")
+end
+
+parser = XML::Reader.io(file_io)
 
 @current_entity = nil
 
