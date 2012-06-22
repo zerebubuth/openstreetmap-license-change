@@ -225,6 +225,8 @@ module Abbrev
     "zu" => ["z"],
     # Swiss German
     "strasse" => ["str"],
+    #other
+    "ulica" => "u",
   }
 
   # In languages like German that use compound words with no spaces, we will find
