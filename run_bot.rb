@@ -7,6 +7,8 @@ require './osm_print'
 
 require 'pg'
 require 'getoptlong'
+require 'oauth'
+require 'yaml'
 
 def usage
   puts <<-EOF
@@ -104,7 +106,50 @@ PGconn.open(:host => dbhost, :dbname => dbname, :user => dbuser, :password => db
   changeset = bot.as_changeset
   
   print_time(verbose)
+
+  # Format of auth.yml:
+  # consumer_key: (from osm.org)
+  # consumer_secret: (from osm.org)
+  # token: (use oauth setup flow to get this)
+  # token_secret: (use oauth setup flow to get this)
+  auth = YAML.load(File.open('auth.yaml'))
+
+  # The consumer key and consumer secret are the identifiers for this particular application, and are
+  # issued when the application is registered with the site. Use your own.
+  @consumer=OAuth::Consumer.new auth['consumer_key'],
+                                auth['consumer_secret'],
+                                {:site=>"http://localhost:3000"}
+
+  # Create the access_token for all traffic
+  @access_token = OAuth::AccessToken.new(@consumer, auth['token'], auth['token_secret'])
+
+  # Use the access token for various commands. Although these take plain strings, other API methods
+  # will take XML documents.
+
+  changeset_request = '<osm><changeset><tag k="created_by" v="Redaction bot"/></changeset></osm>'
+  response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
+  changeset_id = response.body
+
+  change_doc = ""
+  OSM::print_osmchange(changeset, db, change_doc, changeset_id)
+
+  puts "changeset created: #{changeset_id}"
+  foo = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' })
+  puts foo.response
   #OSM::print_osmchange(changeset, db)
-  
+
+  puts "redactions"
+  redaction_id = 1 # is there an api for creating them?
+
+  bot.redactions.each do |redaction|
+    klass = case redaction.klass.name
+            when "OSM::Node" then 'node'
+            when "OSM::Way" then 'way'
+            when "OSM::Relation" then 'relation'
+            else raise "invalid klass #{redaction.klass}"
+            end
+    response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}")
+    puts response.body
+  end
   raise "No actions commited" if no_action
 end
