@@ -79,9 +79,9 @@ def create_changeset(parser)
   @changesets.push(changeset_id)
 end
 
-def create_user(uid, name)
-  result = @conn.exec("insert into users (id, email, pass_crypt, creation_time, display_name) values ($1, $2, $3, $4, $5)",
-                      [uid, "user_#{uid}@example.net", 'foobarbaz', @time, name])
+def create_user(uid, name, data_public = true)
+  result = @conn.exec("insert into users (id, email, pass_crypt, creation_time, display_name, data_public) values ($1, $2, $3, $4, $5, $6)",
+                      [uid, "user_#{uid}@example.net", 'foobarbaz', @time, name, data_public])
   puts "created user #{name}"
   @uids.push(uid)
 end
@@ -141,7 +141,7 @@ def change_entity(new)
 end
 
 truncate_tables()
-create_user(1, 'Anonymous Users')
+create_user(1, 'Anonymous Users', false)
 
 parser = XML::Reader.io(File.open(input_file, "r"))
 
