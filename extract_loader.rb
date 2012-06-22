@@ -255,7 +255,7 @@ while parser.read do
                 changeset_id,
                 parser["visible"]
               ])
-    change_entity({type: :way, id: id, version: version, sequence_id: 0})
+    change_entity({type: :way, id: id, version: version, sequence_id: 1})
 
   when "nd"
     raise unless @current_entity[:type] == :way
@@ -279,7 +279,7 @@ while parser.read do
                 version,
                 parser["visible"]
               ])
-    change_entity({type: :relation, id: id, version: version, sequence_id: 0})
+    change_entity({type: :relation, id: id, version: version, sequence_id: 1})
 
   when "member"
     raise unless @current_entity[:type] == :relation
