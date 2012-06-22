@@ -3,8 +3,11 @@
 require 'getoptlong'
 require 'pg'
 require 'xml/libxml'
+require 'mechanize'
 
 SCALE = 10000000
+USERS_AGREED = "http://planet.openstreetmap.org/users_agreed/users_agreed.txt"
+CHANGESETS_AGREED = "http://planet.openstreetmap.org/users_agreed/anon_changesets_agreed.txt"
 
 def usage
   puts <<-EOF
@@ -12,15 +15,64 @@ extract_loader.rb [OPTIONS...] [elements]
 
 -h, --help:
   Show help
+
 -f, --file:
   osh file to load into database
+
+-u --users-agreed file:
+   A URL or file with a list of user IDs of those who have agreed.
+   If this is not specified then it is assumed all users have agreed.
+
+-c --changesets-agreed file:
+   A URL or file with a list of changesets which have been agreed.
+   This is used only where the owner of the changeset is anonymous.
+   If this is not specified then it is assumed all anonymous users have
+   agreed.
+
+-l --user-agreed-limit int:
+   The user ID below which users may not have agreed. For example,
+   on the main API this number is 286582 and user IDs >= this are
+   guaranteed to have agreed.
 EOF
 end
 
+def get_url_lines(agent, verbose, url)
+  if url.start_with? "http://" then
+    puts "Downloading #{url}..." if verbose
+    agent.get(url).content
+  else
+    File.open(url, "r")
+  end.lines.
+    select {|l| not l.match(/^ *#/) }.
+    map {|l| l.to_i }
+end
+
+class AgreedFile
+  def initialize(agent, verbose, url, limit = nil)
+    @ids = get_url_lines(agent, verbose, url)
+    @limit = limit
+  end
+
+  def call(i)
+    return true if @limit and (i >= @limit)
+    @ids.include? i
+  end
+end
+
 opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
-                      ['--file', '-f', GetoptLong::REQUIRED_ARGUMENT])
+                      ['--users-agreed', '-u', GetoptLong::REQUIRED_ARGUMENT],
+                      ['--changesets-agreed', '-c', GetoptLong::REQUIRED_ARGUMENT],
+                      ['--user-agreed-limit', '-l', GetoptLong::REQUIRED_ARGUMENT],
+                      ['--file', '-f', GetoptLong::REQUIRED_ARGUMENT]
+                     )
 
 input_file = '-'
+users_agreed = USERS_AGREED
+changesets_agreed = CHANGESETS_AGREED
+user_limit = 286582
+verbose = false
+
+agent = Mechanize.new
 
 opts.each do |opt, arg|
   case opt
@@ -33,6 +85,12 @@ opts.each do |opt, arg|
   end
 end
 
+if users_agreed.class == String
+  @users_agreed = AgreedFile.new(agent, verbose, users_agreed, user_limit)
+end
+if changesets_agreed.class == String
+  @changesets_agreed = AgreedFile.new(agent, verbose, changesets_agreed)
+end
 
 # taken from rails_port/lib/quad_tile.rb
 def tile_for_point(lat, lon)
@@ -62,13 +120,19 @@ end
 @changesets = []
 @uids = []
 @time = Time.now.strftime('%FT%T')
-@anon_id = 1
 
-
+# hopefully we'll be finished before these uids are in use...
+ANON_AGREED_UID = 100_000_000
+ANON_UNKNOWN_UID = 200_000_000
 
 def create_changeset(parser)
-  uid = parser["uid"] ? parser["uid"] : @anon_id
   changeset_id = parser["changeset"]
+
+  if parser["uid"]
+    uid = parser["uid"].to_i
+  else
+    uid = @changesets_agreed.call(changeset_id.to_i) ? ANON_AGREED_UID : ANON_UNKNOWN_UID
+  end
 
   unless @uids.include?(uid)
     create_user(uid, parser["user"])
@@ -80,8 +144,14 @@ def create_changeset(parser)
 end
 
 def create_user(uid, name, data_public = true)
-  result = @conn.exec("insert into users (id, email, pass_crypt, creation_time, display_name, data_public) values ($1, $2, $3, $4, $5, $6)",
-                      [uid, "user_#{uid}@example.net", 'foobarbaz', @time, name, data_public])
+  agreed_time = case uid
+                when ANON_AGREED_UID then @time
+                when ANON_UNKNOWN_UID then nil
+                else
+                  @users_agreed.call(uid) ? @time : nil
+                end
+  result = @conn.exec("insert into users (id, email, pass_crypt, creation_time, display_name, data_public, terms_agreed) values ($1, $2, $3, $4, $5, $6, $7)",
+                      [uid, "user_#{uid}@example.net", 'foobarbaz', @time, name, data_public, agreed_time])
   puts "created user #{name}"
   @uids.push(uid)
 end
@@ -141,7 +211,10 @@ def change_entity(new)
 end
 
 truncate_tables()
-create_user(1, 'Anonymous Users', false)
+
+# create two anonymous users, one for any anonymous changesets marked as "agreed", one for the rest.
+create_user(ANON_AGREED_UID, 'Anonymous Agreed Users', false)
+create_user(ANON_UNKNOWN_UID, 'Anonymous Unknown Users', false)
 
 parser = XML::Reader.io(File.open(input_file, "r"))
 
