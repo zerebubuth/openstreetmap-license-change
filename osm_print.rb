@@ -32,18 +32,18 @@ def compare(a, b)
 end
 
 module OSM
-  def self.print_osmchange(changeset, db, out = $stdout)
+  def self.print_osmchange(changeset, db, out = $stdout, changeset_id = -1)
     changeset.sort! {|a, b| compare(a, b)}
   
     out << '<osmChange version="0.6" generator="Redaction bot">' << "\n"
     changeset.each do |o|
       if o.class == Edit then
         out << '  <modify>' << "\n"
-        self.print(o.obj, out, 2)
+        self.print(o.obj, out, 2, changeset_id)
         out << '  </modify>' << "\n"
       elsif o.class == Delete then
         out << '  <delete>' << "\n"
-        self.print(self.from_delete(o, db), out, 2)
+        self.print(self.from_delete(o, db, changeset_id), out, 2, changeset_id)
         out << '  </delete>' << "\n"
       end
     end
@@ -51,20 +51,20 @@ module OSM
     out << '</osmChange>' << "\n"
   end
   
-  def self.from_delete(delete, db)
+  def self.from_delete(delete, db, changeset_id)
     t =  if delete.klass == OSM::Node then db.current_node(delete.element_id)
       elsif delete.klass == OSM::Way then db.current_way(delete.element_id)
       elsif delete.klass == OSM::Relation then db.current_relation(delete.element_id)
       end
     
     geom = delete.klass == OSM::Node ? t.geom : []
-    delete.klass.new({:id => delete.element_id, :changeset => -1, :visible => false, :version => t.version},geom,[])
+    delete.klass.new({:id => delete.element_id, :changeset => changeset_id, :visible => false, :version => t.version},geom,[])
   end
   
-  def self.print(obj, out = $stdout, indent = 0)
+  def self.print(obj, out = $stdout, indent = 0, changeset_id = -1)
     attributes = {
       :id => obj.element_id,
-      :changeset => obj.changeset_id,
+      :changeset => changeset_id,
       :user => USERNAME,
       :uid => UID,
       :visible => obj.visible,
