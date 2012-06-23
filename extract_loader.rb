@@ -72,7 +72,8 @@ opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
                       ['--users-agreed', '-u', GetoptLong::REQUIRED_ARGUMENT],
                       ['--changesets-agreed', '-c', GetoptLong::REQUIRED_ARGUMENT],
                       ['--user-agreed-limit', '-l', GetoptLong::REQUIRED_ARGUMENT],
-                      ['--file', '-f', GetoptLong::REQUIRED_ARGUMENT]
+                      ['--file', '-f', GetoptLong::REQUIRED_ARGUMENT],
+                      ['--verbose', '-v', GetoptLong::NO_ARGUMENT],
                      )
 
 input_file = '-'
@@ -93,6 +94,9 @@ opts.each do |opt, arg|
 
   when '--file'
     input_file = arg
+
+  when '--verbose'
+    verbose = true
   end
 end
 
@@ -150,7 +154,6 @@ def create_changeset(parser)
   end
 
   result = @conn.exec("insert into changesets (id, user_id, created_at, closed_at) values ($1, $2, $3, $4)", [ changeset_id, uid, @time, @time ])
-  puts "created changeset #{changeset_id}"
   @changesets.push(changeset_id)
 end
 
@@ -163,7 +166,6 @@ def create_user(uid, name, data_public = true)
                 end
   result = @conn.exec("insert into users (id, email, pass_crypt, creation_time, display_name, data_public, terms_agreed) values ($1, $2, $3, $4, $5, $6, $7)",
                       [uid, "user_#{uid}@example.net", 'foobarbaz', @time, name, data_public, agreed_time])
-  puts "created user #{name}"
   @uids.push(uid)
 end
 
@@ -171,6 +173,7 @@ def truncate_tables
   @conn.exec("truncate table users cascade")
 end
 
+puts "Deleting all relevant tables" if verbose
 truncate_tables()
 
 # create two anonymous users, one for any anonymous changesets marked as "agreed", one for the rest.
@@ -186,6 +189,7 @@ end
 
 parser = XML::Reader.io(file_io)
 
+puts "Loading xml file to the database" if verbose
 @current_entity = nil
 @conn.transaction do |conn|
   while parser.read do
@@ -264,12 +268,11 @@ parser = XML::Reader.io(file_io)
     when "tag"
       type = @current_entity[:type].to_s
       conn.exec("insert into #{type}_tags (#{type}_id, version, k, v) values ($1, $2, $3, $4)", [@current_entity[:id], @current_entity[:version], parser['k'], parser['v']])
-      puts "added tag"
     end
   end
 
   # remove data that is not following the contraints of the database
-
+  puts "Sanitizing the data" if verbose
   conn.exec('WITH missing_nodes AS (
                SELECT way_id FROM way_nodes 
                WHERE NOT node_id IN (SELECT node_id FROM nodes) 
@@ -288,6 +291,7 @@ parser = XML::Reader.io(file_io)
              WHERE NOT way_id IN (SELECT way_id FROM way_nodes);')
 
   # populate the current tables
+  puts "Populate the current_* tables" if verbose
   # nodes
   conn.exec('INSERT INTO current_nodes
              SELECT DISTINCT ON (node_id)
@@ -333,6 +337,7 @@ parser = XML::Reader.io(file_io)
              ORDER BY relation_id, k, version DESC;')
 
   # reset sequences
+  puts "Reseting sequences" if verbose
   ['changesets', 'current_nodes', 'current_relations', 'current_ways', 'users'].each do |table|
     @conn.exec("select setval('#{table}_id_seq', (select max(id) from #{table}));")
   end
