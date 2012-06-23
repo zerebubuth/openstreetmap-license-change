@@ -171,56 +171,6 @@ def truncate_tables
   @conn.exec("truncate table users cascade")
 end
 
-# This relies on the history file being properly ordered by type, id, version
-def change_entity(new, conn)
-  unless @current_entity.nil?
-    unless new[:type] == @current_entity[:type] && new[:id] == @current_entity[:id]
-      case @current_entity[:type]
-      when :node
-        conn.exec("insert into current_nodes (id, latitude, longitude, tile, changeset_id, visible, timestamp, version)
-                  (select node_id, latitude, longitude, tile, changeset_id, visible, timestamp, version from nodes where node_id = $1 and version = $2)",
-                  [ @current_entity[:id],
-                    @current_entity[:version]
-                  ])
-        conn.exec("insert into current_node_tags (node_id, k, v) (select node_id, k, v from node_tags where node_id = $1 and version = $2)",
-                  [ @current_entity[:id],
-                    @current_entity[:version]
-                  ])
-      when :way
-        conn.exec("insert into current_ways (id, changeset_id, timestamp, visible, version)
-                   (select way_id, changeset_id, timestamp, visible, version from ways where way_id = $1 and version = $2)",
-                  [ @current_entity[:id],
-                    @current_entity[:version]
-                  ])
-        conn.exec("insert into current_way_tags (way_id, k, v) (select way_id, k, v from way_tags where way_id = $1 and version = $2)",
-                   [ @current_entity[:id],
-                     @current_entity[:version]
-                   ])
-        conn.exec("insert into current_way_nodes (way_id, node_id, sequence_id) (select way_id, node_id, sequence_id from way_nodes where way_id = $1 and version = $2)",
-                   [ @current_entity[:id],
-                     @current_entity[:version]
-                   ])
-      when :relation
-        conn.exec("insert into current_relations (id, changeset_id, timestamp, visible, version)
-                   (select relation_id, changeset_id, timestamp, visible, version from relations where relation_id = $1 and version = $2)",
-                   [ @current_entity[:id],
-                     @current_entity[:version]
-                   ])
-        conn.exec("insert into current_relation_tags (relation_id, k, v) (select relation_id, k, v from relation_tags where relation_id = $1 and version = $2)",
-                   [ @current_entity[:id],
-                     @current_entity[:version]
-                   ])
-        conn.exec("insert into current_relation_members (relation_id, member_type, member_id, member_role, sequence_id)
-                   (select relation_id, member_type, member_id, member_role, sequence_id from relation_members where relation_id = $1 and version = $2)",
-                   [ @current_entity[:id],
-                     @current_entity[:version]
-                   ])
-      end
-    end
-  end
-  @current_entity = new
-end
-
 truncate_tables()
 
 # create two anonymous users, one for any anonymous changesets marked as "agreed", one for the rest.
@@ -259,7 +209,7 @@ parser = XML::Reader.io(file_io)
                   parser["timestamp"],
                   parser["version"]
                 ])
-      change_entity({type: :node, id: id, version: version}, conn)
+      @current_entity = {type: :node, id: id, version: version}
 
     when "way"
       id = parser["id"]
@@ -273,7 +223,7 @@ parser = XML::Reader.io(file_io)
                   changeset_id,
                   parser["visible"]
                 ])
-      change_entity({type: :way, id: id, version: version, sequence_id: 1}, conn)
+      @current_entity = {type: :way, id: id, version: version, sequence_id: 1}
 
     when "nd"
       raise unless @current_entity[:type] == :way
@@ -297,7 +247,7 @@ parser = XML::Reader.io(file_io)
                   version,
                   parser["visible"]
                 ])
-      change_entity({type: :relation, id: id, version: version, sequence_id: 1}, conn)
+      @current_entity = {type: :relation, id: id, version: version, sequence_id: 1}
 
     when "member"
       raise unless @current_entity[:type] == :relation
@@ -318,11 +268,72 @@ parser = XML::Reader.io(file_io)
     end
   end
 
-  # flush the final entity into the current_tables
-  change_entity({type: :dummy, id: 0, version: 0}, conn)
+  # remove data that is not following the contraints of the database
+
+  conn.exec('WITH missing_nodes AS (
+               SELECT way_id FROM way_nodes 
+               WHERE NOT node_id IN (SELECT node_id FROM nodes) 
+               GROUP BY way_id) 
+             DELETE FROM way_tags 
+             USING missing_nodes 
+             WHERE way_tags.way_id = missing_nodes.way_id;')
+  conn.exec('WITH missing_nodes AS (
+               SELECT way_id FROM way_nodes 
+               WHERE NOT node_id IN (SELECT node_id FROM nodes) 
+               GROUP BY way_id) 
+             DELETE from way_nodes 
+             USING missing_nodes 
+             WHERE way_nodes.way_id = missing_nodes.way_id;')
+  conn.exec('DELETE from ways
+             WHERE NOT way_id IN (SELECT way_id FROM way_nodes);')
+
+  # populate the current tables
+  # nodes
+  conn.exec('INSERT INTO current_nodes
+             SELECT DISTINCT ON (node_id)
+             node_id AS id, latitude, longitude, changeset_id, visible, timestamp, tile, version
+             FROM nodes
+             ORDER BY node_id, version DESC;')
+  conn.exec('INSERT INTO current_node_tags
+             SELECT DISTINCT ON (node_id, k)
+             node_id, k, v
+             FROM node_tags
+             ORDER BY node_id, k, version DESC;')
+  # ways
+  conn.exec('INSERT INTO current_ways
+             SELECT DISTINCT ON (way_id)
+             way_id AS id, changeset_id, timestamp, visible, version
+             FROM ways
+             ORDER BY way_id, version DESC;')
+  conn.exec('INSERT INTO current_way_nodes
+             SELECT DISTINCT ON (way_id, sequence_id)
+             way_id, node_id, sequence_id
+             FROM way_nodes
+             ORDER BY way_id, sequence_id, version DESC;')
+  conn.exec('INSERT INTO current_way_tags
+             SELECT DISTINCT ON (way_id, k)
+             way_id, k, v
+             FROM way_tags
+             ORDER BY way_id, k, version DESC;')
+  # relations
+  conn.exec('INSERT INTO current_relations
+             SELECT DISTINCT ON (relation_id)
+             relation_id AS id, changeset_id, timestamp, visible, version
+             FROM relations
+             ORDER BY relation_id, version DESC;')
+  conn.exec('INSERT INTO current_relation_members
+             SELECT DISTINCT ON (relation_id, sequence_id)
+             relation_id, member_type, member_id, member_role, sequence_id
+             FROM relation_members
+             ORDER BY relation_id, sequence_id, version DESC;')
+  conn.exec('INSERT INTO current_relation_tags
+             SELECT DISTINCT ON (relation_id, k)
+             relation_id, k, v
+             FROM relation_tags
+             ORDER BY relation_id, k, version DESC;')
 
   # reset sequences
   ['changesets', 'current_nodes', 'current_relations', 'current_ways', 'users'].each do |table|
-    @conn.exec("select setval('#{table}_seq', (select max(id) from #{table}));")
+    @conn.exec("select setval('#{table}_id_seq', (select max(id) from #{table}));")
   end
 end
