@@ -11,7 +11,7 @@ For running tests on Fedora you will need 17 release, as it has 1.9.3 version. F
 1. Install Ruby and Ruby "minitest" gem with yum. 
 'sudo yum install ruby rubygem-minitest'
 2. Install text gem with 'gem' command
-'sudo gem install text'
+'sudo gem install text libxml-ruby mechanize'
 3. To run tests, use 'ruby' binary like this:
 'ruby test.rb'
 
@@ -20,9 +20,9 @@ For running tests on Fedora you will need 17 release, as it has 1.9.3 version. F
 For running on Ubuntu Linux/Debian Linux you will need Ubuntu Linux 12.04 LTS or Debian Linux 6. For other Ubuntu Linux versions you'll need to look up other alternative methods (via PPA or using source in section 3. "From Source").
 
 1. To install Ruby required version 1.9.1, run this command in your terminal:
-'sudo apt-get install ruby1.9.1'
+'sudo apt-get install ruby1.9.1 libxslt-dev'
 2. To install 'text' gem, run this command in your terminal: 
-'sudo gem1.9.1 install text'
+'sudo gem1.9.1 install text libxml-ruby mechanize'
 3. To run tests, use 'ruby1.9.1' binary like this:
 'ruby1.9.1 test.rb'
 
