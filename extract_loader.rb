@@ -2,6 +2,7 @@
 
 require 'getoptlong'
 require 'pg'
+require 'yaml'
 require 'xml/libxml'
 require 'mechanize'
 
@@ -80,6 +81,8 @@ changesets_agreed = CHANGESETS_AGREED
 user_limit = 286582
 verbose = false
 
+dbauth = YAML.load(File.open('auth.yaml'))['database']
+
 agent = Mechanize.new
 
 opts.each do |opt, arg|
@@ -124,7 +127,7 @@ def tile_for_xy(x, y)
   return t
 end
 
-@conn = PGconn.open( dbname: 'openstreetmap' )
+@conn = PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth['dbname'], :user => dbauth['user'], :password => dbauth['password'] )
 @changesets = []
 @uids = []
 @time = Time.now.strftime('%FT%T')
