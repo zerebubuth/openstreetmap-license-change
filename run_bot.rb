@@ -19,18 +19,6 @@ Run the redaction bot on a standard rails port database.
 -h, --help:
    Show help
 
---host domain:
-   Database hostname (localhost)
-
---database name
-   Database to import into. (osm)
-  
---user name
-   Username of the database. (openstreetmap)
-  
---password pass
-   Password for that user. (openstreetmap)
-
 -v --verbose:
    Output information about the actions being taken.
 
@@ -42,10 +30,7 @@ end
 opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
                       ['--verbose', '-v', GetoptLong::NO_ARGUMENT],
                       ['--no-action', '-n', GetoptLong::NO_ARGUMENT],
-                      ['--host', GetoptLong::REQUIRED_ARGUMENT],
-                      ['--database', GetoptLong::REQUIRED_ARGUMENT],
-                      ['--user', GetoptLong::REQUIRED_ARGUMENT],
-                      ['--password', GetoptLong::REQUIRED_ARGUMENT])
+                     )
 
 @start_time = nil
 
@@ -59,10 +44,10 @@ end
 
 verbose = false
 no_action = false
-dbhost = 'localhost'
-dbname = 'osm'
-dbuser = 'openstreetmap'
-dbpass = 'openstreetmap'
+
+auth = YAML.load(File.open('auth.yaml'))
+oauth = auth['oauth']
+dbauth = auth['database']
 
 opts.each do |opt, arg|
   case opt
@@ -73,14 +58,6 @@ opts.each do |opt, arg|
     verbose = true
   when '--no-action'
     no_action = true
-  when '--host'
-    dbhost = arg
-  when '--database'
-    dbname = arg
-  when '--user'
-    dbuser = arg
-  when '--password'
-    dbpass = arg
   end
 end
 
@@ -91,7 +68,7 @@ if not ARGV.empty?
 end
 
 print_time(verbose, 'Connecting to the database')
-PGconn.open(:host => dbhost, :dbname => dbname, :user => dbuser, :password => dbpass).transaction do |dbconn|
+PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth['dbname'], :user => dbauth['user'], :password => dbauth['password'] ).transaction do |dbconn|
   db = PG_DB.new(dbconn)
   bot = ChangeBot.new(db)
   
@@ -104,24 +81,16 @@ PGconn.open(:host => dbhost, :dbname => dbname, :user => dbuser, :password => db
   
   print_time(verbose, 'Delete empty objects')
   changeset = bot.as_changeset
-  
-  print_time(verbose)
 
-  # Format of auth.yml:
-  # consumer_key: (from osm.org)
-  # consumer_secret: (from osm.org)
-  # token: (use oauth setup flow to get this)
-  # token_secret: (use oauth setup flow to get this)
-  auth = YAML.load(File.open('auth.yaml'))
-
+  print_time(verbose, 'Opening changeset')
   # The consumer key and consumer secret are the identifiers for this particular application, and are
   # issued when the application is registered with the site. Use your own.
-  @consumer=OAuth::Consumer.new auth['consumer_key'],
-                                auth['consumer_secret'],
-                                {:site=>"http://localhost:3000"}
+  @consumer=OAuth::Consumer.new oauth['consumer_key'],
+                                oauth['consumer_secret'],
+                                {:site=>oauth['site']}
 
   # Create the access_token for all traffic
-  @access_token = OAuth::AccessToken.new(@consumer, auth['token'], auth['token_secret'])
+  @access_token = OAuth::AccessToken.new(@consumer, oauth['token'], oauth['token_secret'])
 
   # Use the access token for various commands. Although these take plain strings, other API methods
   # will take XML documents.
@@ -130,15 +99,14 @@ PGconn.open(:host => dbhost, :dbname => dbname, :user => dbuser, :password => db
   response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
   changeset_id = response.body
 
+  print_time(verbose, 'Generating changeset')
   change_doc = ""
   OSM::print_osmchange(changeset, db, change_doc, changeset_id)
 
-  puts "changeset created: #{changeset_id}"
-  foo = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' })
-  puts foo.response
-  #OSM::print_osmchange(changeset, db)
+  print_time(verbose, 'Uploading changeset')
+  foo = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' }) if not no_action
 
-  puts "redactions"
+  print_time(verbose, 'Creating redactions')
   redaction_id = 1 # is there an api for creating them?
 
   bot.redactions.each do |redaction|
@@ -148,8 +116,7 @@ PGconn.open(:host => dbhost, :dbname => dbname, :user => dbuser, :password => db
             when "OSM::Relation" then 'relation'
             else raise "invalid klass #{redaction.klass}"
             end
-    response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}")
-    puts response.body
+    response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not no_action
   end
   raise "No actions commited" if no_action
 end
