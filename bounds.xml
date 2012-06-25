@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- add as many bounds as you see fit -->
+<!-- bounding boxes will be expanded into 1 degree squares -->
+<!-- descriptions are ignored, but are here just to help coordination -->
+<list>
+  <bounds minlat="51.2" minlon="-12.2524800"  maxlat="55.5" maxlon="-5.29" description="Ireland" />
+  <bounds minlat="43.71" minlon="7.40" maxlat="43.76" maxlon="7.45" description="Monaco" />
+</list>

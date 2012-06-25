@@ -10,4 +10,9 @@ oauth:
   token: 
   token_secret: 
   site: http://localhost:3000
+tracker:
+  host: localhost
+  dbname: tracker
+  user: openstreetmap
+  password: osm
 ...
