@@ -15,6 +15,11 @@ dbauth = YAML.load(File.open('auth.yaml'))['tracker']
 
 @conn = PGconn.open( :dbname => dbauth['dbname'] )
 
+res = @tracker_conn.exec("select 1 from pg_type where typname = 'region_status'")
+if res.num_tuples == 0
+  @tracker_conn.exec("CREATE TYPE region_status as enum ('unprocessed', 'processing', 'failed', 'complete')")
+end
+
 @conn.exec("create table if not exists regions (id serial, lat integer, lon integer, status region_status, bot_id integer)")
 @conn.exec("truncate table regions")
 
