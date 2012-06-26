@@ -86,12 +86,17 @@ class PG_DB
   
   ['node', 'way', 'relation'].each do |type|
     define_method("each_#{type}") do |&block|
-      res = @dbconn.query(EACH_SQL % {:type => type})
-      res.map {|r| r['id'].to_i}.each &block
+      #res = @dbconn.query(EACH_SQL % {:type => type})
+      #res.map {|r| r['id'].to_i}.each &block
+      @entities[type.to_sym].each &block
     end
     define_method("current_#{type}") do |id|
       return send(type.to_sym, id, true)[0]
     end
+  end
+
+  def set_entities(obj)
+    @entities = obj
   end
   
   private
