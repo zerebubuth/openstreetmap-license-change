@@ -75,10 +75,27 @@ def split_area(a, list)
   list.push(a1).push(a2)
 end
 
+def process_changeset(changeset, db, verbose = false, no_action = false)
+  print_time(verbose, 'Opening changeset')
+
+  changeset_request = '<osm><changeset><tag k="created_by" v="Redaction bot"/></changeset></osm>'
+  response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
+  changeset_id = response.body
+
+  print_time(verbose, 'Generating changeset')
+  change_doc = ""
+  OSM::print_osmchange(changeset, db, change_doc, changeset_id)
+
+  print_time(verbose, 'Uploading changeset')
+  foo = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' }) if not no_action
+end
+
 verbose = false
 no_action = false
 
 MAX_REQUEST_AREA = 0.25
+# MAX_CHANGESET_ELEMENTS = 50000
+MAX_CHANGESET_ELEMENTS = 5
 
 auth = YAML.load(File.open('auth.yaml'))
 oauth = auth['oauth']
@@ -188,7 +205,6 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
   print_time(verbose, 'Delete empty objects')
   changeset = bot.as_changeset
 
-  print_time(verbose, 'Opening changeset')
   # The consumer key and consumer secret are the identifiers for this particular application, and are
   # issued when the application is registered with the site. Use your own.
   @consumer=OAuth::Consumer.new oauth['consumer_key'],
@@ -198,19 +214,14 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
   # Create the access_token for all traffic
   @access_token = OAuth::AccessToken.new(@consumer, oauth['token'], oauth['token_secret'])
 
-  # Use the access token for various commands. Although these take plain strings, other API methods
-  # will take XML documents.
-
-  changeset_request = '<osm><changeset><tag k="created_by" v="Redaction bot"/></changeset></osm>'
-  response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
-  changeset_id = response.body
-
-  print_time(verbose, 'Generating changeset')
-  change_doc = ""
-  OSM::print_osmchange(changeset, db, change_doc, changeset_id)
-
-  print_time(verbose, 'Uploading changeset')
-  foo = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' }) if not no_action
+  if changeset.empty?
+    puts "No changeset to apply" if verbose
+  else
+    changeset.each_slice(MAX_CHANGESET_ELEMENTS) do |slice|
+      success = process_changeset(slice, db, verbose, no_action)
+      # TODO handle failures!
+    end
+  end
 
   print_time(verbose, 'Creating redactions')
   redaction_id = 1 # is there an api for creating them?
