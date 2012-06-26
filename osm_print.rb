@@ -77,8 +77,8 @@ module OSM
     
     if obj.class == OSM::Node
       name = "node"
-      attributes[:lat] = obj.position.size == 2 ? obj.position[0].to_f : 0
-      attributes[:lon] = obj.position.size == 2 ? obj.position[1].to_f : 0
+      attributes[:lat] = obj.position.size == 2 ? obj.position[1].to_f : 0
+      attributes[:lon] = obj.position.size == 2 ? obj.position[0].to_f : 0
     elsif obj.class == OSM::Way
       name = "way"
       child_name = "nd"
