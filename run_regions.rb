@@ -20,7 +20,7 @@ if res.num_tuples == 0
   @conn.exec("CREATE TYPE region_status as enum ('unprocessed', 'processing', 'failed', 'complete')")
 end
 
-@conn.exec("create table if not exists regions (id serial, lat integer, lon integer, status region_status, bot_id integer)")
+@conn.exec("create table if not exists regions (id serial, lat integer, lon integer, status region_status default 'unprocessed', bot_id integer)")
 @conn.exec("truncate table regions")
 
 def add_region(lat, lon)
