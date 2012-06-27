@@ -248,14 +248,13 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
             @relations << id if @candidate_relations.include? id
           end
         end
+        process_entities(bot, db, @nodes, @ways, @relations, verbose, no_action)
       else
         puts "Unhandled response code #{map.code}"
         exit(1)
       end
     end
   end
-
-  process_entities(bot, db, @nodes, @ways, @relations, verbose, no_action)
 
   raise "No actions commited" if no_action
 end
