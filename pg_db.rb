@@ -42,7 +42,23 @@ class PG_DB
 
   def initialize(dbconn)
     @dbconn = dbconn
+
+    # A lookup table of changesets with the agreement status
+    # e.g. @changesets[1234] = true
     @changesets = Hash.new
+
+    # A hash of entity arrays - entities to work through
+    # e.g. @entities = {node: [1,2,3], way: [2,3,4], relation: [445, 543]}
+    @entities = Hash.new
+
+    # An array of blacklisted changesets
+    @changeset_blacklist = File.open("changesets_blacklist.txt").map{ |l| l.to_i }
+
+    # An array of whitelisted changesets
+    @changeset_whitelist = File.open("changesets_whitelist.txt").map{ |l| l.to_i }
+
+    # An array of whitelisted users
+    @user_whitelist = File.open("users_whitelist.txt").map{ |l| l.to_i }
   end
   
   def node(id, current = false)
@@ -70,7 +86,20 @@ class PG_DB
   end
   
   def changeset(id)
-    @changesets[id] = (not @dbconn.query(CHANGESET_SQL, [id])[0]['agreed'].nil?) if not @changesets.has_key?(id)
+    if not @changesets.has_key?(id)
+      if @changeset_whitelist.include?(id)
+        @changesets[id] = true
+      elsif @changeset_blacklist.include?(id)
+        @changesets[id] = false
+      else
+        res = @dbconn.query(CHANGESET_SQL, [id])
+        if @user_whitelist.include?(res[0]['user'].to_i)
+          @changesets[id] = true
+        else
+          @changesets[id] = (not res[0]['agreed'].nil?)
+        end
+      end
+    end
     Changeset[User[@changesets[id]]]
   end
   
