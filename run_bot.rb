@@ -39,12 +39,12 @@ opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
 
 @start_time = nil
 
-def print_time(verbose, name = nil)
+def print_time(name = nil)
   now_time = Time.now
-  print "(#{now_time - @start_time} s)\n" if verbose and not @start_time.nil?
+  print "(#{now_time - @start_time} s)\n" if @verbose and not @start_time.nil?
   @start_time = now_time
   
-  print "#{name}..." if verbose and not name.nil?
+  print "#{name}..." if @verbose and not name.nil?
 end
 
 def get_next_region()
@@ -83,64 +83,66 @@ def split_area(a, list)
   list.push(a1).push(a2)
 end
 
-def process_changeset(changeset, db, verbose = false, no_action = false)
-  print_time(verbose, 'Opening changeset')
+def process_changeset(changeset)
+  print_time('Opening changeset')
 
+  #puts changeset
   changeset_request = '<osm><changeset><tag k="created_by" v="Redaction bot"/></changeset></osm>'
   response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
   changeset_id = response.body
 
-  print_time(verbose, 'Generating changeset')
+  print_time('Generating changeset')
   change_doc = ""
-  OSM::print_osmchange(changeset, db, change_doc, changeset_id)
+  OSM::print_osmchange(changeset, @db, change_doc, changeset_id)
 
-  print_time(verbose, 'Uploading changeset')
-  foo = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' }) if not no_action
+  puts change_doc
+  print_time('Uploading changeset')
+  foo = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' }) if not @no_action
 end
 
 # This will throw an error if a changeset can't be applied.
-def process_entities(bot, db, nodes, ways, relations, verbose = false, no_action = false)
+def process_entities(nodes, ways, relations)
 
-  db.set_entities({node: nodes, way: ways, relation: relations})
+  @db.set_entities({node: nodes, way: ways, relation: relations})
 
-  print_time(verbose, 'Processing all nodes')
-  bot.process_nodes!
-  print_time(verbose, 'Processing all ways')
-  bot.process_ways!
-  print_time(verbose, 'Processing all relations')
-  bot.process_relations!
+  print_time('Processing all nodes')
+  @bot.process_nodes!
+  print_time('Processing all ways')
+  @bot.process_ways!
+  print_time('Processing all relations')
+  @bot.process_relations!
 
-  print_time(verbose, 'Delete empty objects')
-  changeset = bot.as_changeset
+  print_time('Delete empty objects')
+  changeset = @bot.as_changeset
 
   if changeset.empty?
-    puts "No changeset to apply" if verbose
+    puts "No changeset to apply" if @verbose
   else
     changeset.each_slice(MAX_CHANGESET_ELEMENTS) do |slice|
-      success = process_changeset(slice, db, verbose, no_action)
+      success = process_changeset(slice)
       # TODO handle failures!
     end
   end
 
-  print_time(verbose, 'Creating redactions')
+  print_time('Creating redactions')
 
-  bot.redactions.each do |redaction|
+  @bot.redactions.each do |redaction|
     klass = case redaction.klass.name
             when "OSM::Node" then 'node'
             when "OSM::Way" then 'way'
             when "OSM::Relation" then 'relation'
             else raise "invalid klass #{redaction.klass}"
             end
-    response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not no_action
+    response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not @no_action
     # TODO handle failures
     # TODO mark entities as processed
   end
-  raise "No actions commited" if no_action
+  raise "No actions commited" if @no_action
 end
 
-verbose = false
-no_action = false
-redaction_id = 1
+@verbose = false
+@no_action = false
+@redaction_id = 1
 
 MAX_REQUEST_AREA = 0.25
 # MAX_CHANGESET_ELEMENTS = 50000
@@ -168,11 +170,11 @@ opts.each do |opt, arg|
     usage
     exit 0
   when '--verbose'
-    verbose = true
+    @verbose = true
   when '--redaction'
-    redaction_id = arg
+    @redaction_id = arg
   when '--no-action'
-    no_action = true
+    @no_action = true
   end
 end
 
@@ -205,11 +207,10 @@ res.each do |r|
   @candidate_relations << r['osm_id'].to_i
 end
 
-
-print_time(verbose, 'Connecting to the database')
+print_time('Connecting to the database')
 PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth['dbname'] ).transaction do |dbconn|
-  db = PG_DB.new(dbconn)
-  bot = ChangeBot.new(db)
+  @db = PG_DB.new(dbconn)
+  @bot = ChangeBot.new(@db)
 
   region = get_next_region()
 
@@ -218,13 +219,13 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
   areas = [{minlat: region[:lat], maxlat: (region[:lat] + 1), minlon: region[:lon], maxlon: (region[:lon] + 1)}]
 
   while areas.length > 0
-    puts "#{areas.length} areas remaining" if verbose
+    puts "#{areas.length} areas remaining" if @verbose
     area = areas.pop
     if size_of_area(area) > MAX_REQUEST_AREA
       split_area(area, areas)
       next
     else
-      puts "processing #{area}" if verbose
+      puts "processing #{area}" if @verbose
       map = Net::HTTP.get_response(URI(oauth['site'] + "/api/0.6/map?bbox=#{area[:minlon]},#{area[:minlat]},#{area[:maxlon]},#{area[:maxlat]}"))
       case map.code
       when '509'
@@ -248,7 +249,7 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
             @relations << id if @candidate_relations.include? id
           end
         end
-        process_entities(bot, db, @nodes, @ways, @relations, verbose, no_action)
+        process_entities(@nodes, @ways, @relations)
       else
         puts "Unhandled response code #{map.code}"
         exit(1)
@@ -256,5 +257,5 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
     end
   end
 
-  raise "No actions commited" if no_action
+  raise "No actions commited" if @no_action
 end
