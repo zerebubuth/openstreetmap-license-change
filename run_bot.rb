@@ -52,9 +52,13 @@ def get_next_region()
   # TODO don't grab regions adjacent to in-progress regions
   # TODO ensure transaction so that parrallel instances don't both grab same region
   res = @tracker_conn.exec("select id, lat, lon from regions where status = 'unprocessed' order by id limit 1")
-  @region = {id: res[0]['id'], lat: res[0]['lat'].to_f, lon: res[0]['lon'].to_f}
-  @tracker_conn.exec("update regions set status = 'processing' where id = $1", [@region[:id]])
-  @region
+  if res.num_tuples == 0
+    false
+  else
+    @region = {id: res[0]['id'], lat: res[0]['lat'].to_f, lon: res[0]['lon'].to_f}
+    @tracker_conn.exec("update regions set status = 'processing' where id = $1", [@region[:id]])
+    @region
+  end
 end
 
 def size_of_area(a)
@@ -208,6 +212,8 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
   bot = ChangeBot.new(db)
 
   region = get_next_region()
+
+  raise "no region to process" unless region
 
   areas = [{minlat: region[:lat], maxlat: (region[:lat] + 1), minlon: region[:lon], maxlon: (region[:lon] + 1)}]
 
