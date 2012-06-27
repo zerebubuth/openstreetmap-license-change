@@ -94,6 +94,46 @@ def process_changeset(changeset, db, verbose = false, no_action = false)
   foo = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' }) if not no_action
 end
 
+# This will throw an error if a changeset can't be applied.
+def process_entities(bot, db, nodes, ways, relations, verbose = false, no_action = false)
+
+  db.set_entities({node: nodes, way: ways, relation: relations})
+
+  print_time(verbose, 'Processing all nodes')
+  bot.process_nodes!
+  print_time(verbose, 'Processing all ways')
+  bot.process_ways!
+  print_time(verbose, 'Processing all relations')
+  bot.process_relations!
+
+  print_time(verbose, 'Delete empty objects')
+  changeset = bot.as_changeset
+
+  if changeset.empty?
+    puts "No changeset to apply" if verbose
+  else
+    changeset.each_slice(MAX_CHANGESET_ELEMENTS) do |slice|
+      success = process_changeset(slice, db, verbose, no_action)
+      # TODO handle failures!
+    end
+  end
+
+  print_time(verbose, 'Creating redactions')
+
+  bot.redactions.each do |redaction|
+    klass = case redaction.klass.name
+            when "OSM::Node" then 'node'
+            when "OSM::Way" then 'way'
+            when "OSM::Relation" then 'relation'
+            else raise "invalid klass #{redaction.klass}"
+            end
+    response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not no_action
+    # TODO handle failures
+    # TODO mark entities as processed
+  end
+  raise "No actions commited" if no_action
+end
+
 verbose = false
 no_action = false
 redaction_id = 1
@@ -108,6 +148,15 @@ dbauth = auth['database']
 trackerauth = auth['tracker']
 
 @tracker_conn = PGconn.open( :dbname => trackerauth['dbname'] )
+
+# The consumer key and consumer secret are the identifiers for this particular application, and are
+# issued when the application is registered with the site. Use your own.
+@consumer=OAuth::Consumer.new oauth['consumer_key'],
+                              oauth['consumer_secret'],
+                              {:site=>oauth['site']}
+
+# Create the access_token for all traffic
+@access_token = OAuth::AccessToken.new(@consumer, oauth['token'], oauth['token_secret'])
 
 opts.each do |opt, arg|
   case opt
@@ -200,47 +249,7 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
     end
   end
 
-  db.set_entities({node: @nodes, way: @ways, relation: @relations})
+  process_entities(bot, db, @nodes, @ways, @relations, verbose, no_action)
 
-  print_time(verbose, 'Processing all nodes')
-  bot.process_nodes!
-  print_time(verbose, 'Processing all ways')
-  bot.process_ways!
-  print_time(verbose, 'Processing all relations')
-  bot.process_relations!
-  
-  print_time(verbose, 'Delete empty objects')
-  changeset = bot.as_changeset
-
-  # The consumer key and consumer secret are the identifiers for this particular application, and are
-  # issued when the application is registered with the site. Use your own.
-  @consumer=OAuth::Consumer.new oauth['consumer_key'],
-                                oauth['consumer_secret'],
-                                {:site=>oauth['site']}
-
-  # Create the access_token for all traffic
-  @access_token = OAuth::AccessToken.new(@consumer, oauth['token'], oauth['token_secret'])
-
-  if changeset.empty?
-    puts "No changeset to apply" if verbose
-  else
-    changeset.each_slice(MAX_CHANGESET_ELEMENTS) do |slice|
-      success = process_changeset(slice, db, verbose, no_action)
-      # TODO handle failures!
-    end
-  end
-
-  print_time(verbose, 'Creating redactions')
-  redaction_id = 1 # is there an api for creating them?
-
-  bot.redactions.each do |redaction|
-    klass = case redaction.klass.name
-            when "OSM::Node" then 'node'
-            when "OSM::Way" then 'way'
-            when "OSM::Relation" then 'relation'
-            else raise "invalid klass #{redaction.klass}"
-            end
-    response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not no_action
-  end
   raise "No actions commited" if no_action
 end
