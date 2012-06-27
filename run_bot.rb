@@ -140,6 +140,23 @@ def process_entities(nodes, ways, relations)
   raise "No actions commited" if @no_action
 end
 
+def process_map_call(s)
+  parser = XML::Reader.string(s)
+  while parser.read
+    next unless ["node", "way", "relation"].include? parser.name
+    id = parser['id'].to_i
+    case parser.name
+    when "node"
+      @nodes << id if @candidate_nodes.include? id
+    when "way"
+      @ways << id if @candidate_ways.include? id
+    when "relation"
+      @relations << id if @candidate_relations.include? id
+    end
+  end
+  process_entities(@nodes, @ways, @relations)
+end
+
 @verbose = false
 @no_action = false
 @redaction_id = 1
@@ -236,20 +253,7 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
         split_area(area, areas)
         next
       when '200'
-        parser = XML::Reader.string(map.body)
-        while parser.read
-          next unless ["node", "way", "relation"].include? parser.name
-          id = parser['id'].to_i
-          case parser.name
-          when "node"
-            @nodes << id if @candidate_nodes.include? id
-          when "way"
-            @ways << id if @candidate_ways.include? id
-          when "relation"
-            @relations << id if @candidate_relations.include? id
-          end
-        end
-        process_entities(@nodes, @ways, @relations)
+        process_map_call(map.body)
       else
         puts "Unhandled response code #{map.code}"
         exit(1)
