@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- These are users, who may or may not have accepted the CTs, but whose list -->
+<!-- of changesets include tainted data. Adding a user to this list does not -->
+<!-- 'blacklist' the user, it just adds their edits to the list of edits to -->
+<!-- be examined by the bot. -->
+<!-- Only the uid attribute is required, but please fill in the rest where possible. -->
+<!-- See http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists#Tainted_Changesets -->
+<list>
+  <user uid="1066" name="pavel" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists#Wikipedia.2Cetc._imports_in_Czech_Republic" />
+  <!-- etc -->
+  <user uid="589086" name="esigns" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists#esigns" />
+</list>

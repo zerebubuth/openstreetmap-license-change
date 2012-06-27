@@ -32,6 +32,15 @@ end
 @tracker_conn.exec("create table if not exists candidates (type entity_type, osm_id bigint, status candidate_status)")
 @tracker_conn.exec("truncate table candidates")
 
+parser = XML::Reader.io(File.open('additional_users.xml', "r"))
+@additional_uids = []
+while parser.read
+  next unless ["user"].include? parser.name
+
+  @additional_uids << parser['uid']
+end
+
+
 # For now, use a simple list of non-agreeing users
 # TODO: expand with "questionable" agreements
 
@@ -41,12 +50,13 @@ EACH_SQL = \
     INNER JOIN changesets ON %{type}s.changeset_id = changesets.id
     INNER JOIN users ON changesets.user_id = users.id
     WHERE users.terms_agreed is NULL
+    OR users.id in (%{uid_list})
     GROUP BY %{type}s.%{type}_id;'
 
 out = @tracker_conn.transaction do |tracker_conn|
   tracker_conn.exec("copy candidates FROM STDIN WITH csv")
   ['node', 'way', 'relation'].each do |type|
-    res = @dbconn.query(EACH_SQL % {:type => type})
+    res = @dbconn.query(EACH_SQL % {:type => type, :uid_list => @additional_uids.join(",")})
     puts "#{res.num_tuples} #{type}s"
     res.each do |r|
       line = "#{type},#{r['id']},unprocessed\n"
