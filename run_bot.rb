@@ -23,6 +23,9 @@ Run the redaction bot on a standard rails port database.
 -v --verbose:
    Output information about the actions being taken.
 
+-r --redaction
+   Use the given redaction id
+
 -n --no-action
    Send all the commands to the database, but do not commit them.
 EOF
@@ -30,6 +33,7 @@ end
 
 opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
                       ['--verbose', '-v', GetoptLong::NO_ARGUMENT],
+                      ['--redaction', '-r', GetoptLong::REQUIRED_ARGUMENT ],
                       ['--no-action', '-n', GetoptLong::NO_ARGUMENT],
                      )
 
@@ -92,6 +96,7 @@ end
 
 verbose = false
 no_action = false
+redaction_id = 1
 
 MAX_REQUEST_AREA = 0.25
 # MAX_CHANGESET_ELEMENTS = 50000
@@ -111,6 +116,8 @@ opts.each do |opt, arg|
     exit 0
   when '--verbose'
     verbose = true
+  when '--redaction'
+    redaction_id = arg
   when '--no-action'
     no_action = true
   end
