@@ -157,6 +157,20 @@ def process_map_call(s)
   process_entities(@nodes, @ways, @relations)
 end
 
+def map_call(area, attempt = 1)
+  if attempt > 10
+    raise "too much throttling - giving up"
+  else
+    response = Net::HTTP.get_response(URI(oauth['site'] + "/api/0.6/map?bbox=#{area[:minlon]},#{area[:minlat]},#{area[:maxlon]},#{area[:maxlat]}"))
+    if response.code = '509'
+      puts "Darn, throttled on attempt #{attempt}. Sleeping..."
+      sleep( 60 * attempt )
+      response = map_call(area, attempt + 1)
+    end
+    return response
+  end
+end
+
 @verbose = false
 @no_action = false
 @redaction_id = 1
@@ -243,11 +257,10 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
       next
     else
       puts "processing #{area}" if @verbose
-      map = Net::HTTP.get_response(URI(oauth['site'] + "/api/0.6/map?bbox=#{area[:minlon]},#{area[:minlat]},#{area[:maxlon]},#{area[:maxlat]}"))
+      map = map_call(area)
       case map.code
       when '509'
-        puts "Darn, rate throttled!"
-        # TODO handle this properly
+        puts "throttling should have been handled"
         exit(1)
       when '400' # too many entities
         split_area(area, areas)
