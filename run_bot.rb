@@ -190,7 +190,7 @@ def process_redactions(bot)
 
     @log.info("Redaction for #{klass} #{redaction.element_id} v#{redaction.version}")
     unless @no_action
-      response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not @no_action
+      response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{@redaction_id}") if not @no_action
       raise "Failed to redact element" unless response.code == '200' # very unlikely to happen
     end
   end
@@ -311,9 +311,9 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
   if @ignore_regions
     # only process 1000 at a time to minimise conflicts with mappers
     puts "Ignoring the regions" if @verbose
-    nodes = get_candidate_list('node').take(100)
-    ways = get_candidate_list('way').take(100)
-    relations = get_candidate_list('relation').take(100)
+    nodes = get_candidate_list('node').take(1000)
+    ways = get_candidate_list('way').take(1000)
+    relations = get_candidate_list('relation').take(1000)
 
     if nodes.empty? && ways.empty? && relations.empty?
       raise "No entities to process"
