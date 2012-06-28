@@ -183,16 +183,19 @@ def process_map_call(s, region)
   nodes = []
   ways = []
   relations = []
+  candidate_nodes = get_candidate_list('node')
+  candidate_ways = get_candidate_list('way')
+  candidate_relations = get_candidate_list('relation')
   while parser.read
     next unless ["node", "way", "relation"].include? parser.name
     id = parser['id'].to_i
     case parser.name
     when "node"
-      nodes << id if @candidate_nodes.include? id
+      nodes << id if candidate_nodes.include? id
     when "way"
-      ways << id if @candidate_ways.include? id
+      ways << id if candidate_ways.include? id
     when "relation"
-      relations << id if @candidate_relations.include? id
+      relations << id if candidate_relations.include? id
     end
   end
   process_entities(nodes, ways, relations, region)
@@ -258,23 +261,13 @@ if not ARGV.empty?
   exit 0
 end
 
-@candidate_nodes = []
-@candidate_ways = []
-@candidate_relations = []
-
-res = @tracker_conn.exec("select osm_id from candidates where type = 'node' and status = 'unprocessed'")
-res.each do |r|
-  @candidate_nodes << r['osm_id'].to_i
-end
-
-res = @tracker_conn.exec("select osm_id from candidates where type = 'way' and status = 'unprocessed'")
-res.each do |r|
-  @candidate_ways << r['osm_id'].to_i
-end
-
-res = @tracker_conn.exec("select osm_id from candidates where type = 'relation' and status = 'unprocessed'")
-res.each do |r|
-  @candidate_relations << r['osm_id'].to_i
+def get_candidate_list(type)
+  c = []
+  res = @tracker_conn.exec("select osm_id from candidates where type = $1 and status = 'unprocessed'", [type])
+  res.each do |r|
+    c << r['osm_id'].to_i
+  end
+  c
 end
 
 print_time('Connecting to the database')
