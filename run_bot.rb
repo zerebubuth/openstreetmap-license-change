@@ -61,6 +61,28 @@ def get_next_region()
   end
 end
 
+def mark_region_complete(region)
+  # don't mark it as complete if it was marked as failed already
+  @tracker_conn.exec("update regions set status = 'complete' where id = $1 and status != 'failed'", [region[:id]]) unless @no_action
+end
+
+def mark_region_failed(region)
+  puts "region failed"
+  @tracker_conn.exec("update regions set status = 'failed' where id = $1", [region[:id]]) unless @no_action
+end
+
+def mark_entities_succeeded(nodes, ways, relations)
+  @tracker_conn.exec("update candidates set status = 'complete' where type = 'node' and id in ($1)", [nodes.join(",")]) unless @no_action
+  @tracker_conn.exec("update candidates set status = 'complete' where type = 'way' and id in ($1)", [ways.join(",")]) unless @no_action
+  @tracker_conn.exec("update candidates set status = 'complete' where type = 'relation' and id in ($1)", [relations.join(",")]) unless @no_action
+end
+
+def mark_entities_failed(nodes, ways, relations)
+  @tracker_conn.exec("update candidates set status = 'failed' where type = 'node' and id in ($1)", [nodes.join(",")]) unless @no_action
+  @tracker_conn.exec("update candidates set status = 'failed' where type = 'way' and id in ($1)", [ways.join(",")]) unless @no_action
+  @tracker_conn.exec("update candidates set status = 'failed' where type = 'relation' and id in ($1)", [relations.join(",")]) unless @no_action
+end
+
 def size_of_area(a)
   (a[:maxlat] - a[:minlat]) * (a[:maxlon] - a[:minlon])
 end
