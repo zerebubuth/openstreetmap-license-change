@@ -123,18 +123,20 @@ def process_changeset(changeset)
 end
 
 def process_entities(nodes, ways, relations, region = false)
+  # Fresh bot for each batch of entities
+  bot = ChangeBot.new(@db)
 
   @db.set_entities({node: nodes, way: ways, relation: relations})
 
   print_time('Processing all nodes')
-  @bot.process_nodes!
+  bot.process_nodes!
   print_time('Processing all ways')
-  @bot.process_ways!
+  bot.process_ways!
   print_time('Processing all relations')
-  @bot.process_relations!
+  bot.process_relations!
 
   print_time('Processing Changeset')
-  changeset = @bot.as_changeset
+  changeset = bot.as_changeset
 
   if changeset.empty?
     puts "No changeset to apply" if @verbose
@@ -154,7 +156,7 @@ def process_entities(nodes, ways, relations, region = false)
       # All changesets for area applied
       print_time('Creating redactions')
 
-      @bot.redactions.each do |redaction|
+      bot.redactions.each do |redaction|
         klass = case redaction.klass.name
                 when "OSM::Node" then 'node'
                 when "OSM::Way" then 'way'
@@ -272,7 +274,6 @@ end
 print_time('Connecting to the database')
 PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth['dbname'] ).transaction do |dbconn|
   @db = PG_DB.new(dbconn)
-  @bot = ChangeBot.new(@db)
 
   region = get_next_region()
 
