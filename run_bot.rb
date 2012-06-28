@@ -117,7 +117,6 @@ end
 def process_changeset(changeset)
   print_time('Opening changeset')
 
-  #puts changeset
   changeset_request = '<osm><changeset><tag k="created_by" v="Redaction bot"/></changeset></osm>'
   response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
   changeset_id = response.body
@@ -189,7 +188,7 @@ def process_redactions(bot)
             else raise "invalid klass #{redaction.klass}"
             end
 
-    @log.info("Redaction for #{klass} #{redaction.element_id} #{redaction.version}")
+    @log.info("Redaction for #{klass} #{redaction.element_id} v#{redaction.version}")
     unless @no_action
       response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not @no_action
       raise "Failed to redact element" unless response.code == '200' # very unlikely to happen
