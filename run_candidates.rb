@@ -29,7 +29,7 @@ if res.num_tuples == 0
   @tracker_conn.exec("CREATE TYPE entity_type  as enum ('node', 'way', 'relation')")
 end
 
-@tracker_conn.exec("create table if not exists candidates (type entity_type, osm_id bigint, status candidate_status)")
+@tracker_conn.exec("create table if not exists candidates (type entity_type, osm_id bigint, status candidate_status default 'unprocessed')")
 @tracker_conn.exec("truncate table candidates")
 
 parser = XML::Reader.io(File.open('additional_users.xml', "r"))
@@ -40,9 +40,6 @@ while parser.read
   @additional_uids << parser['uid']
 end
 
-
-# For now, use a simple list of non-agreeing users
-# TODO: expand with "questionable" agreements
 
 EACH_SQL = \
   'SELECT %{type}s.%{type}_id AS id
