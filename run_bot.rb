@@ -178,19 +178,22 @@ end
 
 def process_map_call(s, region)
   parser = XML::Reader.string(s)
+  nodes = []
+  ways = []
+  relations = []
   while parser.read
     next unless ["node", "way", "relation"].include? parser.name
     id = parser['id'].to_i
     case parser.name
     when "node"
-      @nodes << id if @candidate_nodes.include? id
+      nodes << id if @candidate_nodes.include? id
     when "way"
-      @ways << id if @candidate_ways.include? id
+      ways << id if @candidate_ways.include? id
     when "relation"
-      @relations << id if @candidate_relations.include? id
+      relations << id if @candidate_relations.include? id
     end
   end
-  process_entities(@nodes, @ways, @relations, region)
+  process_entities(nodes, ways, relations, region)
 end
 
 def map_call(area, attempt = 1)
@@ -252,10 +255,6 @@ if not ARGV.empty?
   usage
   exit 0
 end
-
-@nodes = []
-@ways = []
-@relations = []
 
 @candidate_nodes = []
 @candidate_ways = []
