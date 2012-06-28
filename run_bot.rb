@@ -52,17 +52,28 @@ def print_time(name = nil)
   print "#{name}..." if @verbose and not name.nil?
 end
 
+NEXT_REGION_SQL = \
+    "UPDATE regions SET STATUS = 'processing'
+     WHERE id = ( SELECT id
+                  FROM regions
+                  WHERE status = 'unprocessed'
+                  AND id not in (
+                      SELECT n.id as id
+                      FROM regions as n,
+                      ( SELECT id, lat, lon FROM regions WHERE status = 'processing' ) as bad
+                      WHERE ((abs(bad.lat - n.lat) < 2) and (abs(bad.lon - n.lon) < 2))
+                  )
+                  ORDER BY id
+                  LIMIT 1
+                )
+     RETURNING id, lat, lon;"
+
 def get_next_region()
-  # for now just grab next region from list
-  # TODO don't grab regions adjacent to in-progress regions
-  # TODO ensure transaction so that parrallel instances don't both grab same region
-  res = @tracker_conn.exec("select id, lat, lon from regions where status = 'unprocessed' order by id limit 1")
+  res = @tracker_conn.exec(NEXT_REGION_SQL)
   if res.num_tuples == 0
     false
   else
-    region = {id: res[0]['id'], lat: res[0]['lat'].to_f, lon: res[0]['lon'].to_f}
-    @tracker_conn.exec("update regions set status = 'processing' where id = $1", [region[:id]]) unless @no_action
-    region
+    {id: res[0]['id'], lat: res[0]['lat'].to_f, lon: res[0]['lon'].to_f}
   end
 end
 
