@@ -161,8 +161,8 @@ def map_call(area, attempt = 1)
   if attempt > 10
     raise "too much throttling - giving up"
   else
-    response = Net::HTTP.get_response(URI(oauth['site'] + "/api/0.6/map?bbox=#{area[:minlon]},#{area[:minlat]},#{area[:maxlon]},#{area[:maxlat]}"))
-    if response.code = '509'
+    response = Net::HTTP.get_response(URI(@api_site + "/api/0.6/map?bbox=#{area[:minlon]},#{area[:minlat]},#{area[:maxlon]},#{area[:maxlat]}"))
+    if response.code == '509'
       puts "Darn, throttled on attempt #{attempt}. Sleeping..."
       sleep( 60 * attempt )
       response = map_call(area, attempt + 1)
@@ -183,6 +183,8 @@ auth = YAML.load(File.open('auth.yaml'))
 oauth = auth['oauth']
 dbauth = auth['database']
 trackerauth = auth['tracker']
+
+@api_site = oauth['site']
 
 @tracker_conn = PGconn.open( :dbname => trackerauth['dbname'] )
 
