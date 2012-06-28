@@ -26,6 +26,9 @@ Run the redaction bot on a standard rails port database.
 -r --redaction
    Use the given redaction id
 
+-i --ignore-regions
+  Ignore the list of regions, and just process the candidates directly
+
 -n --no-action
    Send all the commands to the database, but do not commit them.
 EOF
@@ -33,6 +36,7 @@ end
 
 opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
                       ['--verbose', '-v', GetoptLong::NO_ARGUMENT],
+                      ['--ignore-regions', '-i', GetoptLong::NO_ARGUMENT],
                       ['--redaction', '-r', GetoptLong::REQUIRED_ARGUMENT ],
                       ['--no-action', '-n', GetoptLong::NO_ARGUMENT],
                      )
@@ -218,6 +222,7 @@ end
 @verbose = false
 @no_action = false
 @redaction_id = 1
+@ignore_regions = false
 
 MAX_REQUEST_AREA = 0.25
 # MAX_CHANGESET_ELEMENTS = 50000
@@ -250,6 +255,8 @@ opts.each do |opt, arg|
     @verbose = true
   when '--redaction'
     @redaction_id = arg
+  when '--ignore-regions'
+    @ignore_regions = true
   when '--no-action'
     @no_action = true
   end
@@ -274,41 +281,55 @@ print_time('Connecting to the database')
 PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth['dbname'] ).transaction do |dbconn|
   @db = PG_DB.new(dbconn)
 
-  region = get_next_region()
+  if @ignore_regions
+    # only process 1000 at a time to minimise conflicts with mappers
+    puts "Ignoring the regions" if @verbose
+    nodes = get_candidate_list('node').take(100)
+    ways = get_candidate_list('way').take(100)
+    relations = get_candidate_list('relation').take(100)
 
-  raise "no region to process" unless region
+    if nodes.empty? && ways.empty? && relations.empty?
+      raise "No entities to process"
+    else
+      process_entities(nodes,ways,relations)
+    end
+  else
+    region = get_next_region()
 
-  areas = [{minlat: region[:lat], maxlat: (region[:lat] + 1), minlon: region[:lon], maxlon: (region[:lon] + 1)}]
+    raise "No region to process" unless region
 
-  begin
-    while areas.length > 0
-      puts "#{areas.length} areas remaining" if @verbose
-      area = areas.pop
-      if size_of_area(area) > MAX_REQUEST_AREA
-        split_area(area, areas)
-        next
-      else
-        puts "processing #{area}" if @verbose
-        map = map_call(area)
-        case map.code
-        when '509'
-          raise "throttling should have been handled"
-        when '400' # too many entities
+    areas = [{minlat: region[:lat], maxlat: (region[:lat] + 1), minlon: region[:lon], maxlon: (region[:lon] + 1)}]
+
+    begin
+      while areas.length > 0
+        puts "#{areas.length} areas remaining" if @verbose
+        area = areas.pop
+        if size_of_area(area) > MAX_REQUEST_AREA
           split_area(area, areas)
           next
-        when '200'
-          process_map_call(map.body, region)
         else
-          raise "Unhandled response code #{map.code}"
+          puts "processing #{area}" if @verbose
+          map = map_call(area)
+          case map.code
+          when '509'
+            raise "throttling should have been handled"
+          when '400' # too many entities
+            split_area(area, areas)
+            next
+          when '200'
+            process_map_call(map.body, region)
+          else
+            raise "Unhandled response code #{map.code}"
+          end
         end
       end
+    rescue Exception => e
+      #log(e.message)
+      mark_region_failed(region)
+      exit(1)
+    else
+      mark_region_complete(region)
     end
-  rescue Exception => e
-    #log(e.message)
-    mark_region_failed(region)
-    exit(1)
-  else
-    mark_region_complete(region)
   end
 
   raise "No actions commited" if @no_action
