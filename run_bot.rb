@@ -55,9 +55,9 @@ def get_next_region()
   if res.num_tuples == 0
     false
   else
-    @region = {id: res[0]['id'], lat: res[0]['lat'].to_f, lon: res[0]['lon'].to_f}
-    @tracker_conn.exec("update regions set status = 'processing' where id = $1", [@region[:id]])
-    @region
+    region = {id: res[0]['id'], lat: res[0]['lat'].to_f, lon: res[0]['lon'].to_f}
+    @tracker_conn.exec("update regions set status = 'processing' where id = $1", [region[:id]]) unless @no_action
+    region
   end
 end
 
