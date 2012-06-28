@@ -168,8 +168,10 @@ def process_entities(nodes, ways, relations, region = false)
                 when "OSM::Relation" then 'relation'
                 else raise "invalid klass #{redaction.klass}"
                 end
-        response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not @no_action
-        # TODO handle failures in redacting?
+        unless @no_action
+          response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not @no_action
+          raise "Failed to redact element" unless response.code == '200' # very unlikely to happen
+        end
       end
       mark_entities_succeeded(nodes, ways, relations)
     end
