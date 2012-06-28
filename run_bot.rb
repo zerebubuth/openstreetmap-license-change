@@ -119,7 +119,12 @@ def process_changeset(changeset)
 
   puts change_doc
   print_time('Uploading changeset')
-  foo = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' }) if not @no_action
+  unless @no_action
+    response = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' })
+    unless response.code == '200'
+      raise "Changeset failed to apply"
+    end
+  end
 end
 
 def process_entities(nodes, ways, relations, region = false)
