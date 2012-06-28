@@ -355,7 +355,8 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
         end
       end
     rescue Exception => e
-      #log(e.message)
+      @log.error(e.message)
+      puts e.message
       mark_region_failed(region)
       exit(1)
     else
