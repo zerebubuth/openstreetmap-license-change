@@ -10,6 +10,7 @@ require 'getoptlong'
 require 'oauth'
 require 'yaml'
 require 'xml/libxml'
+require 'logger'
 
 def usage
   puts <<-EOF
@@ -121,13 +122,16 @@ def process_changeset(changeset)
   change_doc = ""
   OSM::print_osmchange(changeset, @db, change_doc, changeset_id)
 
-  puts change_doc
+  @log.debug( "Changeset:\n" + change_doc )
+  #puts change_doc
   print_time('Uploading changeset')
   unless @no_action
     response = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' })
     unless response.code == '200'
+      # It's quite likely for a changeset to fail, if someone else is editing in the area being processed
       raise "Changeset failed to apply"
     end
+    @log.info("Uploaded changeset #{changeset_id}")
   end
 end
 
@@ -180,6 +184,8 @@ def process_redactions(bot)
             when "OSM::Relation" then 'relation'
             else raise "invalid klass #{redaction.klass}"
             end
+
+    @log.info("Redaction for #{klass} #{redaction.element_id} #{redaction.version}")
     unless @no_action
       response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not @no_action
       raise "Failed to redact element" unless response.code == '200' # very unlikely to happen
@@ -282,6 +288,19 @@ def get_candidate_list(type)
   c
 end
 
+unless Dir.exists?('logs')
+  Dir.mkdir('logs')
+end
+log_name = "logs/#{Time.now.strftime('%Y%m%dT%H%M%S')}.log"
+
+print_time("Logging to #{log_name}") if @verbose
+@log = Logger.new(log_name)
+@log.level = Logger::DEBUG
+
+if @no_action
+  @log.info("No actions will be taken")
+end
+
 print_time('Connecting to the database')
 PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth['dbname'] ).transaction do |dbconn|
   @db = PG_DB.new(dbconn)
@@ -303,22 +322,25 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
 
     raise "No region to process" unless region
 
+    @log.info("Processing region #{region}")
+
     areas = [{minlat: region[:lat], maxlat: (region[:lat] + 1), minlon: region[:lon], maxlon: (region[:lon] + 1)}]
 
     begin
       while areas.length > 0
-        puts "#{areas.length} areas remaining" if @verbose
+        @log.debug("#{areas.length} areas remaining")
         area = areas.pop
         if size_of_area(area) > MAX_REQUEST_AREA
           split_area(area, areas)
           next
         else
-          puts "processing #{area}" if @verbose
+          @log.info("Processing #{area}")
           map = map_call(area)
           case map.code
           when '509'
             raise "throttling should have been handled"
           when '400' # too many entities
+            @log.debug("too many entities, splitting")
             split_area(area, areas)
             next
           when '200'
