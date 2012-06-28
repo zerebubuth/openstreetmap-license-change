@@ -77,15 +77,19 @@ def mark_region_failed(region)
 end
 
 def mark_entities_succeeded(nodes, ways, relations)
-  @tracker_conn.exec("update candidates set status = 'complete' where type = 'node' and id in ($1)", [nodes.join(",")]) unless @no_action
-  @tracker_conn.exec("update candidates set status = 'complete' where type = 'way' and id in ($1)", [ways.join(",")]) unless @no_action
-  @tracker_conn.exec("update candidates set status = 'complete' where type = 'relation' and id in ($1)", [relations.join(",")]) unless @no_action
+  unless @no_action
+    @tracker_conn.exec("update candidates set status = 'processed' where type = 'node' and osm_id in (%{list})" % {list: nodes.join(", ")}) unless nodes.empty?
+    @tracker_conn.exec("update candidates set status = 'processed' where type = 'way' and osm_id in (%{list})" % {list: ways.join(",")}) unless ways.empty?
+    @tracker_conn.exec("update candidates set status = 'processed' where type = 'relation' and osm_id in (%{list})" % {list: relations.join(",")}) unless relations.empty?
+  end
 end
 
 def mark_entities_failed(nodes, ways, relations)
-  @tracker_conn.exec("update candidates set status = 'failed' where type = 'node' and id in ($1)", [nodes.join(",")]) unless @no_action
-  @tracker_conn.exec("update candidates set status = 'failed' where type = 'way' and id in ($1)", [ways.join(",")]) unless @no_action
-  @tracker_conn.exec("update candidates set status = 'failed' where type = 'relation' and id in ($1)", [relations.join(",")]) unless @no_action
+  unless @no_action
+    @tracker_conn.exec("update candidates set status = 'failed' where type = 'node' and osm_id in (%{list})" % {list: nodes.join(",")}) unless nodes.empty?
+    @tracker_conn.exec("update candidates set status = 'failed' where type = 'way' and osm_id in (%{list})" % {list: ways.join(",")}) unless ways.empty?
+    @tracker_conn.exec("update candidates set status = 'failed' where type = 'relation' and osm_id in (%{list})" % {list: relations.join(",")}) unless relations.empty?
+  end
 end
 
 def size_of_area(a)
