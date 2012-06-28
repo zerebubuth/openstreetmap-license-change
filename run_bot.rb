@@ -273,29 +273,35 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
 
   areas = [{minlat: region[:lat], maxlat: (region[:lat] + 1), minlon: region[:lon], maxlon: (region[:lon] + 1)}]
 
-  while areas.length > 0
-    puts "#{areas.length} areas remaining" if @verbose
-    area = areas.pop
-    if size_of_area(area) > MAX_REQUEST_AREA
-      split_area(area, areas)
-      next
-    else
-      puts "processing #{area}" if @verbose
-      map = map_call(area)
-      case map.code
-      when '509'
-        puts "throttling should have been handled"
-        exit(1)
-      when '400' # too many entities
+  begin
+    while areas.length > 0
+      puts "#{areas.length} areas remaining" if @verbose
+      area = areas.pop
+      if size_of_area(area) > MAX_REQUEST_AREA
         split_area(area, areas)
         next
-      when '200'
-        process_map_call(map.body)
       else
-        puts "Unhandled response code #{map.code}"
-        exit(1)
+        puts "processing #{area}" if @verbose
+        map = map_call(area)
+        case map.code
+        when '509'
+          raise "throttling should have been handled"
+        when '400' # too many entities
+          split_area(area, areas)
+          next
+        when '200'
+          process_map_call(map.body, region)
+        else
+          raise "Unhandled response code #{map.code}"
+        end
       end
     end
+  rescue Exception => e
+    #log(e.message)
+    mark_region_failed(region)
+    exit(1)
+  else
+    mark_region_complete(region)
   end
 
   raise "No actions commited" if @no_action
