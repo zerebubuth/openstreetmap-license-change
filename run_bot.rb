@@ -122,8 +122,7 @@ def process_changeset(changeset)
   foo = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' }) if not @no_action
 end
 
-# This will throw an error if a changeset can't be applied.
-def process_entities(nodes, ways, relations)
+def process_entities(nodes, ways, relations, region = false)
 
   @db.set_entities({node: nodes, way: ways, relation: relations})
 
@@ -134,35 +133,43 @@ def process_entities(nodes, ways, relations)
   print_time('Processing all relations')
   @bot.process_relations!
 
-  print_time('Delete empty objects')
+  print_time('Processing Changeset')
   changeset = @bot.as_changeset
 
   if changeset.empty?
     puts "No changeset to apply" if @verbose
   else
-    changeset.each_slice(MAX_CHANGESET_ELEMENTS) do |slice|
-      success = process_changeset(slice)
-      # TODO handle failures!
+    begin
+      changeset.each_slice(MAX_CHANGESET_ELEMENTS) do |slice|
+        process_changeset(slice)
+      end
+    rescue
+      # couldn't apply changeset for an area, so
+      # - fail the whole region
+      # - mark the entities for this area as failed
+      # - keep processing other areas
+      mark_region_failed(region) if region
+      mark_entities_failed(nodes, ways, relations)
+    else
+      # All changesets for area applied
+      print_time('Creating redactions')
+
+      @bot.redactions.each do |redaction|
+        klass = case redaction.klass.name
+                when "OSM::Node" then 'node'
+                when "OSM::Way" then 'way'
+                when "OSM::Relation" then 'relation'
+                else raise "invalid klass #{redaction.klass}"
+                end
+        response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not @no_action
+        # TODO handle failures in redacting?
+      end
+      mark_entities_succeeded(nodes, ways, relations)
     end
   end
-
-  print_time('Creating redactions')
-
-  @bot.redactions.each do |redaction|
-    klass = case redaction.klass.name
-            when "OSM::Node" then 'node'
-            when "OSM::Way" then 'way'
-            when "OSM::Relation" then 'relation'
-            else raise "invalid klass #{redaction.klass}"
-            end
-    response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not @no_action
-    # TODO handle failures
-    # TODO mark entities as processed
-  end
-  raise "No actions commited" if @no_action
 end
 
-def process_map_call(s)
+def process_map_call(s, region)
   parser = XML::Reader.string(s)
   while parser.read
     next unless ["node", "way", "relation"].include? parser.name
@@ -176,7 +183,7 @@ def process_map_call(s)
       @relations << id if @candidate_relations.include? id
     end
   end
-  process_entities(@nodes, @ways, @relations)
+  process_entities(@nodes, @ways, @relations, region)
 end
 
 def map_call(area, attempt = 1)
