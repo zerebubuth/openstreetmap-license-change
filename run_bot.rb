@@ -149,6 +149,8 @@ def process_entities(nodes, ways, relations, region = false)
 
   if changeset.empty?
     puts "No changeset to apply" if @verbose
+    process_redactions(bot)
+    mark_entities_succeeded(nodes, ways, relations)
   else
     begin
       changeset.each_slice(MAX_CHANGESET_ELEMENTS) do |slice|
@@ -162,22 +164,25 @@ def process_entities(nodes, ways, relations, region = false)
       mark_region_failed(region) if region
       mark_entities_failed(nodes, ways, relations)
     else
-      # All changesets for area applied
-      print_time('Creating redactions')
-
-      bot.redactions.each do |redaction|
-        klass = case redaction.klass.name
-                when "OSM::Node" then 'node'
-                when "OSM::Way" then 'way'
-                when "OSM::Relation" then 'relation'
-                else raise "invalid klass #{redaction.klass}"
-                end
-        unless @no_action
-          response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not @no_action
-          raise "Failed to redact element" unless response.code == '200' # very unlikely to happen
-        end
-      end
+      process_redactions(bot)
       mark_entities_succeeded(nodes, ways, relations)
+    end
+  end
+end
+
+def process_redactions(bot)
+  print_time('Creating redactions')
+
+  bot.redactions.each do |redaction|
+    klass = case redaction.klass.name
+            when "OSM::Node" then 'node'
+            when "OSM::Way" then 'way'
+            when "OSM::Relation" then 'relation'
+            else raise "invalid klass #{redaction.klass}"
+            end
+    unless @no_action
+      response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not @no_action
+      raise "Failed to redact element" unless response.code == '200' # very unlikely to happen
     end
   end
 end
