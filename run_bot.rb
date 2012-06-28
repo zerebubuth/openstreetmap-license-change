@@ -119,6 +119,7 @@ def process_changeset(changeset)
 
   changeset_request = '<osm><changeset><tag k="created_by" v="Redaction bot"/></changeset></osm>'
   response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
+  raise "Failed to open changeset" unless response.code == '200'
   changeset_id = response.body
 
   print_time('Generating changeset')
