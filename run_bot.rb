@@ -35,15 +35,6 @@ Run the redaction bot on a standard rails port database.
 EOF
 end
 
-opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
-                      ['--verbose', '-v', GetoptLong::NO_ARGUMENT],
-                      ['--ignore-regions', '-i', GetoptLong::NO_ARGUMENT],
-                      ['--redaction', '-r', GetoptLong::REQUIRED_ARGUMENT ],
-                      ['--no-action', '-n', GetoptLong::NO_ARGUMENT],
-                     )
-
-@start_time = nil
-
 def print_time(name = nil)
   now_time = Time.now
   print "(#{now_time - @start_time} s)\n" if @verbose and not @start_time.nil?
@@ -272,6 +263,23 @@ def map_call(area, attempt = 1)
   end
 end
 
+def get_candidate_list(type)
+  c = []
+  res = @tracker_conn.exec("select osm_id from candidates where type = $1 and status = 'unprocessed'", [type])
+  res.each do |r|
+    c << r['osm_id'].to_i
+  end
+  c
+end
+
+opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
+                      ['--verbose', '-v', GetoptLong::NO_ARGUMENT],
+                      ['--ignore-regions', '-i', GetoptLong::NO_ARGUMENT],
+                      ['--redaction', '-r', GetoptLong::REQUIRED_ARGUMENT ],
+                      ['--no-action', '-n', GetoptLong::NO_ARGUMENT],
+                     )
+
+@start_time = nil
 @verbose = false
 @no_action = false
 @redaction_id = 1
@@ -321,15 +329,6 @@ if not ARGV.empty?
   puts "Unexpected argument #{ARGV[0]}"
   usage
   exit 0
-end
-
-def get_candidate_list(type)
-  c = []
-  res = @tracker_conn.exec("select osm_id from candidates where type = $1 and status = 'unprocessed'", [type])
-  res.each do |r|
-    c << r['osm_id'].to_i
-  end
-  c
 end
 
 unless Dir.exists?('logs')
