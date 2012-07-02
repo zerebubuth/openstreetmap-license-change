@@ -110,6 +110,10 @@ end
 # split an area into two areas, and add them to the list
 # divide along the longest edge
 def split_area(a, list)
+  if size_of_area(a) < TOO_SMALL_TO_SPLIT
+    @log.error("area too small to split: #{a}")
+    raise "area too small to split"
+  end
   a1 = a.clone
   a2 = a.clone
   lat_range = a[:maxlat] - a[:minlat]
@@ -274,6 +278,8 @@ end
 @ignore_regions = false
 
 MAX_REQUEST_AREA = 0.25
+TOO_SMALL_TO_SPLIT = 0.000001 # roughly 10cm at the equator
+
 # MAX_CHANGESET_ELEMENTS = 50000
 MAX_CHANGESET_ELEMENTS = 5
 
