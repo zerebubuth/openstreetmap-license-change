@@ -327,6 +327,14 @@ print_time('Connecting to the database')
 PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth['dbname'] ).transaction do |dbconn|
   @db = PG_DB.new(dbconn)
 
+  unless @no_action
+    res = dbconn.exec("select id from redactions where id = $1", [@redaction_id])
+    unless res.num_tuples == 1
+      @log.error("invalid redaction id: #{@redaction_id}")
+      raise "invalid redaction id"
+    end
+  end
+
   if @ignore_regions
     # only process 1000 at a time to minimise conflicts with mappers
     puts "Ignoring the regions" if @verbose
