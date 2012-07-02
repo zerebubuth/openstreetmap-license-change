@@ -151,6 +151,7 @@ def process_changeset(changeset)
 end
 
 def process_entities(nodes, ways, relations, region = false)
+  @log.debug("Processing Entities: #{nodes.length} / #{ways.length} / #{relations.length}")
   # Fresh bot for each batch of entities
   bot = ChangeBot.new(@db)
 
@@ -167,6 +168,7 @@ def process_entities(nodes, ways, relations, region = false)
   changeset = bot.as_changeset
 
   if changeset.empty?
+    @log.debug("No changeset to apply")
     puts "No changeset to apply" if @verbose
     process_redactions(bot)
     mark_entities_succeeded(nodes, ways, relations)
@@ -203,31 +205,45 @@ def process_redactions(bot)
     @log.info("Redaction for #{klass} #{redaction.element_id} v#{redaction.version}")
     unless @no_action
       response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{@redaction_id}") if not @no_action
-      raise "Failed to redact element" unless response.code == '200' # very unlikely to happen
+      unless response.code == '200'
+        @log.error("Failed to redact element")
+        raise "Failed to redact element"
+      end
     end
   end
 end
 
 def process_map_call(s, region)
+  @log.debug("Processing map call")
   parser = XML::Reader.string(s)
+  # These are what we want to send to the bot for processing
   nodes = []
   ways = []
   relations = []
+  # These are just debugging aids
+  debug_nodes = []
+  debug_ways = []
+  debug_relations = []
   candidate_nodes = get_candidate_list('node')
   candidate_ways = get_candidate_list('way')
   candidate_relations = get_candidate_list('relation')
+  @log.debug("Candidates: #{candidate_nodes.length} / #{candidate_ways.length} / #{candidate_relations.length}")
   while parser.read
     next unless ["node", "way", "relation"].include? parser.name
     id = parser['id'].to_i
     case parser.name
     when "node"
+      debug_nodes << id
       nodes << id if candidate_nodes.include? id
     when "way"
+      debug_ways << id
       ways << id if candidate_ways.include? id
     when "relation"
+      debug_relations << id
       relations << id if candidate_relations.include? id
     end
   end
+  @log.debug("Received: #{debug_nodes.length} / #{debug_ways.length} / #{debug_relations.length}")
   process_entities(nodes, ways, relations, region)
 end
 
@@ -370,12 +386,15 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
           when '509'
             raise "throttling should have been handled"
           when '400' # too many entities
+            # There's actually more than one way to trigger a 400 response. We might need to analyse the response
+            # message to make sure splitting is actually the correct thing to do.
             @log.debug("too many entities, splitting")
             split_area(area, areas)
             next
           when '200'
             process_map_call(map.body, region)
           else
+            @log.error("Unhandled reponse code #{map.code}\n#{map.body}")
             raise "Unhandled response code #{map.code}"
           end
         end
