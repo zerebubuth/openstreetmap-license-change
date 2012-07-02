@@ -235,7 +235,14 @@ def map_call(area, attempt = 1)
   if attempt > 10
     raise "too much throttling - giving up"
   else
-    response = Net::HTTP.get_response(URI(@api_site + "/api/0.6/map?bbox=#{area[:minlon]},#{area[:minlat]},#{area[:maxlon]},#{area[:maxlat]}"))
+    url = @api_site + "/api/0.6/map?bbox=#{area[:minlon]},#{area[:minlat]},#{area[:maxlon]},#{area[:maxlat]}"
+    @log.debug("Making map call to #{url}")
+
+    uri = URI(url)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.read_timeout = 320 # api timeout is 300
+    response = http.request_get(uri.request_uri)
+
     if response.code == '509'
       puts "Darn, throttled on attempt #{attempt}. Sleeping..."
       sleep( 60 * attempt )
