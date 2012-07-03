@@ -1,6 +1,7 @@
 GEM
   remote: http://rubygems.org/
   specs:
+    bzip2-ruby (0.2.7)
     domain_name (0.5.3)
       unf (~> 0.0.3)
     libxml-ruby (2.3.2)
@@ -17,6 +18,8 @@ GEM
     net-http-persistent (2.7)
     nokogiri (1.5.4)
     ntlm-http (0.1.1)
+    oauth (0.4.6)
+    pg (0.14.0)
     text (1.0.3)
     unf (0.0.5)
       unf_ext
@@ -27,6 +30,9 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  bzip2-ruby
   libxml-ruby
   mechanize
+  oauth
+  pg
   text
