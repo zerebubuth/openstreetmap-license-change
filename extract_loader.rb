@@ -273,48 +273,38 @@ puts "Loading xml file to the database" if verbose
 
   # remove data that is not following the contraints of the database
   puts "Sanitizing the data" if verbose
-  conn.exec('WITH missing_nodes AS (
-               SELECT way_id FROM way_nodes 
-               WHERE NOT node_id IN (SELECT node_id FROM nodes) 
-               GROUP BY way_id) 
-             DELETE FROM way_tags 
-             USING missing_nodes 
-             WHERE way_tags.way_id = missing_nodes.way_id;')
-  conn.exec('WITH missing_nodes AS (
-               SELECT way_id FROM way_nodes 
-               WHERE NOT node_id IN (SELECT node_id FROM nodes) 
-               GROUP BY way_id) 
-             DELETE from way_nodes 
-             USING missing_nodes 
-             WHERE way_nodes.way_id = missing_nodes.way_id;')
+  conn.exec("DELETE FROM way_tags
+             WHERE way_id IN (
+               SELECT way_id FROM way_nodes
+               WHERE NOT node_id IN (SELECT node_id FROM nodes)
+               GROUP BY way_id)")
+  conn.exec("DELETE FROM way_nodes
+             WHERE way_id IN (
+               SELECT way_id FROM way_nodes
+               WHERE NOT node_id IN (SELECT node_id FROM nodes)
+               GROUP BY way_id)")
   conn.exec('DELETE from ways
              WHERE NOT way_id IN (SELECT way_id FROM way_nodes);')
 
   #sanitize relations
-  conn.exec("WITH missing_relation_nodes AS (
+  conn.exec("DELETE FROM relation_members
+            WHERE relation_id IN (
                 SELECT relation_id FROM relation_members
                 WHERE member_type = 'Node'
                 AND NOT member_id IN (SELECT node_id FROM nodes)
-                GROUP BY relation_id)
-              delete from relation_members
-              using missing_relation_nodes
-              where relation_members.relation_id = missing_relation_nodes.relation_id;")
-  conn.exec("WITH missing_relation_ways AS (
+                GROUP BY relation_id)")
+  conn.exec("DELETE FROM relation_members
+             WHERE relation_id IN (
                 SELECT relation_id FROM relation_members
                 WHERE member_type = 'Way'
                 AND NOT member_id IN (SELECT way_id FROM ways)
-                GROUP BY relation_id)
-              delete from relation_members
-              using missing_relation_ways
-              where relation_members.relation_id = missing_relation_ways.relation_id;")
-  conn.exec("WITH missing_relation_relations AS (
+                GROUP BY relation_id)")
+  conn.exec("DELETE FROM relation_members
+             WHERE relation_id IN (
                 SELECT relation_id FROM relation_members
                 WHERE member_type = 'Relation'
                 AND NOT member_id IN (SELECT relation_id FROM relations)
-                GROUP BY relation_id)
-              delete from relation_members
-              using missing_relation_relations
-              where relation_members.relation_id = missing_relation_relations.relation_id;")
+                GROUP BY relation_id)")
 
   # populate the current tables
   puts "Populate the current_* tables" if verbose
