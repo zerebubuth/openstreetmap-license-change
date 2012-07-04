@@ -33,7 +33,7 @@ end
 
 module OSM
   def self.print_osmchange(changeset, db, out = $stdout, changeset_id = -1)
-    changeset.sort! {|a, b| compare(a, b)}
+    #changeset.sort! {|a, b| compare(a, b)}
   
     out << '<osmChange version="0.6" generator="Redaction bot">' << "\n"
     changeset.each do |o|
