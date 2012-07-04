@@ -76,11 +76,16 @@ end
 def mark_region_failed(region)
   @log.error("Marking region failed: #{region}")
   @tracker_conn.exec("update regions set status = 'failed' where id = $1", [region[:id]]) unless @no_action
+  @region_failed = true
 end
 
 def mark_entities_succeeded(nodes, ways, relations)
   unless @no_action
     @log.debug("Marking entities succeeded: #{nodes.length} / #{ways.length} / #{relations.length}")
+    @log.error("Nodes: #{nodes.join(',')}")
+    @log.error("Ways: #{ways.join(',')}")
+    @log.error("Relations: #{relations.join(',')}")
+    @summary_candidate_success += (nodes.length + ways.length + relations.length)
     @tracker_conn.exec("update candidates set status = 'processed' where type = 'node' and osm_id in (%{list})" % {list: nodes.join(", ")}) unless nodes.empty?
     @tracker_conn.exec("update candidates set status = 'processed' where type = 'way' and osm_id in (%{list})" % {list: ways.join(",")}) unless ways.empty?
     @tracker_conn.exec("update candidates set status = 'processed' where type = 'relation' and osm_id in (%{list})" % {list: relations.join(",")}) unless relations.empty?
@@ -93,6 +98,7 @@ def mark_entities_failed(nodes, ways, relations)
     @log.error("Nodes: #{nodes.join(',')}")
     @log.error("Ways: #{ways.join(',')}")
     @log.error("Relations: #{relations.join(',')}")
+    @summary_candidate_fails += (nodes.length + ways.length + relations.length)
     @tracker_conn.exec("update candidates set status = 'failed' where type = 'node' and osm_id in (%{list})" % {list: nodes.join(",")}) unless nodes.empty?
     @tracker_conn.exec("update candidates set status = 'failed' where type = 'way' and osm_id in (%{list})" % {list: ways.join(",")}) unless ways.empty?
     @tracker_conn.exec("update candidates set status = 'failed' where type = 'relation' and osm_id in (%{list})" % {list: relations.join(",")}) unless relations.empty?
@@ -149,9 +155,11 @@ def process_changeset(changeset)
     unless response.code == '200'
       # It's quite likely for a changeset to fail, if someone else is editing in the area being processed
       @log.error("Changeset failed to apply. Response #{response.code}:\n#{response.body}")
+      @summary_changeset_fails += 1
       raise "Changeset failed to apply"
     end
     @log.info("Uploaded changeset #{changeset_id}")
+    @summary_changeset_success += 1
   end
 end
 
@@ -282,6 +290,14 @@ def get_candidate_list(type)
   c
 end
 
+def print_summary()
+  @log.info("Summary")
+  @log.info("#{@summary_changeset_success} successful changesets")
+  @log.info("#{@summary_candidate_success} successful candidates")
+  @log.info("#{@summary_changeset_fails} failed changesets")
+  @log.info("#{@summary_candidate_fails} failed candidates")
+end
+
 opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
                       ['--verbose', '-v', GetoptLong::NO_ARGUMENT],
                       ['--ignore-regions', '-i', GetoptLong::NO_ARGUMENT],
@@ -294,6 +310,11 @@ opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
 @no_action = false
 @redaction_id = 1
 @ignore_regions = false
+@summary_changeset_fails = 0
+@summary_changeset_success = 0
+@summary_candidate_fails = 0
+@summary_candidate_success = 0
+@region_failed = false
 
 MAX_REQUEST_AREA = 0.25 / 32
 TOO_SMALL_TO_SPLIT = 0.000001 # roughly 10cm at the equator
@@ -430,5 +451,11 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
     end
   end
 
+  print_summary()
+
   raise "No actions commited" if @no_action
+  exit(1) if @summary_changeset_fails > 0
+  exit(1) if @summary_candidate_fails > 0
+  exit(1) if @region_failed
+  exit(0)
 end
