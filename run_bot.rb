@@ -82,9 +82,9 @@ end
 def mark_entities_succeeded(nodes, ways, relations)
   unless @no_action
     @log.debug("Marking entities succeeded: #{nodes.length} / #{ways.length} / #{relations.length}")
-    @log.error("Nodes: #{nodes.join(',')}")
-    @log.error("Ways: #{ways.join(',')}")
-    @log.error("Relations: #{relations.join(',')}")
+    @log.debug("Nodes: #{nodes.join(',')}")
+    @log.debug("Ways: #{ways.join(',')}")
+    @log.debug("Relations: #{relations.join(',')}")
     @summary_candidate_success += (nodes.length + ways.length + relations.length)
     @tracker_conn.exec("update candidates set status = 'processed' where type = 'node' and osm_id in (%{list})" % {list: nodes.join(", ")}) unless nodes.empty?
     @tracker_conn.exec("update candidates set status = 'processed' where type = 'way' and osm_id in (%{list})" % {list: ways.join(",")}) unless ways.empty?
