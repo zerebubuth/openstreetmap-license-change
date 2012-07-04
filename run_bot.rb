@@ -331,14 +331,20 @@ if not ARGV.empty?
   exit 0
 end
 
-unless Dir.exists?('logs')
-  Dir.mkdir('logs')
+LOG_DIR = 'logs'
+
+unless Dir.exists?(LOG_DIR)
+  Dir.mkdir(LOG_DIR)
 end
-log_name = "logs/#{Time.now.strftime('%Y%m%dT%H%M%S')}.log"
+log_name = "#{Time.now.strftime('%Y%m%dT%H%M%S')}.log"
 
 print_time("Logging to #{log_name}") if @verbose
-@log = Logger.new(log_name)
+@log = Logger.new(File.join(LOG_DIR, log_name))
 @log.level = Logger::DEBUG
+
+symlink = "latest"
+File.delete(File.join(LOG_DIR, symlink)) if File.symlink?(File.join(LOG_DIR,symlink))
+File.symlink(log_name, File.join(LOG_DIR,symlink))
 
 if @no_action
   @log.info("No actions will be taken")
