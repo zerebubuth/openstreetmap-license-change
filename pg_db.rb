@@ -86,7 +86,7 @@ class PG_DB
   
   def relation(id, current = false)
     geoms = get_geom(RELATION_GEOM_SQL % {:id => id}) \
-      {|r| [r['member_type'], r['member_id'].to_i, (r['member_role'] or '')]}
+      {|r| [klass_for_member_type(r['member_type']), r['member_id'].to_i, (r['member_role'] or '')]}
     get_history('relation', id, current) do |r, attribs|
       geom = geoms.fetch(attribs[:version], [])
       OSM::Relation[geom, attribs]
@@ -198,5 +198,13 @@ class PG_DB
       tag = tags.fetch(ver, {})
       yield r, get_attr(r).merge(tag)
     end
+  end
+
+  def klass_for_member_type(s)
+    klass = case s
+            when "Node" then OSM::Node
+            when "Way" then OSM::Way
+            when "Relation" then OSM::Relation
+            end
   end
 end
