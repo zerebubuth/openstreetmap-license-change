@@ -242,7 +242,8 @@ class TestReferences < MiniTest::Unit::TestCase
 
   ##
   # this tests that a relation losing all its members will  
-  # remain, and not be deleted like a way losing all its nodes.
+  # be deleted, and not mess up the diff upload.
+  # See https://trac.openstreetmap.org/ticket/4471
   #
   def test_empty_relation_remains
     db = DB.new(:changesets => {
@@ -263,7 +264,7 @@ class TestReferences < MiniTest::Unit::TestCase
     bot = ChangeBot.new(db)
     bot.process_all!
 
-    assert_equal([Edit[OSM::Relation[[ ], :id => 1, :changeset => -1, :version => 1]],
+    assert_equal([Delete[OSM::Relation, 1],
                   Delete[OSM::Node, 1],
                   Delete[OSM::Node, 2],
                   Delete[OSM::Node, 3]

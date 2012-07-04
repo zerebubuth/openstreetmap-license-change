@@ -326,7 +326,11 @@ class ChangeBot
           # hmm... whether to kill empty relations or not? the test currently
           # says not, but i'm not sure an empty relation is actually particularly
           # useful to anyone
-          #kill_object = edit.obj.members.empty?
+          # Actually, given there's a bug (or at the least, an ambiguity in the API),
+          # we *need* to kill empty relations. They can't be uploaded without
+          # a certain amount of gymnastics.
+          # See https://trac.openstreetmap.org/ticket/4471
+          kill_object = edit.obj.members.empty?
         end
         
         if kill_object
