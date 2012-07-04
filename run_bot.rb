@@ -74,12 +74,13 @@ def mark_region_complete(region)
 end
 
 def mark_region_failed(region)
-  puts "region failed"
+  @log.error("Marking region failed: #{region}")
   @tracker_conn.exec("update regions set status = 'failed' where id = $1", [region[:id]]) unless @no_action
 end
 
 def mark_entities_succeeded(nodes, ways, relations)
   unless @no_action
+    @log.debug("Marking entities succeeded: #{nodes.length} / #{ways.length} / #{relations.length}")
     @tracker_conn.exec("update candidates set status = 'processed' where type = 'node' and osm_id in (%{list})" % {list: nodes.join(", ")}) unless nodes.empty?
     @tracker_conn.exec("update candidates set status = 'processed' where type = 'way' and osm_id in (%{list})" % {list: ways.join(",")}) unless ways.empty?
     @tracker_conn.exec("update candidates set status = 'processed' where type = 'relation' and osm_id in (%{list})" % {list: relations.join(",")}) unless relations.empty?
@@ -88,6 +89,10 @@ end
 
 def mark_entities_failed(nodes, ways, relations)
   unless @no_action
+    @log.error("Marking entities as failed: #{nodes.length} / #{ways.length} / #{relations.length}")
+    @log.error("Nodes: #{nodes.join(',')}")
+    @log.error("Ways: #{ways.join(',')}")
+    @log.error("Relations: #{relations.join(',')}")
     @tracker_conn.exec("update candidates set status = 'failed' where type = 'node' and osm_id in (%{list})" % {list: nodes.join(",")}) unless nodes.empty?
     @tracker_conn.exec("update candidates set status = 'failed' where type = 'way' and osm_id in (%{list})" % {list: ways.join(",")}) unless ways.empty?
     @tracker_conn.exec("update candidates set status = 'failed' where type = 'relation' and osm_id in (%{list})" % {list: relations.join(",")}) unless relations.empty?
@@ -125,7 +130,11 @@ def process_changeset(changeset)
 
   changeset_request = '<osm><changeset><tag k="created_by" v="Redaction bot"/></changeset></osm>'
   response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
-  raise "Failed to open changeset" unless response.code == '200'
+  unless response.code == '200'
+    @log.error("Failed to open changeset!")
+    raise "Failed to open changeset"
+  end
+
   changeset_id = response.body
 
   print_time('Generating changeset')
@@ -133,12 +142,13 @@ def process_changeset(changeset)
   OSM::print_osmchange(changeset, @db, change_doc, changeset_id)
 
   @log.debug( "Changeset:\n" + change_doc )
-  #puts change_doc
+
   print_time('Uploading changeset')
   unless @no_action
     response = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' })
     unless response.code == '200'
       # It's quite likely for a changeset to fail, if someone else is editing in the area being processed
+      @log.error("Changeset failed to apply. Response #{response.code}:\n#{response.body}")
       raise "Changeset failed to apply"
     end
     @log.info("Uploaded changeset #{changeset_id}")
@@ -201,7 +211,7 @@ def process_redactions(bot)
     unless @no_action
       response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{@redaction_id}") if not @no_action
       unless response.code == '200'
-        @log.error("Failed to redact element")
+        @log.error("Failed to redact element - response: #{response.code} \n #{response.body}")
         raise "Failed to redact element"
       end
     end
