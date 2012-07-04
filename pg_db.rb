@@ -41,12 +41,7 @@ class PG_DB
      LIMIT 1;'
 
   WAYS_FOR_NODE_ID_SQL = \
-    'SELECT cwn.way_id AS way_id, cw.version AS version, array_agg(cwn.node_id) AS node_ids
-      FROM current_way_nodes AS cwn
-      JOIN current_ways AS cw ON cwn.way_id = cw.id
-      WHERE cwn.way_id IN
-        (SELECT way_id FROM current_way_nodes WHERE node_id = %{id})
-      GROUP BY way_id, version;'
+    'SELECT way_id FROM current_way_nodes WHERE node_id = %{id}'
 
   RELATIONS_FOR_MEMBER_SQL = \
       "SELECT relation_id
@@ -127,10 +122,7 @@ class PG_DB
     if klass == OSM::Node
       res = @dbconn.query(WAYS_FOR_NODE_ID_SQL % {:id => elt_id})
       res.each do |r|
-
-        nodes = parse_array(r['node_ids'])
-        way = OSM::Way[nodes, :id => r['way_id'].to_i, :version => r['version'].to_i]
-        references << way
+        references << way(r['way_id'], true)[0]
       end
     end
 
@@ -206,10 +198,5 @@ class PG_DB
       tag = tags.fetch(ver, {})
       yield r, get_attr(r).merge(tag)
     end
-  end
-
-  def parse_array(str)
-    # Just handle trivial case of "{1234,2135}"
-    str.tr('{}','').split(',').map{|s| s.to_i}
   end
 end
