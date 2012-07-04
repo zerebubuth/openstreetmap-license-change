@@ -40,6 +40,19 @@ class PG_DB
      ORDER BY %{type}s.version DESC
      LIMIT 1;'
 
+  WAYS_FOR_NODE_ID_SQL = \
+    'SELECT cwn.way_id AS way_id, cw.version AS version, array_agg(cwn.node_id) AS node_ids
+      FROM current_way_nodes AS cwn
+      JOIN current_ways AS cw ON cwn.way_id = cw.id
+      WHERE cwn.way_id IN
+        (SELECT way_id FROM current_way_nodes WHERE node_id = %{id})
+      GROUP BY way_id, version;'
+
+  RELATIONS_FOR_MEMBER_SQL = \
+      "SELECT relation_id
+        FROM current_relation_members
+        WHERE member_id = %{id} AND member_type = '%{type}'"
+
   def initialize(dbconn)
     @dbconn = dbconn
 
@@ -109,8 +122,31 @@ class PG_DB
   end
   
   def objects_using(klass, elt_id)
-    # TODO
-    []
+    references = Array.new
+
+    if klass == OSM::Node
+      res = @dbconn.query(WAYS_FOR_NODE_ID_SQL % {:id => elt_id})
+      res.each do |r|
+
+        nodes = parse_array(r['node_ids'])
+        way = OSM::Way[nodes, :id => r['way_id'].to_i, :version => r['version'].to_i]
+        references << way
+      end
+    end
+
+    member_type = if klass == OSM::Node
+                    'Node'
+                  elsif klass == OSM::Way
+                    'Way'
+                  elsif klass == OSM::Relation
+                    'Relation'
+                  end
+
+    res = @dbconn.query(RELATIONS_FOR_MEMBER_SQL % {:id => elt_id, :type => member_type})
+    res.each do |r|
+      references << relation(r['relation_id'], true)[0]
+    end
+    references
   end
   
   ['node', 'way', 'relation'].each do |type|
@@ -170,5 +206,10 @@ class PG_DB
       tag = tags.fetch(ver, {})
       yield r, get_attr(r).merge(tag)
     end
+  end
+
+  def parse_array(str)
+    # Just handle trivial case of "{1234,2135}"
+    str.tr('{}','').split(',').map{|s| s.to_i}
   end
 end
