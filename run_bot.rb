@@ -295,7 +295,7 @@ opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
 @redaction_id = 1
 @ignore_regions = false
 
-MAX_REQUEST_AREA = 0.25
+MAX_REQUEST_AREA = 0.25 / 32
 TOO_SMALL_TO_SPLIT = 0.000001 # roughly 10cm at the equator
 
 # MAX_CHANGESET_ELEMENTS = 50000
