@@ -343,6 +343,33 @@ class TestReferences < MiniTest::Unit::TestCase
                  bot.as_changeset)
   end 
 
+  ##
+  # This tests that cascading relations are deleted in the correct order
+  # if deletions elsewhere cause them to be deleted
+  def test_remove_relations_in_order
+    db = DB.new(:changesets => {
+                  1 => Changeset[User[false]],
+                  2 => Changeset[User[true]]
+                },
+                :nodes => {
+                  # we'll have to delete this
+                  1 => [OSM::Node[[0,0], :id => 1, :changeset => 1, :version => 1]],
+                },
+                :relations => {
+                  # loses node, so has to be deleted
+                  1 => [OSM::Relation[[ [OSM::Node,1,"first"] ], :id => 1, :changeset => 2, :version => 1]] ,
+                  # loses relation, so has to be deleted *first*
+                  2 => [OSM::Relation[[ [OSM::Relation,1,"first"] ], :id => 2, :changeset => 2, :version => 1]]
+                })
+    bot = ChangeBot.new(db)
+    bot.process_all!
+
+    assert_equal([Delete[OSM::Relation, 2],
+                  Delete[OSM::Relation, 1],
+                  Delete[OSM::Node, 1]
+                  ],
+                  bot.as_changeset)
+  end
 end
 
 if __FILE__ == $0
