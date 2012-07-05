@@ -242,6 +242,7 @@ def process_map_call(s, region)
   candidate_relations = get_candidate_list('relation')
   @log.debug("Candidates: #{candidate_nodes.length} / #{candidate_ways.length} / #{candidate_relations.length}")
   while parser.read
+    next if parser.node_type == XML::Reader::TYPE_END_ELEMENT
     next unless ["node", "way", "relation"].include? parser.name
     id = parser['id'].to_i
     case parser.name
