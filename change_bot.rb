@@ -259,6 +259,7 @@ class ChangeBot
     # can cascade to relation deletions but, importantly, not to node 
     # deletions.
     #
+
     [OSM::Node, OSM::Way, OSM::Relation].each do |klass|
       @pending_deletes.select{ |del| del.klass == klass }.each{ |d| process_delete(d) }
     end
@@ -281,7 +282,6 @@ class ChangeBot
         end
       end
     end
-
     return changeset
   end
 
@@ -331,6 +331,7 @@ class ChangeBot
           @pending_deletes.unshift(Delete[*ref_id])
           
         else
+          @pending_edits.delete_if{|e| e.obj.class == edit.obj.class && e.obj.element_id == edit.obj.element_id}
           @pending_edits.unshift(edit)
         end
       end
