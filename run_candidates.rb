@@ -61,7 +61,6 @@ def lat_lon_for_entity(type, id)
     if r.num_tuples > 0
       lat, lon = r[0]['latitude'].to_f / SCALE, r[0]['longitude'].to_f / SCALE
     else
-      puts "2"
       r2 = @dbconn.query(RELATION_LOCATION_BY_WAY % {:id => id})
       if r2.num_tuples > 0
         lat, lon = r2[0]['latitude'].to_f / SCALE, r2[0]['longitude'].to_f / SCALE

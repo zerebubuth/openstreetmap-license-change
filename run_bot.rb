@@ -293,7 +293,6 @@ end
 
 def get_candidate_list_for_area(type, area)
   c = []
-  puts area[:minlat].class.name
   res = @tracker_conn.exec("select osm_id from candidates
                            where type = $1 and lat >= $2 and lat < $3 and lon >= $4 and lon < $5
                            and status = 'unprocessed'", [type, area[:minlat], area[:maxlat], area[:minlon], area[:maxlon]])
