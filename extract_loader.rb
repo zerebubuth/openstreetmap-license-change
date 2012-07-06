@@ -273,38 +273,46 @@ puts "Loading xml file to the database" if verbose
 
   # remove data that is not following the contraints of the database
   puts "Sanitizing the data" if verbose
-  conn.exec("DELETE FROM way_tags
-             WHERE way_id IN (
-               SELECT way_id FROM way_nodes
-               WHERE NOT node_id IN (SELECT node_id FROM nodes)
-               GROUP BY way_id)")
-  conn.exec("DELETE FROM way_nodes
-             WHERE way_id IN (
-               SELECT way_id FROM way_nodes
-               WHERE NOT node_id IN (SELECT node_id FROM nodes)
-               GROUP BY way_id)")
-  conn.exec('DELETE from ways
-             WHERE NOT way_id IN (SELECT way_id FROM way_nodes);')
+  conn.exec("DELETE FROM way_tags WHERE way_id IN (
+              SELECT DISTINCT way_nodes.way_id
+              FROM way_nodes
+              LEFT JOIN nodes ON way_nodes.node_id = nodes.node_id
+              WHERE nodes.node_id IS NULL)")
+  conn.exec("DELETE FROM way_nodes WHERE way_id IN (
+              SELECT DISTINCT way_nodes.way_id
+              FROM way_nodes
+              LEFT JOIN nodes ON way_nodes.node_id = nodes.node_id
+              WHERE nodes.node_id IS NULL)")
+  conn.exec("DELETE FROM ways where way_id IN (
+              SELECT DISTINCT ways.way_id
+              FROM ways
+              LEFT JOIN way_nodes ON ways.way_id = way_nodes.way_id
+              WHERE way_nodes.node_id IS NULL)")
 
   #sanitize relations
   conn.exec("DELETE FROM relation_members
-            WHERE relation_id IN (
-                SELECT relation_id FROM relation_members
-                WHERE member_type = 'Node'
-                AND NOT member_id IN (SELECT node_id FROM nodes)
-                GROUP BY relation_id)")
+              WHERE relation_id IN (
+                SELECT DISTINCT relation_id
+                FROM relation_members
+                LEFT JOIN nodes ON relation_members.member_id = nodes.node_id
+                WHERE nodes.node_id IS NULL
+                AND relation_members.member_type = 'Node')")
+
   conn.exec("DELETE FROM relation_members
-             WHERE relation_id IN (
-                SELECT relation_id FROM relation_members
-                WHERE member_type = 'Way'
-                AND NOT member_id IN (SELECT way_id FROM ways)
-                GROUP BY relation_id)")
+              WHERE relation_id IN (
+                SELECT DISTINCT relation_id
+                FROM relation_members
+                LEFT JOIN ways ON relation_members.member_id = ways.way_id
+                WHERE ways.way_id IS NULL
+                AND relation_members.member_type = 'Way')")
+
   conn.exec("DELETE FROM relation_members
-             WHERE relation_id IN (
-                SELECT relation_id FROM relation_members
-                WHERE member_type = 'Relation'
-                AND NOT member_id IN (SELECT relation_id FROM relations)
-                GROUP BY relation_id)")
+              WHERE relation_id IN (
+                SELECT DISTINCT relation_members.relation_id
+                FROM relation_members
+                LEFT JOIN relations ON relation_members.member_id = relations.relation_id
+                WHERE relations.relation_id IS NULL
+                AND relation_members.member_type = 'Relation')")
 
   # populate the current tables
   puts "Populate the current_* tables" if verbose
