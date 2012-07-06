@@ -57,8 +57,7 @@ module OSM
       elsif delete.klass == OSM::Relation then db.current_relation(delete.element_id)
       end
     
-    geom = delete.klass == OSM::Node ? t.geom : []
-    delete.klass.new({:id => delete.element_id, :changeset => changeset_id, :visible => false, :version => t.version},geom,[])
+    delete.klass.new({:id => delete.element_id, :changeset => changeset_id, :visible => false, :version => t.version},[],[])
   end
   
   def self.print(obj, out = $stdout, indent = 0, changeset_id = -1)
