@@ -434,6 +434,11 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
             @log.debug("too many entities, splitting")
             split_area(area, areas)
             next
+          when '500' # server crashed
+            # This shouldn't ever happen, but it's happening frequently on dev. Split the area, and try again
+            @log.debug("500 error, let's try splitting")
+            split_area(area, areas)
+            next
           when '200'
             process_map_call(map.body, region)
           else
