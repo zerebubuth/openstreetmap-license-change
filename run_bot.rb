@@ -291,6 +291,18 @@ def get_candidate_list(type)
   c
 end
 
+def get_candidate_list_for_area(type, area)
+  c = []
+  puts area[:minlat].class.name
+  res = @tracker_conn.exec("select osm_id from candidates
+                           where type = $1 and lat >= $2 and lat < $3 and lon >= $4 and lon < $5
+                           and status = 'unprocessed'", [type, area[:minlat], area[:maxlat], area[:minlon], area[:maxlon]])
+  res.each do |r|
+    c << r['osm_id'].to_i
+  end
+  c
+end
+
 def print_summary()
   @log.info("Summary")
   @log.info("#{@summary_changeset_success} successful changesets")
@@ -424,27 +436,32 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
           next
         else
           @log.info("Processing #{area}")
-          map = map_call(area)
-          case map.code
-          when '509'
-            raise "throttling should have been handled"
-          when '400' # too many entities
-            # There's actually more than one way to trigger a 400 response. We might need to analyse the response
-            # message to make sure splitting is actually the correct thing to do.
-            @log.debug("too many entities, splitting")
-            split_area(area, areas)
-            next
-          when '500' # server crashed
-            # This shouldn't ever happen, but it's happening frequently on dev. Split the area, and try again
-            @log.debug("500 error, let's try splitting")
-            split_area(area, areas)
-            next
-          when '200'
-            process_map_call(map.body, region)
-          else
-            @log.error("Unhandled reponse code #{map.code}\n#{map.body}")
-            raise "Unhandled response code #{map.code}"
-          end
+          nodes = get_candidate_list_for_area('node', area)
+          ways = get_candidate_list_for_area('way', area)
+          relations = get_candidate_list_for_area('relation', area)
+
+          process_entities(nodes, ways, relations)
+#           map = map_call(area)
+#           case map.code
+#           when '509'
+#             raise "throttling should have been handled"
+#           when '400' # too many entities
+#             # There's actually more than one way to trigger a 400 response. We might need to analyse the response
+#             # message to make sure splitting is actually the correct thing to do.
+#             @log.debug("too many entities, splitting")
+#             split_area(area, areas)
+#             next
+#           when '500' # server crashed
+#             # This shouldn't ever happen, but it's happening frequently on dev. Split the area, and try again
+#             @log.debug("500 error, let's try splitting")
+#             split_area(area, areas)
+#             next
+#           when '200'
+#             process_map_call(map.body, region)
+#           else
+#             @log.error("Unhandled reponse code #{map.code}\n#{map.body}")
+#             raise "Unhandled response code #{map.code}"
+#           end
         end
       end
     rescue Exception => e
