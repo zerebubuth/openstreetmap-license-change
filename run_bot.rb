@@ -24,8 +24,11 @@ Run the redaction bot on a standard rails port database.
 -v --verbose:
    Output information about the actions being taken.
 
--r --redaction
-   Use the given redaction id
+--redaction-hidden
+   Use the given redaction id for :hidden redactions
+
+--redaction-visible
+  Use the given redaction id for :visible redactions
 
 -i --ignore-regions
   Ignore the list of regions, and just process the candidates directly
@@ -224,7 +227,8 @@ def process_redactions(bot)
 
     @log.info("Redaction for #{klass} #{redaction.element_id} v#{redaction.version} #{redaction.mode}")
     unless @no_action
-      response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{@redaction_id}") if not @no_action
+      redaction_id = redaction.mode == :visible ? @redaction_id_visible : @redaction_id_hidden
+      response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}") if not @no_action
       unless response.code == '200'
         @log.error("Failed to redact element - response: #{response.code} \n #{response.body}")
         raise "Failed to redact element"
@@ -320,14 +324,16 @@ end
 opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
                       ['--verbose', '-v', GetoptLong::NO_ARGUMENT],
                       ['--ignore-regions', '-i', GetoptLong::NO_ARGUMENT],
-                      ['--redaction', '-r', GetoptLong::REQUIRED_ARGUMENT ],
+                      ['--redaction-hidden', GetoptLong::REQUIRED_ARGUMENT ],
+                      ['--redaction-visible', GetoptLong::REQUIRED_ARGUMENT ],
                       ['--no-action', '-n', GetoptLong::NO_ARGUMENT],
                      )
 
 @start_time = nil
 @verbose = false
 @no_action = false
-@redaction_id = 1
+@redaction_id_hidden = 1
+@redaction_id_visible = 2
 @ignore_regions = false
 @summary_changeset_fails = 0
 @summary_changeset_success = 0
@@ -366,8 +372,10 @@ opts.each do |opt, arg|
     exit 0
   when '--verbose'
     @verbose = true
-  when '--redaction'
-    @redaction_id = arg
+  when '--redaction-hidden'
+    @redaction_id_hidden = arg
+  when '--redaction-visible'
+    @redaction_id_visible = arg
   when '--ignore-regions'
     @ignore_regions = true
   when '--no-action'
@@ -405,10 +413,10 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
   @db = PG_DB.new(dbconn)
 
   unless @no_action
-    res = dbconn.exec("select id from redactions where id = $1", [@redaction_id])
-    unless res.num_tuples == 1
-      @log.error("invalid redaction id: #{@redaction_id}")
-      raise "invalid redaction id"
+    res = dbconn.exec("select id from redactions where id in ($1, $2)", [@redaction_id_hidden, @redaction_id_visible])
+    unless res.num_tuples == 2
+      @log.error("invalid redaction ids: #{@redaction_id_hidden} #{@redaction_id_visible}")
+      raise "invalid redaction ids"
     end
   end
 
