@@ -24,8 +24,10 @@ end
 @conn.exec("truncate table regions")
 
 def add_region(lat, lon)
-  @conn.exec("insert into regions (lat, lon) values ($1, $2)", [lat, lon])
-  @regions[[lat, lon]] = true
+  unless @regions.key?([lat, lon])
+    @conn.exec("insert into regions (lat, lon) values ($1, $2)", [lat, lon])
+    @regions[[lat, lon]] = true
+  end
 end
 
 @conn.transaction do
@@ -48,9 +50,7 @@ end
   # Add remaining regions that weren't covered by the bounds
   (-180..179).each do |lon|
     (-90..89).each do |lat|
-      unless @regions.key?([lat, lon])
-        add_region(lat, lon)
-      end
+      add_region(lat, lon)
     end
   end
 end
