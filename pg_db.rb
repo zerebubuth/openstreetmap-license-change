@@ -122,7 +122,8 @@ class PG_DB
     if klass == OSM::Node
       res = @dbconn.query(WAYS_FOR_NODE_ID_SQL % {:id => elt_id})
       res.each do |r|
-        references << way(r['way_id'], true)[0]
+        way = way(r['way_id'], true)[0]
+        references << way unless way.visible == false # safeguard against stray way_nodes for deleted ways.
       end
     end
 
@@ -136,7 +137,8 @@ class PG_DB
 
     res = @dbconn.query(RELATIONS_FOR_MEMBER_SQL % {:id => elt_id, :type => member_type})
     res.each do |r|
-      references << relation(r['relation_id'], true)[0]
+      relation = relation(r['relation_id'], true)[0]
+      references << relation unless relation.visible == false # safeguard, see above
     end
     references
   end
