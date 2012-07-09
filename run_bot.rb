@@ -215,7 +215,7 @@ def process_redactions(bot)
             else raise "invalid klass #{redaction.klass}"
             end
 
-    @log.info("Redaction for #{klass} #{redaction.element_id} v#{redaction.version}")
+    @log.info("Redaction for #{klass} #{redaction.element_id} v#{redaction.version} #{redaction.mode}")
     unless @no_action
       response = @access_token.post("/api/0.6/#{klass}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{@redaction_id}") if not @no_action
       unless response.code == '200'
