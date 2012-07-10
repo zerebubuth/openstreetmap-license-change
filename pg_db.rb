@@ -67,6 +67,12 @@ class PG_DB
 
     # An array of whitelisted users
     @user_whitelist = File.open("users_whitelist.txt").map{ |l| l.to_i }
+
+    # An array of blacklisted edits
+    @edit_blacklist = File.open("edits_blacklist.txt").read.split("\n")
+
+    # An array of whitelisted edits
+    @edit_whitelist = File.open("edits_whitelist.txt").read.split("\n")
   end
   
   def node(id, current = false)
