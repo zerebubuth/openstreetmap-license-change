@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- These are users, who may or may not have accepted the CTs, but whose list -->
+<!-- of changesets include tainted data. Adding a user to this list does not -->
+<!-- 'blacklist' the user, it just adds their edits to the list of edits to -->
+<!-- be examined by the bot. -->
+<!-- Only the uid attribute is required, but please fill in the rest where possible. -->
+<!-- See http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists#Tainted_Changesets -->
+<list>
+  <user uid="1066" name="pavel" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists#Wikipedia.2Cetc._imports_in_Czech_Republic" />
+  <user uid="3516" name="BiIbo" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists#Wikipedia.2Cetc._imports_in_Czech_Republic" />
+  <user uid="131059" name="h4ck3rm1k3" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists/iMMAP" />
+  <user uid="9176" name="Maarten Deen" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists/iMMAP" />
+  <user uid="39504" name="malenki" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists/iMMAP" />
+  <user uid="20013" name="rcr" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists/iMMAP" />
+  <user uid="65432" name="bmog" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists/iMMAP" />
+  <user uid="12982" name="Michael Schulze" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists/iMMAP" />
+  <user uid="39636" name="telegnom" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists/iMMAP" />
+  <user uid="178186" name="mdk" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists/mdk" />
+  <user uid="176920" name="SilverSpace" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists/SilverSpace" />
+  <user uid="244754" name="Janjko" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists/Janjko" />
+  <user uid="589086" name="esigns" ref="http://wiki.openstreetmap.org/wiki/Quick_History_Service/Changeset_Lists#esigns" />
+</list>

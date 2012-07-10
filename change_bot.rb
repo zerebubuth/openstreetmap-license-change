@@ -171,8 +171,8 @@ class ChangeBot
 
   def initialize(db)
     @db = db
-    @pending_deletes = Hash.new
-    @pending_edits = Hash.new
+    @pending_deletes = Array.new
+    @pending_edits = Array.new
     @redactions = Array.new
   end
 
@@ -217,9 +217,9 @@ class ChangeBot
     actions.each do |act|
       case act 
       when Edit
-        @pending_edits[[klass, elt_id]] = act
+        @pending_edits << act
       when Delete
-        @pending_deletes[[klass, elt_id]] = act
+        @pending_deletes << act
       when Redact
         @redactions << act
       end
@@ -233,15 +233,15 @@ class ChangeBot
   end
   
   def process_nodes!
-    @db.nodes.keys.each     {|n| process!(OSM::Node, n)}
+    @db.each_node     {|n| process!(OSM::Node, n)}
   end
   
   def process_ways!
-    @db.ways.keys.each      {|w| process!(OSM::Way, w)}
+    @db.each_way      {|w| process!(OSM::Way, w)}
   end
   
   def process_relations!
-    @db.relations.keys.each {|r| process!(OSM::Relation, r)}
+    @db.each_relation {|r| process!(OSM::Relation, r)}
   end
 
   def as_changeset
@@ -259,23 +259,16 @@ class ChangeBot
     # can cascade to relation deletions but, importantly, not to node 
     # deletions.
     #
-    [OSM::Node, OSM::Way, OSM::Relation].each do |klass|
-      ids = Array.new
 
-      @pending_deletes.each do |id, del|
-        if id[0] == klass
-          ids << id[1]
-        end
-      end
-      
-      ids.each {|i| process_delete([klass, i], @pending_deletes[[klass, i]])}
+    [OSM::Node, OSM::Way, OSM::Relation].each do |klass|
+      @pending_deletes.select{ |del| del.klass == klass }.each{ |d| process_delete(d) }
     end
 
     # we should now be OK to do the edits, removing references to 
     # deleted objects.
     [OSM::Relation, OSM::Way, OSM::Node].each do |klass|
-      @pending_edits.each do |id, edit|
-        if id[0] == klass 
+      @pending_edits.each do |edit|
+        if edit.obj.class == klass
           changeset << edit
         end
       end
@@ -283,29 +276,29 @@ class ChangeBot
 
     # having removed references, we should be OK to do the deletes
     [OSM::Relation, OSM::Way, OSM::Node].each do |klass|
-      @pending_deletes.each do |id, del|
-        if id[0] == klass 
+      @pending_deletes.each do |del|
+        if del.klass == klass
           changeset << del
         end
       end
     end
-
     return changeset
   end
 
-  def process_delete(id, del)
-    references = @db.objects_using(*id)
+  def process_delete(del)
+    references = @db.objects_using(del.klass, del.element_id)
     
     references.each do |ref_obj|
       ref_id = [ref_obj.class, ref_obj.element_id]
       
       # if we're planning to delete this item anyway, then just leave
       # it - no need to alter that edit.
-      unless @pending_deletes.has_key? ref_id
+      unless @pending_deletes.detect{ |a| a.klass == ref_obj.class && a.element_id == ref_obj.element_id }
         # get the edit we're planning to do, if there is one, otherwise
         # the current object version.
-        edit = if @pending_edits.has_key?(ref_id) 
-                 @pending_edits[ref_id] 
+        plan = @pending_edits.detect{ |a| a.obj.class == ref_obj.class && a.obj.element_id == ref_obj.element_id }
+        edit = if plan
+                 plan
                else
                  obj = ref_obj.clone
                  obj.changeset_id = -1
@@ -318,23 +311,28 @@ class ChangeBot
           raise Exception.new("Node found as referencing object. BUG!")
           
         when OSM::Way
-          edit.obj.nodes.select! {|n| n != id[1]}
+          edit.obj.nodes.select! {|n| n != del.element_id}
           kill_object = edit.obj.nodes.size < 2
           
         when OSM::Relation
-          edit.obj.members.select! {|m| m.type != id[0] || m.ref != id[1]}
+          edit.obj.members.select! {|m| m.type != del.klass || m.ref != del.element_id}
           # hmm... whether to kill empty relations or not? the test currently
           # says not, but i'm not sure an empty relation is actually particularly
           # useful to anyone
-          #kill_object = edit.obj.members.empty?
+          # Actually, given there's a bug (or at the least, an ambiguity in the API),
+          # we *need* to kill empty relations. They can't be uploaded without
+          # a certain amount of gymnastics.
+          # See https://trac.openstreetmap.org/ticket/4471
+          kill_object = edit.obj.members.empty?
         end
         
         if kill_object
-          @pending_edits.delete ref_id
-          @pending_deletes[ref_id] = Delete[*ref_id]
+          @pending_edits.delete_if{|e| e.obj.class == ref_obj.class && e.obj.element_id == ref_obj.element_id}
+          @pending_deletes.unshift(Delete[*ref_id])
           
         else
-          @pending_edits[ref_id] = edit
+          @pending_edits.delete_if{|e| e.obj.class == edit.obj.class && e.obj.element_id == edit.obj.element_id}
+          @pending_edits.unshift(edit)
         end
       end
     end

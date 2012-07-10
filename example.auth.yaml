@@ -1,0 +1,18 @@
+---
+database:
+  host: localhost
+  dbname: openstreetmap
+  user: openstreetmap
+  password: osm
+oauth:
+  consumer_key: 
+  consumer_secret: 
+  token: 
+  token_secret: 
+  site: http://localhost:3000
+tracker:
+  host: localhost
+  dbname: tracker
+  user: openstreetmap
+  password: osm
+...
