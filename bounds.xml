@@ -6,6 +6,7 @@
   <bounds minlat="51.2" minlon="-12.2524800"  maxlat="55.5" maxlon="-5.29" description="Ireland" />
   <bounds minlat="49.8" minlon="-6.7"  maxlat="60.9" maxlon="1.9" description="UK" />
   <bounds minlat="34.1" minlon="-13.9" maxlat="74.9" maxlon="18.9" description="Europe West" />
+  <bounds minlat="51.1" minlon="24.1" maxlat="56.9" maxlon="33.9" description="Belarus-ish" />
   <bounds minlat="14.1" minlon="-150.0" maxlat="74.9" maxlon="-45.0" description="North America" />
   <bounds minlat="-45.0" minlon="110.0" maxlat="-5.0" maxlon="160.0" description="Australia" />
 </list>
