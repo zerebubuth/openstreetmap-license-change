@@ -96,7 +96,10 @@ class PG_DB
     geoms = get_geom(RELATION_GEOM_SQL % {:id => id}, 0) \
       {|r| [klass_for_member_type(r['member_type']), r['member_id'].to_i, (r['member_role'] or '')]}
     get_history('relation', id, current) do |r, attribs|
-      geom = geoms.fetch(attribs[:version], [])
+      # old relations have sequence_ids that don't start at 0, so for a given version you might have
+      # e.g. geoms.fetch(5) => [nil, nil, nil, nil, [OSM::Node, 1], [OSM::Node, 2]]
+      # compact the array to preserve order but handle these rare anomalies
+      geom = geoms.fetch(attribs[:version], []).compact
       OSM::Relation[geom, attribs]
     end
   end
