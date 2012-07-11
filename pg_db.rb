@@ -3,6 +3,8 @@ require './changeset'
 require './osm'
 
 class PG_DB
+  attr_reader :edit_whitelist, :edit_blacklist
+
   WAY_GEOM_SQL = \
     'SELECT way_id AS id, version, sequence_id, node_id 
      FROM way_nodes 
