@@ -27,6 +27,30 @@ class History
     version_is_clean.reverse.map {|flag| global = flag && global}.reverse
   end
 
+  def whitelisted_versions
+    obj = @versions.first
+    id_str = if obj.class == OSM::Node
+               'n'
+             elsif obj.class == OSM::Way
+               'w'
+             else
+               'r'
+             end + obj.element_id.to_s + 'v'
+    @versions.map {|v| @db.edit_whitelist.include?(id_str + v.version.to_s)}
+  end
+
+  def blacklisted_versions
+    obj = @versions.first
+    id_str = if obj.class == OSM::Node
+               'n'
+             elsif obj.class == OSM::Way
+               'w'
+             else
+               'r'
+             end + obj.element_id.to_s + 'v'
+    @versions.map {|v| @db.edit_blacklist.include?(id_str + v.version.to_s)}
+  end
+
   def actions
     accepted_versions = @versions.map {|obj| changeset_is_accepted? obj.changeset_id}
   
@@ -42,7 +66,7 @@ class History
     omit_tags = []
     omit_tags = ["multipolygon", "route", "site", "restriction", "boundary"].map{|v| ["type", v]} if base_obj.class == OSM::Relation
 
-    @versions.zip(odbl_clean_versions, accepted_versions).each do |obj,is_odbl_clean,accepted|
+    @versions.zip(odbl_clean_versions, accepted_versions, whitelisted_versions, blacklisted_versions).each do |obj,is_odbl_clean,accepted,is_whitelisted,is_blacklisted|
       # deletions are always "clean", and we consider them to
       # have no tags and the "version zero" geometry. what
       # happens after that may be a revert to a previous version.
@@ -61,8 +85,12 @@ class History
       # clean, and we try to enumerate them here.
       status = if is_odbl_clean
                  :odbl_clean
+               elsif is_blacklisted
+                 :unclean
                elsif accepted
                  :acceptor_edit
+               elsif is_whitelisted
+                 :whitelisted_version
                elsif tags_patch.empty? and geom_patch.empty?
                  :empty
                elsif tags_patch.trivial? and geom_patch.empty?
@@ -124,7 +152,7 @@ class History
         #not (geom_patch.only_deletes? and tags_patch.only_deletes?))
         visibility = ((status == :unclean) ?
                       tags_patch.only_deletes? && geom_patch.only_deletes? :
-                      new_tags != base_obj.tags || new_geom != base_obj.geom || status == :acceptor_edit || status == :empty)
+                      new_tags != base_obj.tags || new_geom != base_obj.geom || status == :acceptor_edit || status == :whitelisted_version || status == :empty)
         xactions << Redact[obj.class, obj.element_id, obj.version, visibility ? :visible : :hidden]
       end
       

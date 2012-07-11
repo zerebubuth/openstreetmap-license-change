@@ -60,13 +60,19 @@ class PG_DB
     @entities = Hash.new
 
     # An array of blacklisted changesets
-    @changeset_blacklist = File.open("changesets_blacklist.txt").map{ |l| l.to_i }
+    @changeset_blacklist = File.open("changesets_blacklist.txt").map{ |l| l.to_i }.to_set
 
     # An array of whitelisted changesets
-    @changeset_whitelist = File.open("changesets_whitelist.txt").map{ |l| l.to_i }
+    @changeset_whitelist = File.open("changesets_whitelist.txt").map{ |l| l.to_i }.to_set
 
     # An array of whitelisted users
-    @user_whitelist = File.open("users_whitelist.txt").map{ |l| l.to_i }
+    @user_whitelist = File.open("users_whitelist.txt").map{ |l| l.to_i }.to_set
+
+    # An array of blacklisted edits
+    @edit_blacklist = File.open("edits_blacklist.txt").read.split("\n").to_set
+
+    # An array of whitelisted edits
+    @edit_whitelist = File.open("edits_whitelist.txt").read.split("\n").to_set
   end
   
   def node(id, current = false)

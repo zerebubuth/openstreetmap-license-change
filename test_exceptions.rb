@@ -16,6 +16,8 @@ class TestExceptions < MiniTest::Unit::TestCase
                    3 => Changeset[User[false]]
                  })
     @db.exclude(OSM::Node, [1, 2, 4])
+
+    @db.edit_whitelist = ["n10v1", "n11v2"]
   end 
 
   # --------------------------------------------------------------------------
@@ -61,6 +63,30 @@ class TestExceptions < MiniTest::Unit::TestCase
         assert_equal([], actions)
       end
     end
+  end
+
+  def test_whitelisted_node
+    # Node 10 created and modified by disagreers, but creation is whitelisted
+    # Node 11 created and modified by disagreers, but modification is whitelisted
+
+    history = [OSM::Node[[0,0], :id => 10, :changeset => 3, :version => 1, "foo" => "bar"],
+               OSM::Node[[1,1], :id => 10, :changeset => 3, :version => 2, "foo" => "bar", "abc" => "baz"]]
+
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+
+    assert_equal([Edit[OSM::Node[[0,0], :id => 10, :changeset => -1, :visible => true, :version => 2, "foo" => "bar"]],
+                  Redact[OSM::Node, 10, 2, :hidden]], actions)
+
+    history = [OSM::Node[[0,0], :id => 11, :changeset => 3, :version => 1, "foo" => "bar"],
+               OSM::Node[[1,1], :id => 11, :changeset => 3, :version => 2, "foo" => "bar", "abc" => "baz"]]
+
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+
+    assert_equal([Edit[OSM::Node[[1,1], :id => 11, :changeset => -1, :visible => true, :version => 2, "abc" => "baz"]],
+                  Redact[OSM::Node, 11, 1, :hidden],
+                  Redact[OSM::Node, 11, 2, :visible]], actions)
   end
 
 end

@@ -6,6 +6,7 @@ class DB
   def metaclass; class << self; self; end; end
 
   #attr_reader :changesets, :nodes, :ways, :relations
+  attr_accessor :edit_whitelist, :edit_blacklist
 
   def initialize(options = {})
     # define a set of accessors for changesets, nodes, ways and 
@@ -29,6 +30,9 @@ class DB
     end
 
     @exclusions = Hash.new
+
+    @edit_whitelist = Array.new
+    @edit_blacklist = Array.new
   end
 
   def exclude(klass, ids)
