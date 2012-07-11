@@ -60,6 +60,9 @@ class TestAbbrev < MiniTest::Unit::TestCase
     # English
     "& & A & B &&" => "A & B",
     "Foo & Bar" => "Foo Bar",
+    "Westminster st" => "Westminster abby",
+    "Camp east York" => "Cape York",
+    "Doctor Feelgood" => "Drive Feelgood",
     "North & Western" => "North and East",
     # Russian
     "ул. Космонавтов" => "бульвар Космонавтов",
