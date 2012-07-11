@@ -251,7 +251,7 @@ puts "Loading xml file to the database" if verbose
                   version,
                   parser["visible"]
                 ])
-      @current_entity = {type: :relation, id: id, version: version, sequence_id: 1}
+      @current_entity = {type: :relation, id: id, version: version, sequence_id: 0}
 
     when "member"
       raise unless @current_entity[:type] == :relation

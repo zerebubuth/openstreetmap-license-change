@@ -84,7 +84,7 @@ class PG_DB
   end
   
   def way(id, current = false)
-    geoms = get_geom(WAY_GEOM_SQL % {:id => id}) {|r| r['node_id'].to_i}
+    geoms = get_geom(WAY_GEOM_SQL % {:id => id}, 1) {|r| r['node_id'].to_i}
   
     get_history('way', id, current) do |r, attribs|
       geom = geoms.fetch(attribs[:version], [])
@@ -93,7 +93,7 @@ class PG_DB
   end
   
   def relation(id, current = false)
-    geoms = get_geom(RELATION_GEOM_SQL % {:id => id}) \
+    geoms = get_geom(RELATION_GEOM_SQL % {:id => id}, 0) \
       {|r| [klass_for_member_type(r['member_type']), r['member_id'].to_i, (r['member_role'] or '')]}
     get_history('relation', id, current) do |r, attribs|
       geom = geoms.fetch(attribs[:version], [])
@@ -185,14 +185,14 @@ class PG_DB
     {:id => r['id'].to_i, :changeset => r['changeset_id'].to_i, :version => r['version'].to_i, :visible => (r['visible'] == "t" ? true : false)}
   end
   
-  def get_geom(sql)
+  def get_geom(sql, sequence_id_start)
     geom = Array.new
     
     res = @dbconn.query(sql)
     res.each do |r|
       version = r['version'].to_i
       geom[version] = Array.new if geom[version].nil?
-      geom[version][r['sequence_id'].to_i() -1] = yield(r)
+      geom[version][r['sequence_id'].to_i() - sequence_id_start] = yield(r)
     end
     
     geom.map {|t| t or []}
