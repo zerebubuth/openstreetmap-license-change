@@ -104,15 +104,18 @@ module OSM
     
     if not tags.empty?
       tags.each do |k, v|
-        out << '  '*(indent+1) << "<tag k=\"#{k}\" v=\"#{v}\"/>\n"
+        t = XML::Node.new 'tag'
+        t['k'] = k
+        t['v'] = v
+        out << '  '*(indent+1) << t.to_s << "\n"
       end
     end
     
     if not children.empty?
       children.each do |attribs|
-       out << '  '*(indent+1) << '<' << child_name
-       attribs.each {|k, v| out << " #{k}=\"#{v}\""}
-       out << "/>\n"
+        c = XML::Node.new child_name
+        attribs.each {|k,v| c[k.to_s] = v.to_s}
+        out << '  '*(indent+1) << c.to_s << "\n"
       end
     end
     
