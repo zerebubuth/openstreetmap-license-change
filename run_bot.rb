@@ -200,11 +200,13 @@ def process_entities(nodes, ways, relations, region = false)
       changeset.each_slice(MAX_CHANGESET_ELEMENTS) do |slice|
         process_changeset(slice)
       end
-    rescue
+    rescue Exception => e
       # couldn't apply changeset for an area, so
       # - fail the whole region
       # - mark the entities for this area as failed
       # - keep processing other areas
+      @log.error(e.message)
+      @log.error(e.backtrace)
       mark_region_failed(region) if region
       mark_entities_failed(nodes, ways, relations)
     else
@@ -480,7 +482,9 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
       end
     rescue Exception => e
       @log.error(e.message)
+      @log.error(e.backtrace)
       puts e.message
+      puts e.backtrace
       mark_region_failed(region)
       exit(1)
     else
