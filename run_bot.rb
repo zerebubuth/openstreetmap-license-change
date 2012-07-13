@@ -454,7 +454,7 @@ PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth
           ways = get_candidate_list_for_area('way', area)
           relations = get_candidate_list_for_area('relation', area)
 
-          process_entities(nodes, ways, relations)
+          process_entities(nodes, ways, relations, region)
 #           map = map_call(area)
 #           case map.code
 #           when '509'
