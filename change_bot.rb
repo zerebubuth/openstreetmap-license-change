@@ -148,7 +148,7 @@ class History
       # if the result of applying the patches is any different
       # from the version we actually have, then the object is
       # in a state that we can't display, so redact it.
-      if (new_tags != obj.tags || new_geom != obj.geom) #and 
+      if (new_tags != obj.tags or ((new_geom != obj.geom) and (obj.class != OSM::Node or not Geom::close?(new_geom, obj.geom)))) #and
         #not (geom_patch.only_deletes? and tags_patch.only_deletes?))
         visibility = ((status == :unclean) ?
                       tags_patch.only_deletes? && geom_patch.only_deletes? :
