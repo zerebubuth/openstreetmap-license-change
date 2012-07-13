@@ -420,9 +420,9 @@ class TestNode < MiniTest::Unit::TestCase
 
   # The bot tried redacting v3 in production, without a changeset. Why?
   def test_node_wrong_redaction
-    history = [OSM::Node[[49.8898997,1.9707186], :id => 1, :changeset => 1, :version => 1, "name" => "Caps-en-something", "place" => "village", "is_in" => "Europe, France"], #agreed
-               OSM::Node[[49.8898998,1.9707185], :id => 1, :changeset => 3, :version => 2, "name" => "Camps-en-something", "place" => "village", "is_in" => "Europe, France"], #declined
-               OSM::Node[[49.8898998,1.9707185], :id => 1, :changeset => 2, :version => 3, "name" => "Camps-en-something", "place" => "village", "is_in" => "Europe, France", "population" => "42", "addr:postcode" => "80540", "ref:INSEE" => "80165"]] #agreed
+    history = [OSM::Node[[49.8898997,1.9707186], :id => 1, :changeset => 1, :version => 1], #agreed
+               OSM::Node[[49.8898998,1.9707185], :id => 1, :changeset => 3, :version => 2], #declined
+               OSM::Node[[49.8898998,1.9707185], :id => 1, :changeset => 2, :version => 3]] #agreed
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     # Not sure what it should actually be doing, but certainly not redacting v3
