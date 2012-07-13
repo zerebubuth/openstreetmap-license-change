@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# encoding: UTF-8
 
 require './change_bot'
 require './user'
@@ -398,7 +399,7 @@ class TestNode < MiniTest::Unit::TestCase
                   Redact[OSM::Node, 1, 2, :hidden]], actions)
   end
   
-  # a node touched by certain editors can have a smal offset due to floating point operations
+  # a node touched by certain editors can have a small offset due to floating point operations
   def test_node_fp_bug
     history = [OSM::Node[[0.1234567,0], :id => 1, :changeset => 3, :version => 1, "created_by" => "JOSM"],
                OSM::Node[[0.1234566,0], :id => 1, :changeset => 1, :version => 2, "created_by" => "Potlatch 1.4", "name"=>"foo"]]
@@ -414,7 +415,19 @@ class TestNode < MiniTest::Unit::TestCase
                OSM::Node[[0.1234566,0], :id => 1, :changeset => 3, :version => 2, "created_by" => "Potlatch 1.4"]]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Redact[OSM::Node, 1, 2, :visible]], actions)
+    # Nothing to do, because the decliner didn't make a significant change.
+    assert_equal([], actions)
+  end
+
+  # The bot tried redacting v3 in production, without a changeset. Why?
+  def test_node_wrong_redaction
+    history = [OSM::Node[[49.8898997,1.9707186], :id => 1, :changeset => 1, :version => 1], #agreed
+               OSM::Node[[49.8898998,1.9707185], :id => 1, :changeset => 3, :version => 2], #declined
+               OSM::Node[[49.8898998,1.9707185], :id => 1, :changeset => 2, :version => 3]] #agreed
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    # Nothing to do, because the decliner didn't make a significant change
+    assert_equal([], actions)
   end
 end
 
