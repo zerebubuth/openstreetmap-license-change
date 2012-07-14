@@ -200,6 +200,16 @@ class TestRelation < MiniTest::Unit::TestCase
                   Redact[OSM::Relation, 1, 3, :visible]
                  ], actions)
   end
+
+  # No error should be thrown when multipolyong members are of different classes.
+  def test_sorting_multipolyon_members
+    history = [OSM::Relation[[ [OSM::Way,1], [OSM::Node,2] ], :id=>1, :changeset=>1, :version=>1, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Node,2], [OSM::Way,1] ], :id=>1, :changeset=>2, :version=>2, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,1], [OSM::Node,2] ], :id=>1, :changeset=>3, :version=>3, "type" => "multipolygon"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([], actions)
+  end
 end
 
 if __FILE__ == $0
