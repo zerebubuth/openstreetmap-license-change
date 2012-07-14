@@ -160,7 +160,7 @@ module OSM
       end
 
       def <=>(o)
-        return @type <=> o.type if @type != o.type
+        return @type.name <=> o.type.name if @type != o.type
         return @ref <=> o.ref if @ref != o.ref
         @role <=> o.role
       end
