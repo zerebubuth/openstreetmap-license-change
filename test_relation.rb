@@ -210,6 +210,17 @@ class TestRelation < MiniTest::Unit::TestCase
     actions = bot.action_for(history)
     assert_equal([], actions)
   end
+
+# Order should be important when the relation may not be a multipolygon
+  def test_sorting_multipolyon_retag
+    history = [OSM::Relation[[ [OSM::Way,1], [OSM::Way,2] ], :id=>1, :changeset=>1, :version=>1, "type" => "multipolygon"],
+               OSM::Relation[[ [OSM::Way,2], [OSM::Way,1] ], :id=>1, :changeset=>3, :version=>2, "type" => "route"]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Edit[OSM::Relation[[ [OSM::Way,1] , [OSM::Way,2] ], :id => 1,  :changeset => -1,  :version => 2, "type" => "multipolygon"]],
+                  Redact[OSM::Relation, 1, 2, :hidden]
+                 ], actions)
+  end
 end
 
 if __FILE__ == $0
