@@ -221,6 +221,18 @@ class TestRelation < MiniTest::Unit::TestCase
                   Redact[OSM::Relation, 1, 2, :hidden]
                  ], actions)
   end
+
+  # Make sure that deletes does not mess with too much
+  def test_relation_delete
+    history = [OSM::Relation[[ [OSM::Way,1]               ], :id=>1, :changeset=>3, :version=>1],
+               OSM::Relation[[                            ], :id=>1, :changeset=>1, :version=>2, :visible=>false],
+               OSM::Relation[[ [OSM::Way,1], [OSM::Way,2] ], :id=>1, :changeset=>2, :version=>3],
+               OSM::Relation[[ [OSM::Way,1]               ], :id=>1, :changeset=>3, :version=>4]]
+    bot = ChangeBot.new(@db)
+    actions = bot.action_for(history)
+    assert_equal([Redact[OSM::Relation, 1, 1, :hidden]
+                 ], actions)
+  end
 end
 
 if __FILE__ == $0
