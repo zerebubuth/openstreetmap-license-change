@@ -65,6 +65,10 @@ class History
     tainted_tags = Array.new
     omit_tags = []
     omit_tags = ["multipolygon", "route", "site", "restriction", "boundary"].map{|v| ["type", v]} if base_obj.class == OSM::Relation
+    no_order = false
+    if base_obj.class == OSM::Relation then
+      no_order = @versions.all? {|obj| obj.tags["type"] == "multipolygon"}
+    end
 
     @versions.zip(odbl_clean_versions, accepted_versions, whitelisted_versions, blacklisted_versions).each do |obj,is_odbl_clean,accepted,is_whitelisted,is_blacklisted|
       # deletions are always "clean", and we consider them to
@@ -105,7 +109,7 @@ class History
       apply_options = (status == :unclean) ? {:only => :deleted} : {}
       apply_options[:state] = diff_state
       apply_options[:omit_tags] = omit_tags
-      apply_options[:no_order] = (obj.class == OSM::Relation and base_obj.tags["type"] == "multipolygon")
+      apply_options[:no_order] = no_order
 
       # if the element is explicitly marked as clean, then
       # don't bother with the application of patches, just
