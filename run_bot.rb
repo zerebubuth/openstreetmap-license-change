@@ -47,7 +47,8 @@ def print_time(name = nil)
 end
 
 NEXT_REGION_SQL = \
-    "UPDATE regions SET STATUS = 'processing'
+    "LOCK TABLE regions;
+     UPDATE regions SET STATUS = 'processing'
      WHERE id = ( SELECT id
                   FROM regions
                   WHERE status = 'unprocessed'
