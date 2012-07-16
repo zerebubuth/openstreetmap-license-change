@@ -38,14 +38,6 @@ Run the redaction bot on a standard rails port database.
 EOF
 end
 
-def print_time(name = nil)
-  now_time = Time.now
-  print "(#{now_time - @start_time} s)\n" if @verbose and not @start_time.nil?
-  @start_time = now_time
-  
-  print "#{name}..." if @verbose and not name.nil?
-end
-
 NEXT_REGION_SQL = \
     "LOCK TABLE regions;
      UPDATE regions SET STATUS = 'processing'
@@ -137,8 +129,6 @@ def split_area(a, list)
 end
 
 def process_changeset(changeset)
-  print_time('Opening changeset')
-
   changeset_request = \
       '<osm>
         <changeset>
@@ -155,13 +145,11 @@ def process_changeset(changeset)
 
   changeset_id = response.body
 
-  print_time('Generating changeset')
   change_doc = ""
   OSM::print_osmchange(changeset, @db, change_doc, changeset_id)
 
   @log.debug( "Changeset:\n" + change_doc )
 
-  print_time('Uploading changeset')
   unless @no_action
     response = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' })
     unless response.code == '200'
@@ -182,14 +170,14 @@ def process_entities(nodes, ways, relations, region = false)
 
   @db.set_entities({node: nodes, way: ways, relation: relations})
 
-  print_time('Processing all nodes')
+  @log.debug('Processing all nodes')
   bot.process_nodes!
-  print_time('Processing all ways')
+  @log.debug('Processing all ways')
   bot.process_ways!
-  print_time('Processing all relations')
+  @log.debug('Processing all relations')
   bot.process_relations!
 
-  print_time('Processing Changeset')
+  @log.debug('Generating Changeset')
   changeset = bot.as_changeset
 
   if changeset.empty?
@@ -219,7 +207,7 @@ def process_entities(nodes, ways, relations, region = false)
 end
 
 def process_redactions(bot)
-  print_time('Creating redactions')
+  @log.debug("Creating redactions #{bot.redactions.length}")
 
   bot.redactions.each do |redaction|
     klass = case redaction.klass.name
@@ -402,7 +390,7 @@ unless Dir.exists?(LOG_DIR)
 end
 log_name = "#{Time.now.strftime('%Y%m%dT%H%M%S')}.log"
 
-print_time("Logging to #{log_name}") if @verbose
+puts("Logging to #{log_name}") if @verbose
 @log = Logger.new(File.join(LOG_DIR, log_name))
 @log.level = Logger::DEBUG
 
@@ -414,7 +402,7 @@ if @no_action
   @log.info("No actions will be taken")
 end
 
-print_time('Connecting to the database')
+@log.debug('Connecting to the database')
 PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth['dbname'] ).transaction do |dbconn|
   @db = PG_DB.new(dbconn)
 
