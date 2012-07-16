@@ -364,6 +364,8 @@ trackerauth = auth['tracker']
                               oauth['consumer_secret'],
                               {:site=>oauth['site']}
 
+@consumer.http.read_timeout = 320
+
 # Create the access_token for all traffic
 @access_token = OAuth::AccessToken.new(@consumer, oauth['token'], oauth['token_secret'])
 
