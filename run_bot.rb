@@ -60,6 +60,7 @@ NEXT_REGION_SQL = \
                   ORDER BY id
                   LIMIT 1
                 )
+     AND status = 'unprocessed'
      RETURNING id, lat, lon;"
 
 def get_next_region()
