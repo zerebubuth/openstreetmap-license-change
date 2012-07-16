@@ -47,7 +47,8 @@ def print_time(name = nil)
 end
 
 NEXT_REGION_SQL = \
-    "UPDATE regions SET STATUS = 'processing'
+    "LOCK TABLE regions;
+     UPDATE regions SET STATUS = 'processing'
      WHERE id = ( SELECT id
                   FROM regions
                   WHERE status = 'unprocessed'
@@ -60,6 +61,7 @@ NEXT_REGION_SQL = \
                   ORDER BY id
                   LIMIT 1
                 )
+     AND status = 'unprocessed'
      RETURNING id, lat, lon;"
 
 def get_next_region()
@@ -363,6 +365,8 @@ trackerauth = auth['tracker']
 @consumer=OAuth::Consumer.new oauth['consumer_key'],
                               oauth['consumer_secret'],
                               {:site=>oauth['site']}
+
+@consumer.http.read_timeout = 320
 
 # Create the access_token for all traffic
 @access_token = OAuth::AccessToken.new(@consumer, oauth['token'], oauth['token_secret'])
