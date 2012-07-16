@@ -78,6 +78,7 @@ class History
         base_obj.geom = base_obj.version_zero_geom
         base_obj.tags = {}
         prev_obj = base_obj
+        diff_state = Array.new
         next
       end
 
