@@ -388,7 +388,7 @@ LOG_DIR = 'logs'
 unless Dir.exists?(LOG_DIR)
   Dir.mkdir(LOG_DIR)
 end
-log_name = "#{Time.now.strftime('%Y%m%dT%H%M%S')}.log"
+log_name = "#{Time.now.strftime('%Y%m%dT%H%M%S')}-#{$$}.log"
 
 puts("Logging to #{log_name}") if @verbose
 @log = Logger.new(File.join(LOG_DIR, log_name))
