@@ -1,7 +1,7 @@
 #! /bin/bash
 
 LOG_DIR="logs"
-LOG_FILES=`ls -d $LOG_DIR/* | grep -v -e "-"`
+LOG_FILES=`find $LOG_DIR -name "*.log" \! -name "*-*"`
 
 for file in $LOG_FILES
 do
