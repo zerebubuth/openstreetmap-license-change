@@ -8,12 +8,25 @@ require './change_bot'
 require 'net/http'
 require 'nokogiri'
 require 'set'
+require 'oauth'
+require 'yaml'
+require 'optparse'
 
 MAX_CHANGESET_ELEMENTS = 1000
 
 class Server
-  def initialize(server)
-    @server = server
+  def initialize(file)
+    auth = YAML.load(File.open(file))
+    outh = auth['oauth']
+    @server = oauth['site']
+    @consumer=OAuth::Consumer.new(oauth['consumer_key'],
+                                  oauth['consumer_secret'],
+                                  {:site=>oauth['site']})
+
+    @consumer.http.read_timeout = 320
+
+    # Create the access_token for all traffic
+    @access_token = OAuth::AccessToken.new(@consumer, oauth['token'], oauth['token_secret'])
   end
 
   def history(elt)
@@ -37,9 +50,51 @@ class Server
     return osm
   end
 
+  def create_changeset(comment)
+    changeset_request = <<EOF
+<osm>
+  <changeset>
+    <tag k="created_by" v="Redaction bot"/>
+    <tag k="bot" v="yes"/>
+    <tag k="comment" v="#{comment}"/>
+  </changeset>
+</osm>
+EOF
+    response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
+    unless response.code == '200'
+      raise "Failed to open changeset"
+    end
+    
+    changeset_id = response.body.to_i
+
+    return changeset_id
+  end
+
+  def upload(change_doc, changeset_id)
+    response = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' })
+    unless response.code == '200'
+      # It's quite likely for a changeset to fail, if someone else is editing in the area being processed
+      raise "Changeset failed to apply"
+    end
+  end
+
+  def redact(klass, elt_id, version, red_id)
+    name = case klass.name
+           when "OSM::Node" then 'node'
+           when "OSM::Way" then 'way'
+           when "OSM::Relation" then 'relation'
+           end
+    
+    redaction_id = redaction.mode == :visible ? @redaction_id_visible : @redaction_id_hidden
+    response = @access_token.post("/api/0.6/#{name}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}")
+    unless response.code == '200'
+      raise "Failed to redact element"
+    end
+  end
+
   private
   def api_call_get(path)
-    uri = URI("http://#{@server}/api/0.6/#{path}")
+    uri = URI("#{@server}/api/0.6/#{path}")
     puts "GET: #{uri}"
     http = Net::HTTP.new(uri.host, uri.port)
     http.read_timeout = 320
@@ -69,33 +124,71 @@ class Server
   end
 end
 
-def process_redactions(bot)
+def process_redactions(bot, server, redaction_id)
   bot.redactions.each do |redaction|
-    puts redaction.inspect
+    server.redact(redaction.klass, redaction.element_id, redaction.version, redaction_id)
   end
 end
 
-def process_changeset(changesets, db)
+def process_changeset(changesets, db, server, comment)
   change_doc = ""
-  OSM::print_osmchange(changesets, db, change_doc, 0)
-  puts change_doc
+  cs_id = server.create_changeset(comment)
+  OSM::print_osmchange(changesets, db, change_doc, cs_id)
+  server.upload(change_doc, cs_id)
 end
 
-server = Server.new("api.openstreetmap.org")
-cs_id = ARGV[0].to_i
-raise "Nope" if cs_id <= 0
+options = { :config => 'auth.yaml' }
+oparser = OptionParser.new do |opts|
+  opts.on("-c", "--config CONFIG", "YAML config file to use.") do |c|
+    options[:config] = c
+  end
+
+  opts.on("-r", "--redaction ID", Integer, "Redaction ID to use.") do |r|
+    options[:redaction_id] = r
+  end
+
+  opts.on("-m", "--message MESSAGE", "Commit message to use.") do |m|
+    options[:comment] = m
+  end
+end
+oparser.parse!
+
+server = Server.new(options[:config])
+if options.has_key? :comment
+  comment = options[:comment]
+else
+  puts "You must give a comment for the changeset."
+  puts
+  puts oparser
+  exit(1)
+end
+if options.has_key? :redaction_id
+  redaction_id = options[:redaction_id]
+else
+  puts "You must give a redaction ID to use."
+  puts
+  puts oparser
+  exit(1)
+end
 
 elements = Hash[[OSM::Node, OSM::Way, OSM::Relation].map {|k| [k, Hash.new]}]
 
-server.changeset_contents(cs_id).each do |elt|
-  h = server.history(elt)
-  dependents = server.dependents(h.last)
-  elements[h.last.class][h.last.element_id] = h
-  #puts "dependents = #{dependents.inspect}"
-  dependents.each do |u|
-    #puts "u = #{u.inspect}"
-    unless elements[u.class].has_key? u.element_id
-      elements[u.class][u.element_id] = [u]
+input_changesets = ARGV.map {|x| x.to_i}
+
+input_changesets.each do |arg|
+  cs_id = arg.to_i
+  next if cs_id <= 0
+  
+  server.changeset_contents(cs_id).each do |elt|
+    h = server.history(elt)
+    dependents = server.dependents(h.last)
+    elements[h.last.class][h.last.element_id] = h
+    #puts "dependents = #{dependents.inspect}"
+    dependents.each do |u|
+      #puts "u = #{u.inspect}"
+      unless elements[u.class].has_key? u.element_id
+        elements[u.class][u.element_id] = [u]
+      end
     end
   end
 end
@@ -110,7 +203,11 @@ elements.each do |klass, elts|
   end
 end
 
-changesets = Hash[cs_ids.map {|id| [id, Changeset[User[id != cs_id]]]}] 
+changesets = Hash.new
+cs_ids.each do |id| 
+  ok = !(input_changesets.include?(id))
+  changesets[id] = Changeset[User[ok]]
+end
 
 db = DB.new(:changesets => changesets, :nodes => elements[OSM::Node], :ways => elements[OSM::Way], :relations => elements[OSM::Relation])
 bot = ChangeBot.new(db)
@@ -126,19 +223,19 @@ changeset = bot.as_changeset
 
 if changeset.empty?
   puts "No changeset to apply"
-  process_redactions(bot)
+  process_redactions(bot, server, redaction_id)
 
 else
   begin
     changeset.each_slice(MAX_CHANGESET_ELEMENTS) do |slice|
-      process_changeset(slice, db)
+      process_changeset(slice, db, server, comment)
     end
 
   rescue Exception => e
     puts "Failed to upload a changeset: #{e}"
 
   else
-    process_redactions(bot)
+    process_redactions(bot, server, redaction_id)
   end
 end
 
