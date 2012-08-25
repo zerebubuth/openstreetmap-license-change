@@ -17,7 +17,7 @@ MAX_CHANGESET_ELEMENTS = 1000
 class Server
   def initialize(file)
     auth = YAML.load(File.open(file))
-    outh = auth['oauth']
+    oauth = auth['oauth']
     @server = oauth['site']
     @consumer=OAuth::Consumer.new(oauth['consumer_key'],
                                   oauth['consumer_secret'],
@@ -85,8 +85,7 @@ EOF
            when "OSM::Relation" then 'relation'
            end
     
-    redaction_id = redaction.mode == :visible ? @redaction_id_visible : @redaction_id_hidden
-    response = @access_token.post("/api/0.6/#{name}/#{redaction.element_id}/#{redaction.version}/redact?redaction=#{redaction_id}")
+    response = @access_token.post("/api/0.6/#{name}/#{elt_id}/#{version}/redact?redaction=#{red_id}")
     unless response.code == '200'
       raise "Failed to redact element"
     end
