@@ -50,13 +50,14 @@ class Server
     return osm
   end
 
-  def create_changeset(comment)
+  def create_changeset(comment, input_changesets)
     changeset_request = <<EOF
 <osm>
   <changeset>
     <tag k="created_by" v="Redaction bot"/>
     <tag k="bot" v="yes"/>
     <tag k="comment" v="#{comment}"/>
+    <tag k="redacted_changesets" v="#{input_changesets.join(",")}"/>
   </changeset>
 </osm>
 EOF
@@ -129,9 +130,9 @@ def process_redactions(bot, server, redaction_id)
   end
 end
 
-def process_changeset(changesets, db, server, comment)
+def process_changeset(changesets, db, server, comment, input_changesets)
   change_doc = ""
-  cs_id = server.create_changeset(comment)
+  cs_id = server.create_changeset(comment, input_changesets)
   OSM::print_osmchange(changesets, db, change_doc, cs_id)
   server.upload(change_doc, cs_id)
 end
@@ -256,7 +257,7 @@ else
     changeset.sort! {|a, b| compare(a, b)}
     changeset.each_slice(MAX_CHANGESET_ELEMENTS) do |slice|
       puts "Uploading #{slice.size} elements of #{changeset.size} total"
-      process_changeset(slice, db, server, comment)
+      process_changeset(slice, db, server, comment, input_changesets)
     end
 
   rescue Exception => e
