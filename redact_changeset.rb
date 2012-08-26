@@ -136,6 +136,33 @@ def process_changeset(changesets, db, server, comment)
   server.upload(change_doc, cs_id)
 end
 
+# comperator to sort elements for changesets, relations first then ways and finally nodes
+def compare(a, b)
+  aklass, bklass = nil, nil
+  aid, bid = 0, 0
+  
+  if a.class == Delete then
+    aklass = a.klass
+    aid = a.element_id
+  else
+    aklass = a.obj.class
+    aid = a.obj.element_id
+  end
+  if b.class == Delete then
+    bklass = b.klass
+    bid = b.element_id
+  else
+    bklass = b.obj.class
+    bid = b.obj.element_id
+  end
+  
+  ai = if aklass == OSM::Node then 2 elsif aklass == OSM::Way then 1 else 0 end
+  bi = if bklass == OSM::Node then 2 elsif bklass == OSM::Way then 1 else 0 end
+  return ai <=> bi if ai != bi
+  
+  aid <=> bid
+end
+
 options = { :config => 'auth.yaml' }
 oparser = OptionParser.new do |opts|
   opts.on("-c", "--config CONFIG", "YAML config file to use.") do |c|
@@ -226,7 +253,9 @@ if changeset.empty?
 
 else
   begin
+    changeset.sort! {|a, b| compare(a, b)}
     changeset.each_slice(MAX_CHANGESET_ELEMENTS) do |slice|
+      puts "Uploading #{slice.size} elements of #{changeset.size} total"
       process_changeset(slice, db, server, comment)
     end
 
