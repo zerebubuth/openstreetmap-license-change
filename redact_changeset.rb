@@ -62,7 +62,7 @@ class Server
 EOF
     response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
     unless response.code == '200'
-      raise "Failed to open changeset"
+      raise "Failed to open changeset. Response #{response.code}:\n#{response.body}"
     end
     
     changeset_id = response.body.to_i
@@ -74,7 +74,7 @@ EOF
     response = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' })
     unless response.code == '200'
       # It's quite likely for a changeset to fail, if someone else is editing in the area being processed
-      raise "Changeset failed to apply"
+      raise "Changeset failed to apply. Response #{response.code}:\n#{response.body}"
     end
   end
 
@@ -99,7 +99,7 @@ EOF
     http.read_timeout = 320
 
     response = http.request_get(uri.request_uri)
-    raise "FAIL: #{uri} => #{response.code}" unless response.code == '200'
+    raise "FAIL: #{uri} => #{response.code}:\n#{response.body}" unless response.code == '200'
 
     return response
   end
