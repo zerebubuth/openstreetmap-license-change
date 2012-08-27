@@ -52,13 +52,14 @@ class Server
     return requests
   end
 
-  def create_changeset(comment)
+  def create_changeset(comment, input_changesets)
     changeset_request = <<EOF
 <osm>
   <changeset>
     <tag k="created_by" v="Redaction bot"/>
     <tag k="bot" v="yes"/>
     <tag k="comment" v="#{comment}"/>
+    <tag k="redacted_changesets" v="#{input_changesets.join(",")}"/>
   </changeset>
 </osm>
 EOF
@@ -69,7 +70,7 @@ EOF
       break if response.code == '200'
       tries += 1
       if tries >= @max_retries
-        raise "Failed to open changeset. Most recent response code: #{response.code} (#{response.body})"
+        raise "Failed to open changeset. Most recent response code: #{response.code}:\n#{response.body}"
       end
     end
     
@@ -86,7 +87,7 @@ EOF
       tries += 1
       if tries >= @max_retries
         # It's quite likely for a changeset to fail, if someone else is editing in the area being processed
-        raise "Changeset failed to apply. Most recent response code: #{response.code} (#{response.body})"
+        raise "Changeset failed to apply. Most recent response code: #{response.code}:\n#{response.body}"
       end
     end
   end
@@ -120,7 +121,7 @@ EOF
         http.read_timeout = 320
         
         response = http.request_get(uri.request_uri)
-        raise "FAIL: #{uri} => #{response.code}" unless response.code == '200'
+        raise "FAIL: #{uri} => #{response.code}:\n#{response.body}" unless response.code == '200'
         
         return response
       rescue Exception => ex
@@ -160,9 +161,9 @@ def process_redactions(bot, server, redaction_id)
   end
 end
 
-def process_changeset(changesets, db, server, comment)
+def process_changeset(changesets, db, server, comment, input_changesets)
   change_doc = ""
-  cs_id = server.create_changeset(comment)
+  cs_id = server.create_changeset(comment, input_changesets)
   OSM::print_osmchange(changesets, db, change_doc, cs_id)
   server.upload(change_doc, cs_id)
 end
@@ -186,6 +187,32 @@ def parse_osc_file(file)
   end
 
   return [changesets.first, elements]
+end
+
+def compare(a, b)
+  aklass, bklass = nil, nil
+  aid, bid = 0, 0
+  
+  if a.class == Delete then
+    aklass = a.klass
+    aid = a.element_id
+  else
+    aklass = a.obj.class
+    aid = a.obj.element_id
+  end
+  if b.class == Delete then
+    bklass = b.klass
+    bid = b.element_id
+  else
+    bklass = b.obj.class
+    bid = b.obj.element_id
+  end
+  
+  ai = if aklass == OSM::Node then 2 elsif aklass == OSM::Way then 1 else 0 end
+  bi = if bklass == OSM::Node then 2 elsif bklass == OSM::Way then 1 else 0 end
+  return ai <=> bi if ai != bi
+  
+  aid <=> bid
 end
 
 options = { :config => 'auth.yaml', :threads => 4 }
@@ -346,8 +373,10 @@ if changeset.empty?
 
 else
   begin
+    changeset.sort! {|a, b| compare(a, b)}
     changeset.each_slice(MAX_CHANGESET_ELEMENTS) do |slice|
-      process_changeset(slice, db, server, comment)
+      puts "Uploading #{slice.size} elements of #{changeset.size} total"
+      process_changeset(slice, db, server, comment, input_changesets)
     end
 
   rescue Exception => e
