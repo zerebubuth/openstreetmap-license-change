@@ -11,6 +11,7 @@ require 'set'
 require 'oauth'
 require 'yaml'
 require 'optparse'
+require 'typhoeus'
 
 MAX_CHANGESET_ELEMENTS = 1000
 
@@ -27,12 +28,13 @@ class Server
 
     # Create the access_token for all traffic
     @access_token = OAuth::AccessToken.new(@consumer, oauth['token'], oauth['token_secret'])
+
+    @max_retries = 3
   end
 
   def history(elt)
     name = element_name(elt)
-    response = api_call_get("#{name}/#{elt.element_id}/history")
-    OSM.parse(response.body)
+    "#{@server}/api/0.6/#{name}/#{elt.element_id}/history"
   end
 
   def changeset_contents(id)
@@ -41,13 +43,13 @@ class Server
   end
   
   def dependents(elt)
-    osm = []
+    requests = []
     name = element_name(elt)
-    if name == "node"
-      osm += OSM.parse(api_call_get("node/#{elt.element_id}/ways").body)
+    if name == "node" 
+      requests << "#{@server}/api/0.6/node/#{elt.element_id}/ways"
     end
-    osm += OSM.parse(api_call_get("#{name}/#{elt.element_id}/relations").body)
-    return osm
+    requests << "#{@server}/api/0.6/node/#{elt.element_id}/relations"
+    return requests
   end
 
   def create_changeset(comment)
@@ -93,15 +95,28 @@ EOF
 
   private
   def api_call_get(path)
-    uri = URI("#{@server}/api/0.6/#{path}")
-    puts "GET: #{uri}"
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.read_timeout = 320
-
-    response = http.request_get(uri.request_uri)
-    raise "FAIL: #{uri} => #{response.code}" unless response.code == '200'
-
-    return response
+    tries = 0
+    loop do
+      begin
+        uri = URI("#{@server}/api/0.6/#{path}")
+        puts "GET: #{uri}"
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.read_timeout = 320
+        
+        response = http.request_get(uri.request_uri)
+        raise "FAIL: #{uri} => #{response.code}" unless response.code == '200'
+        
+        return response
+      rescue Exception => ex
+        if tries > @max_retries
+          raise
+        else
+          puts "Got exception: #{ex}, retrying."
+        end
+      end
+      
+      tries += 1
+    end
   end
 
   def element_name(elt)
@@ -136,7 +151,28 @@ def process_changeset(changesets, db, server, comment)
   server.upload(change_doc, cs_id)
 end
 
-options = { :config => 'auth.yaml' }
+def parse_osc_file(file)
+  changesets = Set.new
+  elements = nil
+
+  File.open(file, "r") do |fh|
+    doc = Nokogiri::XML(fh)
+    nodes     = Set[*(doc.xpath("//node")    .map {|x| changesets.add(x["changeset"].to_i); x["id"].to_i})]
+    ways      = Set[*(doc.xpath("//way")     .map {|x| changesets.add(x["changeset"].to_i); x["id"].to_i})]
+    relations = Set[*(doc.xpath("//relation").map {|x| changesets.add(x["changeset"].to_i); x["id"].to_i})]
+    elements = nodes.map {|i| OSM::Node[[0,0], :id => i]} +
+      ways.map {|i| OSM::Way[[], :id => i]} +
+      relations.map {|i| OSM::Relation[[], :id => i]}
+  end
+
+  if changesets.size != 1
+    raise "Was expecting one file = one changeset, but didn't get a single changeset ID."
+  end
+
+  return [changesets.first, elements]
+end
+
+options = { :config => 'auth.yaml', :threads => 4 }
 oparser = OptionParser.new do |opts|
   opts.on("-c", "--config CONFIG", "YAML config file to use.") do |c|
     options[:config] = c
@@ -148,6 +184,10 @@ oparser = OptionParser.new do |opts|
 
   opts.on("-m", "--message MESSAGE", "Commit message to use.") do |m|
     options[:comment] = m
+  end
+
+  opts.on("-t", "--threads N", Integer, "Number of threads to use getting data from the API.") do |t|
+    options[:threads] = t
   end
 end
 oparser.parse!
@@ -171,20 +211,84 @@ else
 end
 
 elements = Hash[[OSM::Node, OSM::Way, OSM::Relation].map {|k| [k, Hash.new]}]
+input_changesets = []
 
-input_changesets = ARGV.map {|x| x.to_i}
+hydra = Typhoeus::Hydra.new(:max_concurrency => options[:threads])
+hydra.disable_memoization
 
-input_changesets.each do |arg|
-  cs_id = arg.to_i
-  next if cs_id <= 0
+ARGV.each do |arg|
+  # if the argument is a file on disk, then use that. otherwise, go to 
+  # the API and fetch it from there.
+  contents = nil
+  cs_id = nil
+
+  if File.exists?(arg)
+    cs_id, contents = parse_osc_file(arg)
+
+  else
+    cs_id = arg.to_i
+    if cs_id > 0
+      contents = server.changeset_contents(cs_id)
+    end
+  end
+
+  if contents.nil? or cs_id.nil?
+    puts "Didn't understand argument #{arg.inspect} as a changeset ID or file to load from disk."
+    next
+  end
+
+  input_changesets << cs_id
   
-  server.changeset_contents(cs_id).each do |elt|
-    h = server.history(elt)
-    dependents = server.dependents(h.last)
+  puts "Threads: #{options[:threads].inspect} (changeset = #{cs_id})"
+  #puts contents.inspect
+
+  requests = contents.map do |elt|
+    urls = [server.history(elt)]
+    urls += server.dependents(elt)
+
+    urls.map do |url| 
+      #puts "REQ: #{url.inspect}"
+      req = Typhoeus::Request.new(url)
+      hydra.queue(req)
+      req
+    end
+  end
+
+  loop do
+    hydra.disable_memoization
+    hydra.run
+    hydra.disable_memoization
+
+    failed_requests = 0
+    requests.map! do |rqs|
+      rqs.map do |rq|
+        if rq.response.success?
+          rq
+        else
+          #puts "Retrying #{rq.url.inspect}"
+          new_rq = Typhoeus::Request.new(rq.url)
+          hydra.queue(new_rq)
+          failed_requests += 1
+          new_rq
+        end
+      end
+    end
+
+    break if failed_requests == 0
+    puts "Retrying #{failed_requests} failed requests."
+  end
+
+  results = []
+  requests.each do |rqs|
+    h_rq, *dep_rq = rqs
+    h = OSM.parse(h_rq.response.body)
+    dependents = dep_rq.collect_concat {|rq| OSM.parse(rq.response.body)}
+    results << [h, dependents]
+  end
+
+  results.each do |h, dependents|
     elements[h.last.class][h.last.element_id] = h
-    #puts "dependents = #{dependents.inspect}"
     dependents.each do |u|
-      #puts "u = #{u.inspect}"
       unless elements[u.class].has_key? u.element_id
         elements[u.class][u.element_id] = [u]
       end
