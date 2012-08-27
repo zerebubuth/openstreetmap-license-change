@@ -25,6 +25,12 @@ this which are not as expected, then they would make good unit
 tests. Run `ruby check_history.rb --help` for more information on 
 running the tool, and on the available options.
 
+# Changeset redaction
+
+The `redact_changeset.rb` script can be used to redact changesets. 
+To use it, create a yaml config file using `get_auth.rb` and run it
+with `ruby redact_changeset.rb`.
+
 # Test-Driven Development
 
 This code is intended to be read as a test-driven development. It's
