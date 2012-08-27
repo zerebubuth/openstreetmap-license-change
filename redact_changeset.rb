@@ -62,9 +62,15 @@ class Server
   </changeset>
 </osm>
 EOF
-    response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
-    unless response.code == '200'
-      raise "Failed to open changeset"
+    tries = 0
+    response = nil
+    loop do
+      response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
+      break if response.code == '200'
+      tries += 1
+      if tries >= @max_retries
+        raise "Failed to open changeset. Most recent response code: #{response.code} (#{response.body})"
+      end
     end
     
     changeset_id = response.body.to_i
@@ -73,10 +79,15 @@ EOF
   end
 
   def upload(change_doc, changeset_id)
-    response = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' })
-    unless response.code == '200'
-      # It's quite likely for a changeset to fail, if someone else is editing in the area being processed
-      raise "Changeset failed to apply"
+    tries = 0
+    loop do
+      response = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' })
+      break if response.code == '200'
+      tries += 1
+      if tries >= @max_retries
+        # It's quite likely for a changeset to fail, if someone else is editing in the area being processed
+        raise "Changeset failed to apply. Most recent response code: #{response.code} (#{response.body})"
+      end
     end
   end
 
@@ -87,9 +98,14 @@ EOF
            when "OSM::Relation" then 'relation'
            end
     
-    response = @access_token.post("/api/0.6/#{name}/#{elt_id}/#{version}/redact?redaction=#{red_id}")
-    unless response.code == '200'
-      raise "Failed to redact element"
+    tries = 0
+    loop do
+      response = @access_token.post("/api/0.6/#{name}/#{elt_id}/#{version}/redact?redaction=#{red_id}")
+      break if response.code == '200'
+      tries += 1
+      if tries >= @max_retries
+        raise "Failed to redact element. Most recent response code: #{response.code} (#{response.body})"
+      end
     end
   end
 
