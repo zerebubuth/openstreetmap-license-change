@@ -48,7 +48,7 @@ class Server
     if name == "node" 
       requests << "#{@server}/api/0.6/node/#{elt.element_id}/ways"
     end
-    requests << "#{@server}/api/0.6/node/#{elt.element_id}/relations"
+    requests << "#{@server}/api/0.6/#{name}/#{elt.element_id}/relations"
     return requests
   end
 
