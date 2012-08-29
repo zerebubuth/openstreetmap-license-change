@@ -41,9 +41,8 @@ class Server
     "#{@server}/api/0.6/#{name}/#{elt.element_id}/history"
   end
 
-  def element(elt)
-    name = element_name(elt)
-    "#{@server}/api/0.6/#{name}/#{elt.element_id}"
+  def element(name, id)
+    "#{@server}/api/0.6/#{name}/#{id}"
   end
 
   def changeset_contents(id)
@@ -184,35 +183,18 @@ class ServerDB < DB
   def initialize(server, options)
     super(options)
     @server = server
-  end
 
-  def current_node(id)
-    sup = super.current_node(id)
-    if sup.nil?
-      obj = get_obj(@server.element(OSM::Node[[0,0], :id => id]))
-      obj.last
-    else
-      sup
-    end
-  end
+    [:nodes, :ways, :relations].each do |opt|
+      non_plural_name = opt[0..-2]
+      instance_name = "@#{opt}"
 
-  def current_way(id)
-    sup = super.current_way(id)
-    if sup.nil?
-      obj = get_obj(@server.element(OSM::Way[[], :id => id]))
-      obj.last
-    else
-      sup
-    end
-  end
-
-  def current_relation(id)
-    sup = super.current_relation(id)
-    if sup.nil?
-      obj = get_obj(@server.element(OSM::Relation[[], :id => id]))
-      obj.last
-    else
-      sup
+      metaclass.send(:define_method, 'current_' + non_plural_name) do |elt_id|
+        if self.instance_variable_get(instance_name)[elt_id].nil?
+          get_obj(@server.element(non_plural_name, elt_id)).last
+        else
+          self.instance_variable_get(instance_name)[elt_id].last
+        end
+      end
     end
   end
 
