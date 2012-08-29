@@ -54,7 +54,7 @@ class History
   def actions
     accepted_versions = @versions.map {|obj| changeset_is_accepted? obj.changeset_id}
   
-    return [] if accepted_versions.all?
+    #return [] if accepted_versions.all?
 
     prev_obj = @versions.first.version_zero
 
