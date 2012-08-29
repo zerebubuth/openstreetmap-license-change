@@ -57,7 +57,7 @@ class Server
     if name == "node" 
       requests << "#{@server}/api/0.6/node/#{elt.element_id}/ways"
     end
-    requests << "#{@server}/api/0.6/node/#{elt.element_id}/relations"
+    requests << "#{@server}/api/0.6/#{name}/#{elt.element_id}/relations"
     return requests
   end
 
@@ -330,6 +330,10 @@ oparser = OptionParser.new do |opts|
   opts.on("-n", "--dry_run", "Don't perform actions, instead log them to disk.") do |n|
     options[:dry_run] = true
   end
+
+  opts.on("-e", "--edits_blacklist FILE", "edits blacklist file to redact") do |e|
+    options[:edits_blacklist] = e
+  end
 end
 oparser.parse!
 
@@ -357,6 +361,7 @@ input_changesets = []
 hydra = Typhoeus::Hydra.new(:max_concurrency => options[:threads])
 hydra.disable_memoization
 
+to_redact = []
 ARGV.each do |arg|
   # if the argument is a file on disk, then use that. otherwise, go to 
   # the API and fetch it from there.
@@ -379,60 +384,76 @@ ARGV.each do |arg|
   end
 
   input_changesets << cs_id
+
+  to_redact += contents
+end
+
+if options.has_key? :edits_blacklist then
+  to_redact += File.open(options[:edits_blacklist], "r").read.split("\n").map do |line|
+    type = line[0]
+    t = line[1..-1].split('v')
+    id = t[0].to_i
+    version = t[1].to_i
+    case type
+      when "n" then OSM::Node[[0,0], :id => id]
+      when "w" then OSM::Way[[], :id => id]
+      when "r" then OSM::Relation[[], :id => id]
+    end
+  end
+end
   
-  puts "Threads: #{options[:threads].inspect} (changeset = #{cs_id})"
-  #puts contents.inspect
+puts "Threads: #{options[:threads].inspect} (changesets = #{input_changesets})"
+#puts to_redact.inspect
 
-  requests = contents.map do |elt|
-    urls = [server.history(elt)]
-    #urls += server.dependents(elt)
+requests = to_redact.map do |elt|
+  urls = [server.history(elt)]
+  #urls += server.dependents(elt)
 
-    urls.map do |url| 
-      #puts "REQ: #{url.inspect}"
-      req = Typhoeus::Request.new(url)
-      hydra.queue(req)
-      req
-    end
+  urls.map do |url| 
+    #puts "REQ: #{url.inspect}"
+    req = Typhoeus::Request.new(url)
+    hydra.queue(req)
+    req
   end
+end
 
-  loop do
-    hydra.disable_memoization
-    hydra.run
-    hydra.disable_memoization
+loop do
+  hydra.disable_memoization
+  hydra.run
+  hydra.disable_memoization
 
-    failed_requests = 0
-    requests.map! do |rqs|
-      rqs.map do |rq|
-        if rq.response.success?
-          rq
-        else
-          #puts "Retrying #{rq.url.inspect}"
-          new_rq = Typhoeus::Request.new(rq.url)
-          hydra.queue(new_rq)
-          failed_requests += 1
-          new_rq
-        end
+  failed_requests = 0
+  requests.map! do |rqs|
+    rqs.map do |rq|
+      if rq.response.success?
+        rq
+      else
+        #puts "Retrying #{rq.url.inspect}"
+        new_rq = Typhoeus::Request.new(rq.url)
+        hydra.queue(new_rq)
+        failed_requests += 1
+        new_rq
       end
     end
-
-    break if failed_requests == 0
-    puts "Retrying #{failed_requests} failed requests."
   end
 
-  results = []
-  requests.each do |rqs|
-    h_rq, *dep_rq = rqs
-    h = OSM.parse(h_rq.response.body)
-    dependents = dep_rq.collect_concat {|rq| OSM.parse(rq.response.body)}
-    results << [h, dependents]
-  end
+  break if failed_requests == 0
+  puts "Retrying #{failed_requests} failed requests."
+end
 
-  results.each do |h, dependents|
-    elements[h.last.class][h.last.element_id] = h
-    dependents.each do |u|
-      unless elements[u.class].has_key? u.element_id
-        elements[u.class][u.element_id] = [u]
-      end
+results = []
+requests.each do |rqs|
+  h_rq, *dep_rq = rqs
+  h = OSM.parse(h_rq.response.body)
+  dependents = dep_rq.collect_concat {|rq| OSM.parse(rq.response.body)}
+  results << [h, dependents]
+end
+
+results.each do |h, dependents|
+  elements[h.last.class][h.last.element_id] = h
+  dependents.each do |u|
+    unless elements[u.class].has_key? u.element_id
+      elements[u.class][u.element_id] = [u]
     end
   end
 end
@@ -454,6 +475,7 @@ cs_ids.each do |id|
 end
 
 db = ServerDB.new(server, {:changesets => changesets, :nodes => elements[OSM::Node], :ways => elements[OSM::Way], :relations => elements[OSM::Relation]})
+db.edit_blacklist = File.open(options[:edits_blacklist], "r").read.split("\n").to_set if options.has_key? :edits_blacklist
 bot = ChangeBot.new(db)
 
 puts('Processing all nodes')

@@ -54,7 +54,7 @@ class History
   def actions
     accepted_versions = @versions.map {|obj| changeset_is_accepted? obj.changeset_id}
   
-    return [] if accepted_versions.all?
+    #return [] if accepted_versions.all?
 
     prev_obj = @versions.first.version_zero
 
@@ -88,10 +88,10 @@ class History
 
       # is this version clean? there are many ways to be
       # clean, and we try to enumerate them here.
-      status = if is_odbl_clean
-                 :odbl_clean
-               elsif is_blacklisted
+      status = if is_blacklisted
                  :unclean
+               elsif is_odbl_clean
+                 :odbl_clean
                elsif accepted
                  :acceptor_edit
                elsif is_whitelisted
