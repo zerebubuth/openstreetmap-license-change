@@ -16,18 +16,22 @@ require 'typhoeus'
 MAX_CHANGESET_ELEMENTS = 1000
 
 class Server
-  def initialize(file)
+  def initialize(file, dry_run)
     auth = YAML.load(File.open(file))
     oauth = auth['oauth']
     @server = oauth['site']
-    @consumer=OAuth::Consumer.new(oauth['consumer_key'],
-                                  oauth['consumer_secret'],
-                                  {:site=>oauth['site']})
+    @dry_run = dry_run
 
-    @consumer.http.read_timeout = 320
-
-    # Create the access_token for all traffic
-    @access_token = OAuth::AccessToken.new(@consumer, oauth['token'], oauth['token_secret'])
+    unless @dry_run
+      @consumer=OAuth::Consumer.new(oauth['consumer_key'],
+                                    oauth['consumer_secret'],
+                                    {:site=>oauth['site']})
+      
+      @consumer.http.read_timeout = 320
+      
+      # Create the access_token for all traffic
+      @access_token = OAuth::AccessToken.new(@consumer, oauth['token'], oauth['token_secret'])
+    end
 
     @max_retries = 3
   end
@@ -35,6 +39,11 @@ class Server
   def history(elt)
     name = element_name(elt)
     "#{@server}/api/0.6/#{name}/#{elt.element_id}/history"
+  end
+
+  def element(elt)
+    name = element_name(elt)
+    "#{@server}/api/0.6/#{name}/#{elt.element_id}"
   end
 
   def changeset_contents(id)
@@ -65,29 +74,40 @@ class Server
 EOF
     tries = 0
     response = nil
-    loop do
-      response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
-      break if response.code == '200'
-      tries += 1
-      if tries >= @max_retries
-        raise "Failed to open changeset. Most recent response code: #{response.code}:\n#{response.body}"
-      end
-    end
-    
-    changeset_id = response.body.to_i
+    if @dry_run
+      puts "Pretending to create changeset:\n#{changeset_request}"
+      return 1
 
-    return changeset_id
+    else
+      loop do
+        response = @access_token.put('/api/0.6/changeset/create', changeset_request, {'Content-Type' => 'text/xml' })
+        break if response.code == '200'
+        tries += 1
+        if tries >= @max_retries
+          raise "Failed to open changeset. Most recent response code: #{response.code}:\n#{response.body}"
+        end
+      end
+      
+      changeset_id = response.body.to_i
+      
+      return changeset_id
+    end
   end
 
   def upload(change_doc, changeset_id)
-    tries = 0
-    loop do
-      response = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' })
-      break if response.code == '200'
-      tries += 1
-      if tries >= @max_retries
-        # It's quite likely for a changeset to fail, if someone else is editing in the area being processed
-        raise "Changeset failed to apply. Most recent response code: #{response.code}:\n#{response.body}"
+    if @dry_run
+      puts "Pretending to upload changeset:\n#{change_doc}"
+
+    else
+      tries = 0
+      loop do
+        response = @access_token.post("/api/0.6/changeset/#{changeset_id}/upload", change_doc, {'Content-Type' => 'text/xml' })
+        break if response.code == '200'
+        tries += 1
+        if tries >= @max_retries
+          # It's quite likely for a changeset to fail, if someone else is editing in the area being processed
+          raise "Changeset failed to apply. Most recent response code: #{response.code}:\n#{response.body}"
+        end
       end
     end
   end
@@ -99,13 +119,18 @@ EOF
            when "OSM::Relation" then 'relation'
            end
     
-    tries = 0
-    loop do
-      response = @access_token.post("/api/0.6/#{name}/#{elt_id}/#{version}/redact?redaction=#{red_id}")
-      break if response.code == '200'
-      tries += 1
-      if tries >= @max_retries
-        raise "Failed to redact element. Most recent response code: #{response.code} (#{response.body})"
+    if @dry_run
+      puts "Pretending to redact #{name}/#{elt_id}/#{version} with redaction id=#{red_id}"
+
+    else
+      tries = 0
+      loop do
+        response = @access_token.post("/api/0.6/#{name}/#{elt_id}/#{version}/redact?redaction=#{red_id}")
+        break if response.code == '200'
+        tries += 1
+        if tries >= @max_retries
+          raise "Failed to redact element. Most recent response code: #{response.code} (#{response.body})"
+        end
       end
     end
   end
@@ -152,6 +177,75 @@ EOF
     nodes.map {|i| OSM::Node[[0,0], :id => i]} +
       ways.map {|i| OSM::Way[[], :id => i]} +
       relations.map {|i| OSM::Relation[[], :id => i]}
+  end
+end
+
+class ServerDB < DB
+  def initialize(server, options)
+    super(options)
+    @server = server
+  end
+
+  def current_node(id)
+    sup = super.current_node(id)
+    if sup.nil?
+      obj = get_obj(@server.element(OSM::Node[[0,0], :id => id]))
+      obj.last
+    else
+      sup
+    end
+  end
+
+  def current_way(id)
+    sup = super.current_way(id)
+    if sup.nil?
+      obj = get_obj(@server.element(OSM::Way[[], :id => id]))
+      obj.last
+    else
+      sup
+    end
+  end
+
+  def current_relation(id)
+    sup = super.current_relation(id)
+    if sup.nil?
+      obj = get_obj(@server.element(OSM::Relation[[], :id => id]))
+      obj.last
+    else
+      sup
+    end
+  end
+
+  def objects_using(klass, elt_id)
+    elt = if klass == OSM::Node
+            klass[[0,0], :id => elt_id]
+          elsif klass == OSM::Way
+            klass[[], :id => elt_id]
+          else
+            klass[[], :id => elt_id]
+          end
+    dep_urls = @server.dependents(elt)
+    dep_urls.collect_concat do |url| 
+      get_obj(url)
+    end
+  end
+
+  private
+  def get_obj(url)
+    tries = 0
+    obj = nil
+    while obj.nil?
+      puts "DEP GET: #{url}"
+      response = Typhoeus::Request.get(url, :timeout => 300000)
+      if response.success?
+        obj = OSM.parse(response.body)
+      end
+      tries += 1
+      if obj.nil? and tries >= 3
+        raise "Failed to get object dependency for #{klass} #{elt_id} from #{url}: #{response.body}"
+      end
+    end
+    obj
   end
 end
 
@@ -215,7 +309,7 @@ def compare(a, b)
   aid <=> bid
 end
 
-options = { :config => 'auth.yaml', :threads => 4 }
+options = { :config => 'auth.yaml', :threads => 4, :dry_run => false }
 oparser = OptionParser.new do |opts|
   opts.on("-c", "--config CONFIG", "YAML config file to use.") do |c|
     options[:config] = c
@@ -232,10 +326,14 @@ oparser = OptionParser.new do |opts|
   opts.on("-t", "--threads N", Integer, "Number of threads to use getting data from the API.") do |t|
     options[:threads] = t
   end
+
+  opts.on("-n", "--dry_run", "Don't perform actions, instead log them to disk.") do |n|
+    options[:dry_run] = true
+  end
 end
 oparser.parse!
 
-server = Server.new(options[:config])
+server = Server.new(options[:config], options[:dry_run])
 if options.has_key? :comment
   comment = options[:comment]
 else
@@ -287,7 +385,7 @@ ARGV.each do |arg|
 
   requests = contents.map do |elt|
     urls = [server.history(elt)]
-    urls += server.dependents(elt)
+    #urls += server.dependents(elt)
 
     urls.map do |url| 
       #puts "REQ: #{url.inspect}"
@@ -355,7 +453,7 @@ cs_ids.each do |id|
   changesets[id] = Changeset[User[ok]]
 end
 
-db = DB.new(:changesets => changesets, :nodes => elements[OSM::Node], :ways => elements[OSM::Way], :relations => elements[OSM::Relation])
+db = ServerDB.new(server, {:changesets => changesets, :nodes => elements[OSM::Node], :ways => elements[OSM::Way], :relations => elements[OSM::Relation]})
 bot = ChangeBot.new(db)
 
 puts('Processing all nodes')
@@ -380,7 +478,7 @@ else
     end
 
   rescue Exception => e
-    puts "Failed to upload a changeset: #{e}"
+    puts "Failed to upload a changeset: #{e}\n#{e.backtrace}"
 
   else
     process_redactions(bot, server, redaction_id)
