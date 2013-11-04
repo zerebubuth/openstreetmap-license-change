@@ -219,12 +219,13 @@ class ServerDB < DB
     while obj.nil?
       puts "DEP GET: #{url}"
       response = Typhoeus::Request.get(url, :timeout => 300000)
+      # TODO: handle 410 here?
       if response.success?
         obj = OSM.parse(response.body)
       end
       tries += 1
       if obj.nil? and tries >= 3
-        raise "Failed to get object dependency for #{klass} #{elt_id} from #{url}: #{response.body}"
+        raise "Failed to get object dependency from #{url}: #{response.body}"
       end
     end
     obj
