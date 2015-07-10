@@ -33,17 +33,16 @@ oauth = auth['oauth']
 
 LOG_DIR = 'logs'
 log_name = "#{Time.now.strftime('%Y%m%dT%H%M%S')}-#{$$}.log"
-@log = Logger.new(File.join(LOG_DIR, log_name))
-@log.level = Logger::DEBUG
 
-@log.info("Special mega-relation redaction.")
+
+ puts "Special mega-relation redaction."
 
 # Don't include the highest version
-(1...HIGHEST_VERSION).each do |version|
-  @log.info("Redaction for relation #{ENTITY_ID} v#{version} hidden")
+(205...HIGHEST_VERSION).each do |version|
+  puts "Redaction for relation #{ENTITY_ID} v#{version} hidden"
   response = @access_token.post("/api/0.6/relation/#{ENTITY_ID}/#{version}/redact?redaction=#{@redaction_id_hidden}")
   unless response.code == '200'
-    @log.error("Failed to redact element - response: #{response.code} \n #{response.body}")
+    puts "Failed to redact element - response: #{response.code} \n #{response.body}"
     raise "Failed to redact element"
   end
 end

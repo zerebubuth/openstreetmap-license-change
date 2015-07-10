@@ -131,7 +131,7 @@ def tile_for_xy(x, y)
   return t
 end
 
-@conn = PGconn.open( :host => dbauth['host'], :port => dbauth['port'], :dbname => dbauth['dbname'], :user => dbauth['user'], :password => dbauth['password'] )
+@conn = PGconn.open( :dbname => dbauth['dbname'] )
 @changesets = []
 @uids = []
 @time = Time.now.strftime('%FT%T')
