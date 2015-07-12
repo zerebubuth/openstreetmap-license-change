@@ -341,7 +341,6 @@ elements = Hash[[OSM::Node, OSM::Way, OSM::Relation].map {|k| [k, Hash.new]}]
 input_changesets = []
 
 hydra = Typhoeus::Hydra.new(:max_concurrency => options[:threads])
-hydra.disable_memoization
 
 to_redact = []
 ARGV.each do |arg|
@@ -400,9 +399,7 @@ requests = to_redact.map do |elt|
 end
 
 loop do
-  hydra.disable_memoization
   hydra.run
-  hydra.disable_memoization
 
   failed_requests = 0
   requests.map! do |rqs|
