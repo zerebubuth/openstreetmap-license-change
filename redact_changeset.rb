@@ -27,6 +27,7 @@ class Server
                                     oauth['consumer_secret'],
                                     {:site=>oauth['site']})
       
+      @consumer.http.open_timeout = 320
       @consumer.http.read_timeout = 320
       
       # Create the access_token for all traffic
