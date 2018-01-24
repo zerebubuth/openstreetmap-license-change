@@ -108,7 +108,7 @@ opts = GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT ],
 
 verbose = false
 read_from_file = false
-server = "api.openstreetmap.org"
+server = "master.apis.dev.openstreetmap.org"
 users_agreed = USERS_AGREED
 changesets_agreed = CHANGESETS_AGREED
 user_limit = 286582
