@@ -8,6 +8,7 @@ require './actions'
 require './util.rb'
 require 'minitest/unit'
 
+# Tests related to how redactions are applied to way edits.
 class TestWay < Minitest::Test
   def setup
     @db = DB.new(changesets: {
@@ -38,7 +39,7 @@ class TestWay < Minitest::Test
                OSM::Way[[4, 6], :id => 1, :changeset => 1, :version => 2, 'highway' => 'primary']] # nodes replaced by agreer
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Way[[4, 6], :id => 1, :changeset => -1, :version => 2]],
+    assert_equal([Edit[OSM::Way[[4, 6], id: 1, changeset: -1, version: 2]],
                   Redact[OSM::Way, 1, 1, :hidden],
                   Redact[OSM::Way, 1, 2, :visible]], # this version has the tainted highway tag in it
                  actions)
@@ -47,8 +48,8 @@ class TestWay < Minitest::Test
   # way created by decliner, but nodes subsequently replaced by agreer.
   # Under the v0 principle, we can keep the nodes
   def test_way_nodes_replaced_no_tag
-    history = [OSM::Way[[1, 2, 3], :id => 1, :changeset => 3, :version => 1], # created by decliner
-               OSM::Way[[4, 6], :id => 1, :changeset => 1, :version => 2]] # nodes replaced by agreer
+    history = [OSM::Way[[1, 2, 3], id: 1, changeset: 3, version: 1], # created by decliner
+               OSM::Way[[4, 6], id: 1, changeset: 1, version: 2]] # nodes replaced by agreer
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Redact[OSM::Way, 1, 1, :hidden]], actions)
@@ -105,7 +106,7 @@ class TestWay < Minitest::Test
   # addition of nodes to it by an acceptor is salvagable. note, however
   # that the tags are not.
   def test_way_decliner_creates_acceptor_adds
-    history = [OSM::Way[[1, 2, 3],       :id => 1, :changeset => 3, :version => 1, 'highway' => 'trunk'],
+    history = [OSM::Way[[1, 2, 3], :id => 1, :changeset => 3, :version => 1, 'highway' => 'trunk'],
                OSM::Way[[1, 2, 4, 3, 5, 6], :id => 1, :changeset => 1, :version => 2, 'highway' => 'trunk', 'ref' => '666']]
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
@@ -151,7 +152,7 @@ class TestWay < Minitest::Test
   # Non-agreeing user updates created_by tag and deletes note
   def test_auto_tag_change_and_tag_deletion
     history = [OSM::Way[[1, 2, 3], :id => 1, :version => 1, :changeset => 1, 'created_by' => 'Potlatch 0.5c', 'note' => 'B-flat'], # agreed,
-               OSM::Way[[1, 2, 3], :id => 1, :version => 2, :changeset => 3, 'created_by' => 'Potlatch 0.8c'],] # not agreed,
+               OSM::Way[[1, 2, 3], :id => 1, :version => 2, :changeset => 3, 'created_by' => 'Potlatch 0.8c']] # not agreed,
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([], actions)
@@ -161,7 +162,7 @@ class TestWay < Minitest::Test
   # v1 is decliner but agreer adds a single node in v2. This could be kept but results in a single-node way so should be deleted.
   def test_one_node_way_outcome
     history = [OSM::Way[[1, 2, 3], :id => 1, :version => 1, :visible => true, :changeset => 3, 'a' => 'b'], # not agreed,
-               OSM::Way[[1, 2, 3, 4], :id => 1, :version => 2, :visible => true, :changeset => 1, 'a' => 'b'],] # agreed
+               OSM::Way[[1, 2, 3, 4], :id => 1, :version => 2, :visible => true, :changeset => 1, 'a' => 'b']] # agreed
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Delete[OSM::Way, 1], # only one node would remain so delete
@@ -173,30 +174,30 @@ class TestWay < Minitest::Test
   # created by decliner, all tags completely changed by agreer
   def test_way_all_tags_changed
     history = [OSM::Way[[1, 2, 3], :id => 1, :version => 1, :visible => true, :changeset => 3, 'name' => 'Westgate', 'highway' => 'secondary'], # not agreed,
-               OSM::Way[[4, 5, 6], :id => 1, :version => 2, :visible => true, :changeset => 1, 'name' => 'Sheffield Road', 'highway' => 'tertiary'],] # agreed
+               OSM::Way[[4, 5, 6], :id => 1, :version => 2, :visible => true, :changeset => 1, 'name' => 'Sheffield Road', 'highway' => 'tertiary']] # agreed
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
     assert_equal([Redact[OSM::Way, 1, 1, :hidden]], actions)
   end
 
   def test_way_nodes_added_first
-    history = [OSM::Way[[3], :id => 1, :changeset => 1, :version => 1], # created by agreer
-               OSM::Way[[1,  3], :id => 1, :changeset => 3, :version => 2], # node added to the front by decliner
-               OSM::Way[[1, 2, 3], :id => 1, :changeset => 2, :version => 3]] # node addition by agreer
+    history = [OSM::Way[[3], id: 1, changeset: 1, version: 1], # created by agreer
+               OSM::Way[[1,  3], id: 1, changeset: 3, version: 2], # node added to the front by decliner
+               OSM::Way[[1, 2, 3], id: 1, changeset: 2, version: 3]] # node addition by agreer
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Way[[2, 3], :id => 1, :changeset => -1, :version => 3]],
+    assert_equal([Edit[OSM::Way[[2, 3], id: 1, changeset: -1, version: 3]],
                   Redact[OSM::Way, 1, 2, :hidden],
                   Redact[OSM::Way, 1, 3, :visible]], actions)
   end
 
   def test_way_nodes_added_and_reversed
-    history = [OSM::Way[[1, 2], :id => 1, :changeset => 1, :version => 1], # created by agreer
-               OSM::Way[[1, 2, 3], :id => 1, :changeset => 3, :version => 2], # node added by decliner
-               OSM::Way[[3, 2, 1], :id => 1, :changeset => 2, :version => 3]] # way reversed by agreer
+    history = [OSM::Way[[1, 2], id: 1, changeset: 1, version: 1], # created by agreer
+               OSM::Way[[1, 2, 3], id: 1, changeset: 3, version: 2], # node added by decliner
+               OSM::Way[[3, 2, 1], id: 1, changeset: 2, version: 3]] # way reversed by agreer
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Way[[2, 1], :id => 1, :changeset => -1, :version => 3]],
+    assert_equal([Edit[OSM::Way[[2, 1], id: 1, changeset: -1, version: 3]],
                   Redact[OSM::Way, 1, 2, :hidden],
                   Redact[OSM::Way, 1, 3, :visible]], actions)
   end
@@ -213,29 +214,27 @@ class TestWay < Minitest::Test
   end
 
   def test_way_nodes_added_and_moved
-    history = [OSM::Way[[1, 3], :id => 1, :changeset => 1, :version => 1], # created by agreer
-               OSM::Way[[1, 2, 3], :id => 1, :changeset => 3, :version => 2], # node added by decliner
-               OSM::Way[[2, 1, 3], :id => 1, :changeset => 2, :version => 3]] # node moved by agreer
+    history = [OSM::Way[[1, 3], id: 1, changeset: 1, version: 1], # created by agreer
+               OSM::Way[[1, 2, 3], id: 1, changeset: 3, version: 2], # node added by decliner
+               OSM::Way[[2, 1, 3], id: 1, changeset: 2, version: 3]] # node moved by agreer
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Way[[1, 3], :id => 1, :changeset => -1, :version => 3]],
+    assert_equal([Edit[OSM::Way[[1, 3], id: 1, changeset: -1, version: 3]],
                   Redact[OSM::Way, 1, 2, :hidden],
                   Redact[OSM::Way, 1, 3, :visible]], actions)
   end
 
   def test_way_nodes_added_and_moved2
-    history = [OSM::Way[[1, 3], :id => 1, :changeset => 3, :version => 1], # created by decliner
-               OSM::Way[[1, 2, 3, 4], :id => 1, :changeset => 1, :version => 2], # node added by agreer
-               OSM::Way[[3, 1, 2, 4], :id => 1, :changeset => 2, :version => 3]] # node moved by agreer
+    history = [OSM::Way[[1, 3], id: 1, changeset: 3, version: 1], # created by decliner
+               OSM::Way[[1, 2, 3, 4], id: 1, changeset: 1, version: 2], # node added by agreer
+               OSM::Way[[3, 1, 2, 4], id: 1, changeset: 2, version: 3]] # node moved by agreer
     bot = ChangeBot.new(@db)
     actions = bot.action_for(history)
-    assert_equal([Edit[OSM::Way[[2, 4], :id => 1, :changeset => -1, :version => 3]],
+    assert_equal([Edit[OSM::Way[[2, 4], id: 1, changeset: -1, version: 3]],
                   Redact[OSM::Way, 1, 1, :hidden],
                   Redact[OSM::Way, 1, 2, :visible],
                   Redact[OSM::Way, 1, 3, :visible]], actions)
   end
 end
 
-if __FILE__ == $PROGRAM_NAME
-  MiniTest::Unit.new.run(ARGV)
-end
+MiniTest::Unit.new.run(ARGV) if $PROGRAM_NAME == __FILE__
