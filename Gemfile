@@ -1,10 +1,14 @@
 source 'http://rubygems.org'
 
-gem 'text'
-gem 'mechanize'
-gem 'libxml-ruby'
 gem 'algorithms'
-gem 'pg'
 #gem 'bzip2-ruby'
+gem 'libxml-ruby'
+gem 'mechanize'
 gem 'oauth'
+gem 'pg'
+gem 'text'
 gem 'typhoeus'
+
+group :test do
+  gem 'minitest'
+end

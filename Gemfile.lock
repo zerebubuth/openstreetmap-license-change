@@ -21,6 +21,7 @@ GEM
       webrobots (>= 0.0.9, < 0.2)
     mime-types (2.99.1)
     mini_portile2 (2.0.0)
+    minitest (5.11.1)
     net-http-digest_auth (1.4)
     net-http-persistent (2.9.4)
     nokogiri (1.6.7.2)
@@ -43,10 +44,11 @@ DEPENDENCIES
   algorithms
   libxml-ruby
   mechanize
+  minitest
   oauth
   pg
   text
   typhoeus
 
 BUNDLED WITH
-   1.11.2
+   1.16.0
