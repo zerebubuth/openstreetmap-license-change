@@ -9,7 +9,7 @@ require './actions'
 require './util.rb'
 require 'minitest/unit'
 
-class TestAutoFail < MiniTest::Unit::TestCase
+class TestAutoFail < Minitest::Test
 
 def setup
   @db = DB.new(:changesets => {

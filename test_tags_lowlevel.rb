@@ -1,7 +1,7 @@
 require './tags'
 require 'minitest/unit'
 
-class TestTagsLowlevel < MiniTest::Unit::TestCase
+class TestTagsLowlevel < Minitest::Test
 
   #------------------------------------------------------------
   # some low-level tags checks.

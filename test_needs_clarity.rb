@@ -19,7 +19,7 @@ require 'minitest/unit'
 #
 ############################################################
 
-class TestNeedsClarity < MiniTest::Unit::TestCase
+class TestNeedsClarity < Minitest::Test
   def setup
     @db = DB.new(:changesets => {
                    1 => Changeset[User[true]],

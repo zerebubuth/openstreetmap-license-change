@@ -8,7 +8,7 @@ require './actions'
 require './util.rb'
 require 'minitest/unit'
 
-class TestReferences < MiniTest::Unit::TestCase
+class TestReferences < Minitest::Test
 
   ##
   # this tests that a clean way may have to be deleted if it contains

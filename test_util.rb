@@ -8,7 +8,7 @@ require './actions'
 require './util.rb'
 require 'minitest/unit'
 
-class TestUtil < MiniTest::Unit::TestCase
+class TestUtil < Minitest::Test
 
   # testing the longest common substring utility function. this isn't
   # license-related directly, but it's used in the way/relation geometry

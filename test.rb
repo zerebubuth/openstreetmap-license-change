@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
-require 'minitest/unit'
+require 'minitest/autorun'
 
 require './test_abbrev'
 require './test_auto'
@@ -18,6 +18,3 @@ require './test_geom'
 require './test_needs_clarity'
 require './test_auto_fail'
 require './test_diff'
-
-MiniTest::Unit.new.run(ARGV)
-

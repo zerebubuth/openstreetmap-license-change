@@ -1,7 +1,7 @@
 require './diff'
 require 'minitest/unit'
 
-class TestDiff < MiniTest::Unit::TestCase
+class TestDiff < Minitest::Test
   def test_diff
     1000.times do
       a = 10.times.map { rand(5) }

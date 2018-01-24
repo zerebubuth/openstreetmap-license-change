@@ -9,7 +9,7 @@ require './actions'
 require './util.rb'
 require 'minitest/unit'
 
-class TestTags < MiniTest::Unit::TestCase
+class TestTags < Minitest::Test
   def setup
     @db = DB.new(:changesets => {
                    1 => Changeset[User[true]],

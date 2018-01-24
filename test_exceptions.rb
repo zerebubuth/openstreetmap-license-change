@@ -8,7 +8,7 @@ require './actions'
 require './util.rb'
 require 'minitest/unit'
 
-class TestExceptions < MiniTest::Unit::TestCase
+class TestExceptions < Minitest::Test
   def setup
     @db = DB.new(:changesets => {
                    1 => Changeset[User[true]],

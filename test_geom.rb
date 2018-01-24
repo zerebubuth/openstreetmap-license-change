@@ -8,7 +8,7 @@ require './actions'
 require './geom'
 require 'minitest/unit'
 
-class TestGeom < MiniTest::Unit::TestCase
+class TestGeom < Minitest::Test
 
   # checks that, under normal circumstances, the application of
   # a bunch of patches derived from a sequence of versions form
